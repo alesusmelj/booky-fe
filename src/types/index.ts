@@ -1,3 +1,4 @@
+// Legacy types - kept for backward compatibility
 export interface User {
   id: string;
   name: string;
@@ -10,3 +11,6 @@ export interface ApiResponse<T> {
   message: string;
   success: boolean;
 }
+
+// Export all API types
+export * from './api';

@@ -185,12 +185,47 @@ logger.info('User refresh not implemented yet');
 logger.warn('Deprecated API endpoint used');
 ```
 
+**IMPORTANT - Production-Ready Logging Guidelines:**
+- **Only log meaningful events** that would be useful in production monitoring
+- **DO NOT log user interactions** like button presses, navigation, or UI events
+- **DO log**: API errors, authentication failures, data corruption, network issues, critical app state changes
+- **DO NOT log**: "User clicked X", "Navigation to Y", "Component rendered", "Button pressed"
+- **Example of good logs**: `logger.error('Authentication token expired', error)` 
+- **Example of bad logs**: `logger.info('User pressed notification button')`
+
 ### Component Best Practices
 - Use `@expo/vector-icons` (MaterialIcons, Feather families)
 - Use `StyleSheet.create()` for performance
 - Follow cross-platform React Native patterns
 - Include proper shadows/elevation for depth
 - Keep components reusable with typed props
+- **Always include testID props** for testing accessibility
+- **Add accessibility labels** for screen readers
+- **Write comprehensive tests** for all components in `__tests__` directory
+
+### Testing Requirements
+**Every component MUST have comprehensive tests:**
+```typescript
+// Required test coverage for components:
+- ✓ Renders correctly with default props
+- ✓ Handles all prop variations (conditional rendering)
+- ✓ Calls event handlers when user interacts
+- ✓ Has proper accessibility attributes
+- ✓ Shows/hides elements based on state
+
+// Test file naming: ComponentName.test.tsx
+// Test location: src/components/__tests__/
+```
+
+**Required testID and accessibility props:**
+```typescript
+<TouchableOpacity
+  testID="button-name"
+  accessible={true}
+  accessibilityLabel="Descriptive label"
+  onPress={handlePress}
+>
+```
 
 ### Common Troubleshooting
 

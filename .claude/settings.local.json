@@ -6,7 +6,11 @@
       "Bash(npm run format:*)",
       "Bash(npm test)",
       "Bash(npm run type-check:*)",
-      "Bash(devcontainer exec:*)"
+      "Bash(devcontainer exec:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run clean:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, SafeAreaView } from 'react-native';
-import { Navbar } from './components';
+import { Navbar, TopNavbar } from './components';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
@@ -12,6 +12,11 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <TopNavbar 
+        hasNotifications={true}
+        onNotificationPress={() => {}}
+        onProfilePress={() => {}}
+      />
       <View style={styles.content}>
         <Text style={styles.title}>Booky App</Text>
         <Text style={styles.subtitle}>Active Tab: {activeTab}</Text>

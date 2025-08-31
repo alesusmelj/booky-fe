@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { setAuthToken, clearAuthToken } from './api';
+import { logger } from '../utils/logger';
 
 // Storage keys
 export const STORAGE_KEYS = {
@@ -16,7 +17,7 @@ export const storage = {
       const jsonValue = JSON.stringify(value);
       await AsyncStorage.setItem(key, jsonValue);
     } catch (error) {
-      console.error(`Error setting storage item ${key}:`, error);
+      logger.error(`Error setting storage item ${key}:`, error);
       throw error;
     }
   },
@@ -27,7 +28,7 @@ export const storage = {
       const jsonValue = await AsyncStorage.getItem(key);
       return jsonValue != null ? JSON.parse(jsonValue) : null;
     } catch (error) {
-      console.error(`Error getting storage item ${key}:`, error);
+      logger.error(`Error getting storage item ${key}:`, error);
       return null;
     }
   },
@@ -37,7 +38,7 @@ export const storage = {
     try {
       await AsyncStorage.removeItem(key);
     } catch (error) {
-      console.error(`Error removing storage item ${key}:`, error);
+      logger.error(`Error removing storage item ${key}:`, error);
       throw error;
     }
   },
@@ -47,7 +48,7 @@ export const storage = {
     try {
       await AsyncStorage.clear();
     } catch (error) {
-      console.error('Error clearing storage:', error);
+      logger.error('Error clearing storage:', error);
       throw error;
     }
   },
@@ -57,7 +58,7 @@ export const storage = {
     try {
       return await AsyncStorage.getAllKeys();
     } catch (error) {
-      console.error('Error getting all storage keys:', error);
+      logger.error('Error getting all storage keys:', error);
       return [];
     }
   },

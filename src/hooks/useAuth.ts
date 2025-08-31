@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { UserDto, UserSignInDto, UserSignUpDto } from '../types/api';
 import { authApi } from '../services/api';
 import { authStorage, userStorage } from '../services/storage';
+import { logger } from '../utils/logger';
 
 export interface AuthState {
   user: UserDto | null;
@@ -64,7 +65,7 @@ export const useAuth = (): AuthState & AuthActions => {
         });
       }
     } catch (error) {
-      console.error('Failed to initialize auth:', error);
+      logger.error('Failed to initialize auth:', error);
       setState({
         user: null,
         token: null,
@@ -145,7 +146,7 @@ export const useAuth = (): AuthState & AuthActions => {
         error: null,
       });
     } catch (error) {
-      console.error('Failed to sign out:', error);
+      logger.error('Failed to sign out:', error);
       // Even if clearing storage fails, clear the state
       setState({
         user: null,
@@ -164,9 +165,9 @@ export const useAuth = (): AuthState & AuthActions => {
       // You would typically have a refresh endpoint or get user endpoint
       // For now, we'll just keep the existing user data
       // In a real app, you might call: const updatedUser = await userApi.getUser(state.user.id);
-      console.log('User refresh not implemented yet');
+      logger.info('User refresh not implemented yet');
     } catch (error) {
-      console.error('Failed to refresh user:', error);
+      logger.error('Failed to refresh user:', error);
     }
   };
 

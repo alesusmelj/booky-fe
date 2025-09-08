@@ -24,8 +24,8 @@ export const strings = {
     textInput: 'Escribe tu post',
   },
 
-  // PostBox component
-  postBox: {
+  // CreatePost component
+  createPost: {
     placeholder: '¿Qué estás leyendo?',
     publishButton: 'Publicar',
     addImageAccessibility: 'Añadir imagen',
@@ -33,6 +33,15 @@ export const strings = {
     textInputAccessibility: 'Escribe tu post',
     imageUpcomingTitle: 'Funcionalidad próximamente',
     imageUpcomingMessage: 'La subida de imágenes estará disponible pronto.',
+  },
+
+  // Post component
+  post: {
+    likeAccessibility: 'Me gusta',
+    commentAccessibility: 'Comentar',
+    shareAccessibility: 'Compartir',
+    userProfileAccessibility: 'Ver perfil de usuario',
+    postImageAccessibility: 'Imagen del post',
   },
 
   // Home screen

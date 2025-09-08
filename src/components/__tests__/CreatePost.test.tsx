@@ -1,6 +1,6 @@
 import { render, fireEvent } from '@testing-library/react-native';
 import { Alert } from 'react-native';
-import { PostBox } from '../PostBox';
+import { CreatePost } from '../CreatePost';
 import { useAuth } from '../../hooks/useAuth';
 import { strings } from '../../constants/strings';
 import { UserDto } from '../../types/api';
@@ -22,7 +22,7 @@ jest.mock('../../utils/logger', () => ({
   },
 }));
 
-describe('PostBox', () => {
+describe('CreatePost', () => {
   const mockUser: UserDto = {
     id: '1',
     username: 'johndoe',
@@ -53,16 +53,16 @@ describe('PostBox', () => {
 
   describe('Rendering', () => {
     it('renders correctly with default props', () => {
-      const { getByTestId, getByPlaceholderText } = render(<PostBox />);
+      const { getByTestId, getByPlaceholderText } = render(<CreatePost />);
       
       expect(getByTestId('user-avatar')).toBeTruthy();
-      expect(getByPlaceholderText(strings.postBox.placeholder)).toBeTruthy();
+      expect(getByPlaceholderText(strings.createPost.placeholder)).toBeTruthy();
       expect(getByTestId('add-image-button')).toBeTruthy();
       expect(getByTestId('publish-button')).toBeTruthy();
     });
 
     it('shows user avatar when user has profileImage', () => {
-      const { getByTestId } = render(<PostBox />);
+      const { getByTestId } = render(<CreatePost />);
       
       expect(getByTestId('user-avatar')).toBeTruthy();
     });
@@ -74,7 +74,7 @@ describe('PostBox', () => {
         user: userWithoutImage,
       });
 
-      const { getByTestId } = render(<PostBox />);
+      const { getByTestId } = render(<CreatePost />);
       
       expect(getByTestId('default-avatar')).toBeTruthy();
     });
@@ -85,19 +85,19 @@ describe('PostBox', () => {
         user: null,
       });
 
-      const { getByTestId } = render(<PostBox />);
+      const { getByTestId } = render(<CreatePost />);
       
       expect(getByTestId('default-avatar')).toBeTruthy();
     });
 
     it('shows character count when showCharacterCount is true', () => {
-      const { getByText } = render(<PostBox maxLength={100} showCharacterCount={true} />);
+      const { getByText } = render(<CreatePost maxLength={100} showCharacterCount={true} />);
       
       expect(getByText('0/100')).toBeTruthy();
     });
 
     it('does not show character count when showCharacterCount is false', () => {
-      const { queryByText } = render(<PostBox />);
+      const { queryByText } = render(<CreatePost />);
       
       expect(queryByText(/\d+\/\d+/)).toBeFalsy();
     });
@@ -105,19 +105,19 @@ describe('PostBox', () => {
 
   describe('Accessibility', () => {
     it('has proper accessibility labels', () => {
-      const { getByTestId } = render(<PostBox />);
+      const { getByTestId } = render(<CreatePost />);
       
       const textInput = getByTestId('post-text-input');
       const imageButton = getByTestId('add-image-button');
       const publishButton = getByTestId('publish-button');
 
-      expect(textInput.props.accessibilityLabel).toBe(strings.postBox.textInputAccessibility);
-      expect(imageButton.props.accessibilityLabel).toBe(strings.postBox.addImageAccessibility);
-      expect(publishButton.props.accessibilityLabel).toBe(strings.postBox.publishAccessibility);
+      expect(textInput.props.accessibilityLabel).toBe(strings.createPost.textInputAccessibility);
+      expect(imageButton.props.accessibilityLabel).toBe(strings.createPost.addImageAccessibility);
+      expect(publishButton.props.accessibilityLabel).toBe(strings.createPost.publishAccessibility);
     });
 
     it('has accessible prop set to true for interactive elements', () => {
-      const { getByTestId } = render(<PostBox />);
+      const { getByTestId } = render(<CreatePost />);
       
       const textInput = getByTestId('post-text-input');
       const imageButton = getByTestId('add-image-button');
@@ -131,7 +131,7 @@ describe('PostBox', () => {
 
   describe('Text Input Functionality', () => {
     it('updates text content when user types', () => {
-      const { getByTestId } = render(<PostBox />);
+      const { getByTestId } = render(<CreatePost />);
       const textInput = getByTestId('post-text-input');
       
       fireEvent.changeText(textInput, 'Test post content');
@@ -140,7 +140,7 @@ describe('PostBox', () => {
     });
 
     it('updates character count when user types', () => {
-      const { getByTestId, getByText } = render(<PostBox maxLength={100} showCharacterCount={true} />);
+      const { getByTestId, getByText } = render(<CreatePost maxLength={100} showCharacterCount={true} />);
       const textInput = getByTestId('post-text-input');
       
       fireEvent.changeText(textInput, 'Hello world');
@@ -149,14 +149,14 @@ describe('PostBox', () => {
     });
 
     it('respects maxLength prop', () => {
-      const { getByTestId } = render(<PostBox maxLength={10} />);
+      const { getByTestId } = render(<CreatePost maxLength={10} />);
       const textInput = getByTestId('post-text-input');
       
       expect(textInput.props.maxLength).toBe(10);
     });
 
     it('is disabled when disabled prop is true', () => {
-      const { getByTestId } = render(<PostBox disabled={true} />);
+      const { getByTestId } = render(<CreatePost disabled={true} />);
       const textInput = getByTestId('post-text-input');
       
       expect(textInput.props.editable).toBe(false);
@@ -165,14 +165,14 @@ describe('PostBox', () => {
 
   describe('Publish Button State', () => {
     it('is disabled when text is empty and no images', () => {
-      const { getByTestId } = render(<PostBox />);
+      const { getByTestId } = render(<CreatePost />);
       const publishButton = getByTestId('publish-button');
       
       expect(publishButton.props.accessibilityState?.disabled).toBe(true);
     });
 
     it('is enabled when text has content', () => {
-      const { getByTestId } = render(<PostBox />);
+      const { getByTestId } = render(<CreatePost />);
       const textInput = getByTestId('post-text-input');
       const publishButton = getByTestId('publish-button');
       
@@ -182,7 +182,7 @@ describe('PostBox', () => {
     });
 
     it('is disabled when text is only whitespace', () => {
-      const { getByTestId } = render(<PostBox />);
+      const { getByTestId } = render(<CreatePost />);
       const textInput = getByTestId('post-text-input');
       const publishButton = getByTestId('publish-button');
       
@@ -192,7 +192,7 @@ describe('PostBox', () => {
     });
 
     it('is disabled when disabled prop is true', () => {
-      const { getByTestId } = render(<PostBox disabled={true} />);
+      const { getByTestId } = render(<CreatePost disabled={true} />);
       const publishButton = getByTestId('publish-button');
       
       expect(publishButton.props.accessibilityState?.disabled).toBe(true);
@@ -202,7 +202,7 @@ describe('PostBox', () => {
   describe('Post Creation', () => {
     it('calls onPost callback when publish button is pressed with content', () => {
       const mockOnPost = jest.fn();
-      const { getByTestId } = render(<PostBox onPost={mockOnPost} />);
+      const { getByTestId } = render(<CreatePost onPost={mockOnPost} />);
       const textInput = getByTestId('post-text-input');
       const publishButton = getByTestId('publish-button');
       
@@ -214,7 +214,7 @@ describe('PostBox', () => {
 
     it('clears text after successful post', () => {
       const mockOnPost = jest.fn();
-      const { getByTestId } = render(<PostBox onPost={mockOnPost} />);
+      const { getByTestId } = render(<CreatePost onPost={mockOnPost} />);
       const textInput = getByTestId('post-text-input');
       const publishButton = getByTestId('publish-button');
       
@@ -226,7 +226,7 @@ describe('PostBox', () => {
 
     it('trims whitespace from post content', () => {
       const mockOnPost = jest.fn();
-      const { getByTestId } = render(<PostBox onPost={mockOnPost} />);
+      const { getByTestId } = render(<CreatePost onPost={mockOnPost} />);
       const textInput = getByTestId('post-text-input');
       const publishButton = getByTestId('publish-button');
       
@@ -238,7 +238,7 @@ describe('PostBox', () => {
 
     it('does not call onPost when button is disabled', () => {
       const mockOnPost = jest.fn();
-      const { getByTestId } = render(<PostBox onPost={mockOnPost} />);
+      const { getByTestId } = render(<CreatePost onPost={mockOnPost} />);
       const publishButton = getByTestId('publish-button');
       
       fireEvent.press(publishButton);
@@ -249,7 +249,7 @@ describe('PostBox', () => {
 
   describe('Image Functionality', () => {
     it('shows alert when image button is pressed', () => {
-      const { getByTestId } = render(<PostBox />);
+      const { getByTestId } = render(<CreatePost />);
       const imageButton = getByTestId('add-image-button');
       
       fireEvent.press(imageButton);
@@ -261,7 +261,7 @@ describe('PostBox', () => {
     });
 
     it('image button is disabled when disabled prop is true', () => {
-      const { getByTestId } = render(<PostBox disabled={true} />);
+      const { getByTestId } = render(<CreatePost disabled={true} />);
       const imageButton = getByTestId('add-image-button');
       
       expect(imageButton.props.accessibilityState?.disabled).toBe(true);
@@ -274,7 +274,7 @@ describe('PostBox', () => {
         throw new Error('Post creation failed');
       });
       
-      const { getByTestId } = render(<PostBox onPost={mockOnPost} />);
+      const { getByTestId } = render(<CreatePost onPost={mockOnPost} />);
       const textInput = getByTestId('post-text-input');
       const publishButton = getByTestId('publish-button');
       

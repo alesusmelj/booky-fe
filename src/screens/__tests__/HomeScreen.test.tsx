@@ -1,9 +1,10 @@
 import { render } from '@testing-library/react-native';
 import { HomeScreen } from '../HomeScreen';
 
-// Mock the PostBox component
+// Mock the components
 jest.mock('../../components', () => ({
-  PostBox: 'PostBox',
+  CreatePost: 'CreatePost',
+  Post: 'Post',
 }));
 
 // Mock logger
@@ -24,7 +25,7 @@ describe('HomeScreen', () => {
     expect(getByText('¡Sigue a otros usuarios para ver sus posts aquí!')).toBeTruthy();
   });
 
-  it('contains PostBox component', () => {
+  it('contains CreatePost and Post components', () => {
     const { root } = render(<HomeScreen />);
     
     // Just verify the component renders without errors

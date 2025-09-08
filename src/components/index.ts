@@ -1,4 +1,6 @@
 // Export all components from this index file
 export { Navbar } from './Navbar';
 export { TopNavbar } from './TopNavbar';
-export { PostBox } from './PostBox';
+export { CreatePost } from './CreatePost';
+export { Post, PostData } from './Post';
+export type { PostData as PostDataType } from './Post';

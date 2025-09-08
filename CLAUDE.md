@@ -255,3 +255,63 @@ npm test               # Should pass (all tests)
 // For logger utility only:
 /* eslint-disable no-console */
 ```
+
+## Code Quality Standards (MANDATORY)
+
+**These standards MUST be followed for every feature development:**
+
+### 1. String Externalization
+- **NO hardcoded text strings** in components
+- **ALL text must be in** `src/constants/strings.ts`
+- **Import and use**: `import { strings } from '../constants'`
+- **Structure strings by domain**: `strings.navigation.home`, `strings.errors.postCreationFailed`
+
+### 2. TODO Management
+- **EVERY TODO comment** must be tracked in `claude_todo.md`
+- **Format**: Include location, task description, priority, effort, dependencies
+- **Search for TODOs** before starting new features: `grep -r "TODO" src/`
+- **Update the file** immediately when adding new TODOs
+
+### 3. Color Palette Usage
+- **NO hardcoded hex colors** in components
+- **ALL colors must use** the palette: `src/constants/colors.ts`
+- **Import and use**: `import { colors, theme } from '../constants'`
+- **Examples**: `colors.primary.main`, `colors.neutral.gray500`, `theme.background.primary`
+
+### 4. Mandatory File Structure for Features
+```
+src/
+├── constants/
+│   ├── strings.ts    # All text content
+│   ├── colors.ts     # Color palette and theme
+│   └── index.ts      # Export all constants
+├── components/       # Import: { strings, colors, theme }
+├── screens/          # Import: { strings, colors, theme }
+└── App.tsx          # Import: { strings, colors, theme }
+```
+
+### 5. Before Committing ANY Feature
+```bash
+# 1. Check for violations
+grep -r "#[0-9A-Fa-f]" src/           # No hardcoded colors
+grep -r "TODO" src/                   # Check TODOs are tracked
+grep -r "'.*'" src/components/        # No hardcoded strings
+
+# 2. Run quality checks
+npm run type-check                    # Must pass
+npm run lint                         # Must pass  
+npm test                             # Must pass
+```
+
+### 6. Feature Development Checklist
+Before marking any feature as "complete":
+
+- [ ] All text externalized to `strings.ts`
+- [ ] All colors use the palette from `colors.ts`
+- [ ] All TODOs documented in `claude_todo.md`
+- [ ] Component tests written and passing
+- [ ] TypeScript validation passes
+- [ ] ESLint passes without errors
+- [ ] All navigation flows work correctly
+
+**FAILURE TO FOLLOW THESE STANDARDS WILL REQUIRE REFACTORING BEFORE PROCEEDING.**

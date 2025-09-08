@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialIcons, Feather } from '@expo/vector-icons';
+import { strings, colors } from '../constants';
 
 interface NavbarProps {
   activeTab?: string;
@@ -15,11 +16,11 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { key: 'home', icon: 'home', label: 'Home', iconFamily: 'MaterialIcons' },
-  { key: 'search', icon: 'search', label: 'Search', iconFamily: 'MaterialIcons' },
-  { key: 'market', icon: 'tag', label: 'Market', iconFamily: 'Feather' },
-  { key: 'community', icon: 'people', label: 'Community', iconFamily: 'MaterialIcons' },
-  { key: 'messages', icon: 'message-circle', label: 'Messages', iconFamily: 'Feather' },
+  { key: 'home', icon: 'home', label: strings.navigation.home, iconFamily: 'MaterialIcons' },
+  { key: 'search', icon: 'search', label: strings.navigation.search, iconFamily: 'MaterialIcons' },
+  { key: 'market', icon: 'tag', label: strings.navigation.market, iconFamily: 'Feather' },
+  { key: 'community', icon: 'people', label: strings.navigation.community, iconFamily: 'MaterialIcons' },
+  { key: 'messages', icon: 'message-circle', label: strings.navigation.messages, iconFamily: 'Feather' },
 ];
 
 export const Navbar: React.FC<NavbarProps> = ({ 
@@ -27,7 +28,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onTabPress = () => {} 
 }) => {
   const renderIcon = (item: NavItem, isActive: boolean) => {
-    const iconColor = isActive ? '#6366F1' : '#6B7280';
+    const iconColor = isActive ? colors.primary.main : colors.neutral.gray500;
     const iconSize = 24;
 
     if (item.iconFamily === 'MaterialIcons') {
@@ -78,14 +79,14 @@ export const Navbar: React.FC<NavbarProps> = ({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.neutral.white,
     paddingVertical: 12,
     paddingHorizontal: 16,
     justifyContent: 'space-around',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    shadowColor: '#000',
+    borderTopColor: colors.neutral.gray200,
+    shadowColor: colors.shadow.default,
     shadowOffset: {
       width: 0,
       height: -2,
@@ -103,12 +104,12 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#6B7280',
+    color: colors.neutral.gray500,
     marginTop: 4,
     textAlign: 'center',
   },
   activeLabel: {
-    color: '#6366F1',
+    color: colors.primary.main,
     fontWeight: '600',
   },
 });

@@ -13,14 +13,14 @@ import { useAuth } from '../hooks/useAuth';
 import { strings, colors } from '../constants';
 import { logger } from '../utils/logger';
 
-interface PostBoxProps {
+interface CreatePostProps {
   onPost?: (content: string, images?: string[]) => void;
   maxLength?: number;
   disabled?: boolean;
   showCharacterCount?: boolean;
 }
 
-export const PostBox: React.FC<PostBoxProps> = ({
+export const CreatePost: React.FC<CreatePostProps> = ({
   onPost = () => {},
   maxLength = 280,
   disabled = false,
@@ -50,8 +50,8 @@ export const PostBox: React.FC<PostBoxProps> = ({
     // TODO: Implement image picker functionality
     // This would typically use expo-image-picker
     Alert.alert(
-      strings.postBox.imageUpcomingTitle,
-      strings.postBox.imageUpcomingMessage
+      strings.createPost.imageUpcomingTitle,
+      strings.createPost.imageUpcomingMessage
     );
     logger.info('Image upload feature not implemented yet');
   };
@@ -82,7 +82,7 @@ export const PostBox: React.FC<PostBoxProps> = ({
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.textInput}
-            placeholder={strings.postBox.placeholder}
+            placeholder={strings.createPost.placeholder}
             placeholderTextColor={colors.neutral.gray400}
             value={postContent}
             onChangeText={setPostContent}
@@ -91,7 +91,7 @@ export const PostBox: React.FC<PostBoxProps> = ({
             editable={!disabled}
             testID="post-text-input"
             accessible={true}
-            accessibilityLabel={strings.postBox.textInputAccessibility}
+            accessibilityLabel={strings.createPost.textInputAccessibility}
           />
         </View>
       </View>
@@ -104,7 +104,7 @@ export const PostBox: React.FC<PostBoxProps> = ({
           disabled={disabled}
           testID="add-image-button"
           accessible={true}
-          accessibilityLabel={strings.postBox.addImageAccessibility}
+          accessibilityLabel={strings.createPost.addImageAccessibility}
         >
           <MaterialIcons 
             name="image" 
@@ -123,7 +123,7 @@ export const PostBox: React.FC<PostBoxProps> = ({
           disabled={isPostDisabled}
           testID="publish-button"
           accessible={true}
-          accessibilityLabel={strings.postBox.publishAccessibility}
+          accessibilityLabel={strings.createPost.publishAccessibility}
         >
           <Text 
             style={[
@@ -131,7 +131,7 @@ export const PostBox: React.FC<PostBoxProps> = ({
               isPostDisabled && styles.publishButtonTextDisabled,
             ]}
           >
-            {strings.postBox.publishButton}
+            {strings.createPost.publishButton}
           </Text>
         </TouchableOpacity>
       </View>

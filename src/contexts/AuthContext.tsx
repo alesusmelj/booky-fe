@@ -4,6 +4,29 @@ import { authApi } from '../services/api';
 import { authStorage, userStorage } from '../services/storage';
 import { logger } from '../utils/logger';
 
+// Enable mock mode for mobile testing (set to true to bypass backend)
+const ENABLE_MOCK_AUTH = true;
+
+// Mock user data for testing
+const mockUser: UserDto = {
+  id: 'mock-user-123',
+  username: 'usuario_prueba',
+  email: 'test@booky.com',
+  name: 'María',
+  lastname: 'González',
+  description: 'Amante de la literatura clásica y contemporánea',
+  address: {
+    id: 'address-123',
+    state: 'Buenos Aires',
+    country: 'Argentina',
+    longitude: -58.3816,
+    latitude: -34.6037,
+  },
+  date_created: '2024-01-01T00:00:00.000Z',
+};
+
+const mockToken = 'mock-jwt-token-for-testing-123';
+
 export interface AuthState {
   user: UserDto | null;
   token: string | null;
@@ -89,34 +112,65 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
       logger.info('Attempting to sign in with credentials:', credentials.email);
-      const response = await authApi.signIn(credentials);
-      logger.info('Sign in API response received:', response);
-      
-      // Validate response structure
-      if (!response.token) {
-        logger.error('Missing token in sign in response:', response);
-        throw new Error('Invalid response: missing token');
-      }
-      
-      if (!response.user) {
-        logger.error('Missing user in sign in response:', response);
-        throw new Error('Invalid response: missing user');
-      }
-      
-      logger.info('Storing authentication data...');
-      // Store token and user data
-      await Promise.all([
-        authStorage.saveToken(response.token),
-        userStorage.saveUser(response.user),
-      ]);
 
-      setState({
-        user: response.user,
-        token: response.token,
-        isAuthenticated: true,
-        isLoading: false,
-        error: null,
-      });
+      if (ENABLE_MOCK_AUTH) {
+        // Mock authentication for mobile testing
+        logger.info('Using mock authentication for mobile testing');
+        
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const response = {
+          token: mockToken,
+          user: mockUser,
+        };
+
+        logger.info('Mock sign in response:', response);
+        
+        // Store token and user data
+        await Promise.all([
+          authStorage.saveToken(response.token),
+          userStorage.saveUser(response.user),
+        ]);
+
+        setState({
+          user: response.user,
+          token: response.token,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null,
+        });
+      } else {
+        // Real API call
+        const response = await authApi.signIn(credentials);
+        logger.info('Sign in API response received:', response);
+        
+        // Validate response structure
+        if (!response.token) {
+          logger.error('Missing token in sign in response:', response);
+          throw new Error('Invalid response: missing token');
+        }
+        
+        if (!response.user) {
+          logger.error('Missing user in sign in response:', response);
+          throw new Error('Invalid response: missing user');
+        }
+        
+        logger.info('Storing authentication data...');
+        // Store token and user data
+        await Promise.all([
+          authStorage.saveToken(response.token),
+          userStorage.saveUser(response.user),
+        ]);
+
+        setState({
+          user: response.user,
+          token: response.token,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null,
+        });
+      }
     } catch (error) {
       logger.error('Sign in failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
@@ -133,13 +187,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      await authApi.signUp(userData);
+      if (ENABLE_MOCK_AUTH) {
+        // Mock signup for mobile testing
+        logger.info('Using mock signup for mobile testing');
+        
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // After successful mock signup, automatically sign in
+        await signIn({
+          email: userData.email,
+          password: userData.password,
+        });
+      } else {
+        // Real API call
+        await authApi.signUp(userData);
 
-      // After successful signup, automatically sign in
-      await signIn({
-        email: userData.email,
-        password: userData.password,
-      });
+        // After successful signup, automatically sign in
+        await signIn({
+          email: userData.email,
+          password: userData.password,
+        });
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Registration failed';
       setState(prev => ({

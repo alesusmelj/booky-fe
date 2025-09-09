@@ -50,12 +50,32 @@ export const strings = {
     emptyFeedMessage: '¡Sigue a otros usuarios para ver sus posts aquí!',
   },
 
+  // Search screen
+  search: {
+    title: 'Buscar',
+    placeholder: 'Buscar libros, personas, comunidades...',
+    filters: {
+      books: 'Libros',
+      people: 'Personas',
+      communities: 'Comunidades',
+    },
+    sections: {
+      books: 'Libros',
+      people: 'Personas',
+      communities: 'Comunidades',
+    },
+    readersMap: 'Mapa de Lectores',
+    bookStatus: {
+      read: 'Leído',
+      reading: 'Leyendo',
+      available: 'Disponible',
+      wishlist: 'Lista de deseos',
+    },
+  },
+
   // Placeholder screens
   placeholders: {
     comingSoon: 'Próximamente',
-    search: {
-      title: 'Buscar',
-    },
     communities: {
       title: 'Comunidades',
     },

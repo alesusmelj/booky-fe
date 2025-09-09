@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, SafeAreaView } from 'react-native';
 import { Navbar, TopNavbar } from './components';
-import { HomeScreen } from './screens';
+import { HomeScreen, SearchScreen } from './screens';
 import { strings, colors } from './constants';
 
 export default function App() {
@@ -17,12 +17,7 @@ export default function App() {
       case 'home':
         return <HomeScreen />;
       case 'search':
-        return (
-          <View style={styles.placeholderContent}>
-            <Text style={styles.placeholderTitle}>{strings.placeholders.search.title}</Text>
-            <Text style={styles.placeholderSubtitle}>{strings.placeholders.comingSoon}</Text>
-          </View>
-        );
+        return <SearchScreen />;
       case 'community':
         return (
           <View style={styles.placeholderContent}>

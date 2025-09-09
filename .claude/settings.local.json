@@ -11,7 +11,8 @@
       "Bash(npm run lint:*)",
       "Bash(npm run clean:*)",
       "Bash(git commit:*)",
-      "Bash(npm start)"
+      "Bash(npm start)",
+      "Bash(npm start:*)"
     ],
     "deny": [],
     "ask": []

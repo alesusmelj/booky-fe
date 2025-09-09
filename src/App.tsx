@@ -1,16 +1,37 @@
 import { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, SafeAreaView } from 'react-native';
+import { StyleSheet, Text, View, SafeAreaView, ActivityIndicator } from 'react-native';
 import { Navbar, TopNavbar } from './components';
-import { HomeScreen, SearchScreen } from './screens';
+import { HomeScreen, SearchScreen, LoginScreen } from './screens';
 import { strings, colors } from './constants';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 
-export default function App() {
+function AppContent() {
   const [activeTab, setActiveTab] = useState('home');
+  const { isAuthenticated, isLoading } = useAuth();
 
   const handleTabPress = (tab: string) => {
     setActiveTab(tab);
   };
+
+  // Show loading screen while checking authentication
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary.main} />
+      </View>
+    );
+  }
+
+  // Show login screen if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <LoginScreen />
+        <StatusBar style="auto" />
+      </SafeAreaView>
+    );
+  }
 
   const renderContent = () => {
     switch (activeTab) {
@@ -77,6 +98,14 @@ export default function App() {
   );
 }
 
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -84,6 +113,12 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.neutral.white,
   },
   placeholderContent: {
     flex: 1,

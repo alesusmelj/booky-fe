@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { UserDto, UserSignInDto, UserSignUpDto } from '../types/api';
 import { authApi } from '../services/api';
 import { authStorage, userStorage } from '../services/storage';
@@ -20,7 +20,15 @@ export interface AuthActions {
   refreshUser: () => Promise<void>;
 }
 
-export const useAuth = (): AuthState & AuthActions => {
+type AuthContextType = AuthState & AuthActions;
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [state, setState] = useState<AuthState>({
     user: null,
     token: null,
@@ -80,8 +88,22 @@ export const useAuth = (): AuthState & AuthActions => {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
+      logger.info('Attempting to sign in with credentials:', credentials.email);
       const response = await authApi.signIn(credentials);
+      logger.info('Sign in API response received:', response);
       
+      // Validate response structure
+      if (!response.token) {
+        logger.error('Missing token in sign in response:', response);
+        throw new Error('Invalid response: missing token');
+      }
+      
+      if (!response.user) {
+        logger.error('Missing user in sign in response:', response);
+        throw new Error('Invalid response: missing user');
+      }
+      
+      logger.info('Storing authentication data...');
       // Store token and user data
       await Promise.all([
         authStorage.saveToken(response.token),
@@ -96,6 +118,7 @@ export const useAuth = (): AuthState & AuthActions => {
         error: null,
       });
     } catch (error) {
+      logger.error('Sign in failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
       setState(prev => ({
         ...prev,
@@ -175,7 +198,7 @@ export const useAuth = (): AuthState & AuthActions => {
     setState(prev => ({ ...prev, error: null }));
   };
 
-  return {
+  const contextValue: AuthContextType = {
     ...state,
     signIn,
     signUp,
@@ -183,4 +206,18 @@ export const useAuth = (): AuthState & AuthActions => {
     clearError,
     refreshUser,
   };
+
+  return (
+    <AuthContext.Provider value={contextValue}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = (): AuthContextType => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };

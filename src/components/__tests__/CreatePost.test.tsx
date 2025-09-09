@@ -1,12 +1,12 @@
 import { render, fireEvent } from '@testing-library/react-native';
 import { Alert } from 'react-native';
 import { CreatePost } from '../CreatePost';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../contexts/AuthContext';
 import { strings } from '../../constants/strings';
 import { UserDto } from '../../types/api';
 
 // Mock the useAuth hook
-jest.mock('../../hooks/useAuth');
+jest.mock('../../contexts/AuthContext');
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
 
 // Mock Alert

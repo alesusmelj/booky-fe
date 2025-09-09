@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.background.primary,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    paddingTop: 48,
+    paddingTop: 6,
     borderBottomWidth: 1,
     borderBottomColor: colors.neutral.gray200,
     shadowColor: colors.shadow.default,

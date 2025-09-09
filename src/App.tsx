@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, SafeAreaView, ActivityIndicator } from 'react-native';
 import { Navbar, TopNavbar } from './components';
 import { HomeScreen, SearchScreen, LoginScreen } from './screens';
+import CommerceScreen from './screens/CommerceScreen';
 import { strings, colors } from './constants';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
@@ -46,13 +47,8 @@ function AppContent() {
             <Text style={styles.placeholderSubtitle}>{strings.placeholders.comingSoon}</Text>
           </View>
         );
-      case 'market':
-        return (
-          <View style={styles.placeholderContent}>
-            <Text style={styles.placeholderTitle}>{strings.navigation.market}</Text>
-            <Text style={styles.placeholderSubtitle}>{strings.placeholders.comingSoon}</Text>
-          </View>
-        );
+      case 'commerce':
+        return <CommerceScreen />;
       case 'messages':
         return (
           <View style={styles.placeholderContent}>

@@ -8,7 +8,7 @@ export const strings = {
   navigation: {
     home: 'Inicio',
     search: 'Buscar',
-    market: 'Mercado',
+    commerce: 'Comercio',
     community: 'Comunidad',
     messages: 'Mensajes',
     library: 'Biblioteca',
@@ -70,6 +70,44 @@ export const strings = {
       reading: 'Leyendo',
       available: 'Disponible',
       wishlist: 'Lista de deseos',
+    },
+  },
+
+  // Commerce screen
+  commerce: {
+    title: 'Comercio',
+    tabs: {
+      tradeBooks: 'Intercambiar Libros',
+      myLibrary: 'Mi Biblioteca',
+    },
+    actions: {
+      newExchange: 'Solicitar Nuevo Intercambio',
+      chat: 'Chat',
+      cancel: 'Cancelar',
+      counterOffer: 'Contra Oferta',
+      accept: 'Aceptar',
+      reject: 'Rechazar',
+      makeAvailable: 'Disponible',
+    },
+    sections: {
+      receivedOffers: 'Ofertas Recibidas',
+      activeOrders: 'Tus Pedidos Activos',
+      myBooks: 'Mis Libros',
+    },
+    status: {
+      pending: 'PENDIENTE',
+      active: 'ACTIVO',
+      available: 'Disponible para intercambio',
+      notAvailable: 'Toca para marcar como disponible',
+    },
+    labels: {
+      requests: 'Solicita libros:',
+      offers: 'Ofrece:',
+      applicant: 'Solicitante',
+      owner: 'Propietario',
+      you: 'Tú',
+      exchange: 'intercambio',
+      searchBooks: 'Busca tus libros...',
     },
   },
 

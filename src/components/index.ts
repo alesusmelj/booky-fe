@@ -12,3 +12,11 @@ export { BookCard, type BookData } from './BookCard';
 export { PersonCard, type PersonData } from './PersonCard';
 export { CommunityCard, type CommunityData } from './CommunityCard';
 export { ReadersMapButton } from './ReadersMapButton';
+
+// Commerce components
+export { CommerceToggle } from './CommerceToggle';
+export { TradeBooksView } from './TradeBooksView';
+export { MyLibraryView } from './MyLibraryView';
+export { OfferCard } from './OfferCard';
+export { OrderCard } from './OrderCard';
+export { LibraryBookCard } from './LibraryBookCard';

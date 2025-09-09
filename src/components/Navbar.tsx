@@ -18,7 +18,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { key: 'home', icon: 'home', label: strings.navigation.home, iconFamily: 'MaterialIcons' },
   { key: 'search', icon: 'search', label: strings.navigation.search, iconFamily: 'MaterialIcons' },
-  { key: 'market', icon: 'tag', label: strings.navigation.market, iconFamily: 'Feather' },
+  { key: 'commerce', icon: 'shopping-bag', label: strings.navigation.commerce, iconFamily: 'Feather' },
   { key: 'community', icon: 'people', label: strings.navigation.community, iconFamily: 'MaterialIcons' },
   { key: 'messages', icon: 'message-circle', label: strings.navigation.messages, iconFamily: 'Feather' },
 ];

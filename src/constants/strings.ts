@@ -87,9 +87,25 @@ export const strings = {
     },
   },
 
+  // Auth screens
+  auth: {
+    signIn: 'Iniciar sesión',
+    signUp: 'Crear cuenta',
+    email: 'Correo electrónico',
+    password: 'Contraseña',
+    rememberMe: 'Recordarme',
+    forgotPassword: '¿Olvidaste tu contraseña?',
+    notRegistered: '¿No estás registrado aún?',
+    createAccount: 'Crear una cuenta',
+    appTagline: 'Tu red social literaria',
+  },
+
   // Error messages
   errors: {
     postCreationFailed: 'No se pudo crear el post. Intenta de nuevo.',
     genericError: 'Ha ocurrido un error. Intenta de nuevo.',
+    loginFailed: 'Error al iniciar sesión. Verifica tus credenciales.',
+    invalidEmail: 'Ingresa un correo electrónico válido.',
+    passwordRequired: 'La contraseña es requerida.',
   },
 } as const;

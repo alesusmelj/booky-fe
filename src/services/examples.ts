@@ -6,7 +6,7 @@
 /* eslint-disable no-unused-vars */
 
 import { api, ApiError } from './api';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../contexts/AuthContext';
 import { BookStatus, ExchangeStatus } from '../types/api';
 
 // Example: User Authentication

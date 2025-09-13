@@ -181,16 +181,17 @@ export const Calendar: React.FC<CalendarProps> = ({
 };
 
 const { width } = Dimensions.get('window');
-const calendarWidth = width - 32; // 16px margin on each side
-const cellSize = calendarWidth / 7;
+const calendarWidth = width - 80; // More margin for modal context (40px on each side)
+const cellSize = Math.floor(calendarWidth / 7);
 
 const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.neutral.white,
     borderRadius: 12,
-    padding: 16,
+    padding: 12,
     borderWidth: 1,
     borderColor: colors.neutral.gray200,
+    marginHorizontal: 4,
   },
   header: {
     flexDirection: 'row',

@@ -29,3 +29,4 @@ export { Calendar } from './Calendar';
 export { TimePicker } from './TimePicker';
 export { MeetingScheduler } from './MeetingScheduler';
 export { CreateReadingClubModal } from './CreateReadingClubModal';
+export { SetMeetingModal } from './SetMeetingModal';

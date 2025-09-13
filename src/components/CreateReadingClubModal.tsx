@@ -28,9 +28,7 @@ interface CreateReadingClubModalProps {
     name: string;
     description: string;
     selectedBook: Book;
-    firstMeetingDate: Date;
-    meetingTime: { hour: number; minute: number };
-    formattedMeetingDateTime: string;
+    nextMeeting: string;
   }) => void;
 }
 
@@ -105,9 +103,7 @@ export const CreateReadingClubModal: React.FC<CreateReadingClubModalProps> = ({
         name: clubName,
         description: clubDescription,
         selectedBook,
-        firstMeetingDate: selectedDate,
-        meetingTime: selectedTime,
-        formattedMeetingDateTime: formattedDateTime
+        nextMeeting: formattedDateTime
       });
       resetForm();
     }

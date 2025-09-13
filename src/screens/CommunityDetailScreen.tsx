@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { colors } from '../constants';
 import { logger } from '../utils/logger';
-import { ActiveReadingClub, MeetingScheduler, CreateReadingClubModal } from '../components';
+import { ActiveReadingClub, CreateReadingClubModal, SetMeetingModal } from '../components';
 
 // Mock data - should be moved to a service later
 const users = [
@@ -332,24 +332,21 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
     name: string;
     description: string;
     selectedBook: any;
-    firstMeetingDate: Date;
-    meetingTime: { hour: number; minute: number };
-    formattedMeetingDateTime: string;
+    nextMeeting: string;
   }) => {
     // In a real app, this would create a new reading club
     logger.info('Create club:', clubData);
-    logger.info('Formatted meeting date-time:', clubData.formattedMeetingDateTime);
+    logger.info('Formatted meeting date-time:', clubData.nextMeeting);
     setShowCreateClubModal(false);
   };
 
   const handleSetMeeting = (meetingData: {
-    date: Date;
-    time: { hour: number; minute: number };
-    chapter?: number;
-    notes?: string;
+    chapter: number;
+    nextMeeting: string;
   }) => {
     // In a real app, this would update the meeting details
     logger.info('Meeting scheduled:', meetingData);
+    logger.info('Formatted meeting date-time:', meetingData.nextMeeting);
     setShowSetMeetingModal(false);
     setSelectedClub(null);
   };
@@ -550,34 +547,17 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
       />
 
       {/* Set Meeting Modal */}
-      <Modal
-        visible={showSetMeetingModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => {
-          setShowSetMeetingModal(false);
-          setSelectedClub(null);
-        }}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.meetingSchedulerContainer}>
-            {selectedClub && (
-              <MeetingScheduler
-                title={`Programar Meeting - ${selectedClub.name}`}
-                initialTime={{ hour: 19, minute: 0 }}
-                maxChapter={selectedClub.currentBook.totalChapters}
-                initialChapter={selectedClub.currentBook.currentChapter + 1}
-                onSchedule={handleSetMeeting}
-                onCancel={() => {
-                  setShowSetMeetingModal(false);
-                  setSelectedClub(null);
-                }}
-                showChapterSelection={true}
-              />
-            )}
-          </View>
-        </View>
-      </Modal>
+      {selectedClub && (
+        <SetMeetingModal
+          visible={showSetMeetingModal}
+          clubName={selectedClub.name}
+          onClose={() => {
+            setShowSetMeetingModal(false);
+            setSelectedClub(null);
+          }}
+          onSetMeeting={handleSetMeeting}
+        />
+      )}
     </View>
   );
 };

@@ -5,6 +5,7 @@ module.exports = {
     jest: true,
   },
   extends: ['eslint:recommended'],
+  ignorePatterns: ['example/**/*'],
   parser: '@typescript-eslint/parser',
   parserOptions: {
     ecmaVersion: 2021,

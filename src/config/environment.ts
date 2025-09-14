@@ -22,7 +22,7 @@ export const getCurrentEnvironment = (): Environment => {
 // Environment-specific configurations
 export const environmentConfig = {
   development: {
-    apiBaseUrl: "http://localhost:8080",
+    apiBaseUrl: "https://booky-be.fly.dev",
     enableLogging: true,
     enableMockData: false,
     apiTimeout: 10000, // 10 seconds

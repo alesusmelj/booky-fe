@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { colors } from '../constants';
 import { logger } from '../utils/logger';
-import { CreateReadingClubModal, SetMeetingModal, Post, PostData, CreatePost } from '../components';
+import { CreateReadingClubModal, SetMeetingModal, Post, PostData, CreatePost, VideoCallRoom } from '../components';
 import { useCommunity, usePosts, useReadingClubs } from '../hooks';
 import { CommunityDto } from '../types/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -262,6 +262,8 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
   const [showCreateClubModal, setShowCreateClubModal] = useState(false);
   const [showSetMeetingModal, setShowSetMeetingModal] = useState(false);
   const [selectedClub, setSelectedClub] = useState<any | null>(null);
+  const [showVideoCall, setShowVideoCall] = useState(false);
+  const [videoCallClub, setVideoCallClub] = useState<any | null>(null);
   
   // Use hooks to fetch real data
   const { 
@@ -306,6 +308,8 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
 
   const handleJoinRoom = (club: typeof readingClubs[0]) => {
     logger.info('Join room for club:', club.name);
+    setVideoCallClub(club);
+    setShowVideoCall(true);
   };
 
   const handleJoinClub = async (clubId: string) => {
@@ -406,6 +410,11 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
     } catch (error) {
       logger.error('Error updating meeting:', error);
     }
+  };
+
+  const handleLeaveVideoCall = () => {
+    setShowVideoCall(false);
+    setVideoCallClub(null);
   };
 
 
@@ -673,6 +682,21 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
           }}
           onSetMeeting={handleSetMeeting}
         />
+      )}
+
+      {/* Video Call Modal */}
+      {showVideoCall && videoCallClub && (
+        <Modal
+          visible={showVideoCall}
+          animationType="slide"
+          presentationStyle="fullScreen"
+        >
+          <VideoCallRoom
+            readingClubId={videoCallClub.id}
+            clubName={videoCallClub.name}
+            onLeave={handleLeaveVideoCall}
+          />
+        </Modal>
       )}
     </View>
   );

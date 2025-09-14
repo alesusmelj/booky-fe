@@ -41,6 +41,11 @@ export const colors = {
     600: '#16A34A',       // Green-600
   },
 
+  // Red colors
+  red: {
+    red600: '#DC2626',    // Red-600
+  },
+
   // Disabled states
   disabled: {
     background: '#D1D5DB', // Gray-300

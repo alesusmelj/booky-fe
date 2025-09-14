@@ -63,7 +63,7 @@ export const clearAuthToken = () => {
 };
 
 // Base fetch wrapper
-const apiRequest = async <T = any>(
+export const apiRequest = async <T = any>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> => {

@@ -21,6 +21,8 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "clean": "expo r -c && npm start",
+    "get-ip": "node scripts/get-local-ip.js",
+    "setup-mobile": "node scripts/get-local-ip.js",
     "postinstall": "husky install"
   },
   "dependencies": {

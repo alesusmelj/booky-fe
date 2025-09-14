@@ -10,10 +10,15 @@ import {
   FlatList,
   Modal,
   Platform,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { colors } from '../constants';
 import { logger } from '../utils/logger';
-import { ActiveReadingClub, CreateReadingClubModal, SetMeetingModal } from '../components';
+import { CreateReadingClubModal, SetMeetingModal, Post, PostData, CreatePost } from '../components';
+import { useCommunity, usePosts, useReadingClubs } from '../hooks';
+import { CommunityDto } from '../types/api';
+import { useAuth } from '../contexts/AuthContext';
 
 // Mock data - should be moved to a service later
 const users = [
@@ -124,152 +129,125 @@ const readingClubs = [
   },
 ];
 
-interface PostCardProps {
-  post: typeof communityPosts[0];
-  onLike: (postId: string) => void;
-  onComment: (postId: string) => void;
-  onUserPress: (userId: string) => void;
-}
-
-const PostCard: React.FC<PostCardProps> = ({ post, onLike, onComment, onUserPress }) => {
-  const author = users.find(user => user.id === post.userId);
-  
-  return (
-    <View style={styles.postCard}>
-      <TouchableOpacity 
-        style={styles.postHeader}
-        onPress={() => onUserPress(post.userId)}
-        activeOpacity={0.7}
-      >
-        <Image source={{ uri: author?.avatar }} style={styles.userAvatar} />
-        <View style={styles.userInfo}>
-          <Text style={styles.userName}>{author?.name}</Text>
-          <Text style={styles.postTime}>{post.timestamp}</Text>
-        </View>
-      </TouchableOpacity>
-      
-      <Text style={styles.postContent}>{post.content}</Text>
-      
-      {post.image && (
-        <Image source={{ uri: post.image }} style={styles.postImage} />
-      )}
-      
-      <View style={styles.postActions}>
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={() => onLike(post.id)}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.actionIcon}>❤️</Text>
-          <Text style={styles.actionText}>{post.likes}</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={() => onComment(post.id)}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.actionIcon}>💬</Text>
-          <Text style={styles.actionText}>{post.comments}</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-};
-
 interface ReadingClubCardProps {
-  club: typeof readingClubs[0];
-  onJoinRoom: (club: typeof readingClubs[0]) => void;
+  club: any; // Real API structure
+  onJoinRoom: (club: any) => void;
   onJoinClub: (clubId: string) => void;
-  onSetMeeting: (club: typeof readingClubs[0]) => void;
+  onSetMeeting: (club: any) => void;
 }
 
 const ReadingClubCard: React.FC<ReadingClubCardProps> = ({ club, onJoinRoom, onJoinClub, onSetMeeting }) => {
+  const { user } = useAuth();
+  const isUserModerator = user?.id === club.moderator_id;
+  
+  // Calculate progress percentage
+  const progressPercentage = club.current_chapter && club.book?.pages 
+    ? Math.min((club.current_chapter / club.book.pages) * 100, 100) 
+    : 0;
+
+  // Format next meeting date
+  const nextMeetingDate = new Date(club.next_meeting);
+  const formattedDate = nextMeetingDate.toLocaleDateString('en-US', { 
+    weekday: 'short', 
+    month: 'short', 
+    day: 'numeric' 
+  });
+  const formattedTime = nextMeetingDate.toLocaleTimeString('en-US', { 
+    hour: 'numeric', 
+    minute: '2-digit',
+    hour12: true 
+  });
+  
   return (
     <View style={styles.clubCard}>
-      <View style={styles.clubCardHeader}>
-        <View style={styles.clubCardInfo}>
-          <Text style={styles.clubCardName}>{club.name}</Text>
-          <View style={styles.clubStatus}>
-            {club.joined ? (
-              <Text style={styles.memberBadge}>Member</Text>
-            ) : (
-              <Text style={styles.openBadge}>Open</Text>
-            )}
-          </View>
-        </View>
-        <Text style={styles.clubCardDescription}>{club.description}</Text>
+      {/* Club Header with Name */}
+      <View style={styles.clubHeader}>
+        <Text style={styles.clubName} numberOfLines={1}>{club.name}</Text>
       </View>
-      
-      <View style={styles.clubCardContent}>
-        <Image source={{ uri: club.currentBook.cover }} style={styles.clubBookCover} />
-        <View style={styles.clubBookInfo}>
-          <Text style={styles.clubBookTitle}>{club.currentBook.title}</Text>
-          <Text style={styles.clubBookAuthor}>by {club.currentBook.author}</Text>
-          
+
+      {/* Main Content - Horizontal Layout */}
+      <View style={styles.clubContent}>
+        {/* Book Image */}
+        <View style={styles.bookImageContainer}>
+          <Image 
+            source={{ uri: club.book?.image || 'https://via.placeholder.com/80x120?text=No+Image' }} 
+            style={styles.bookImage} 
+          />
+        </View>
+
+        {/* Book & Club Info */}
+        <View style={styles.clubInfo}>
+          {/* Book Title & Author */}
+          <View style={styles.bookTitleSection}>
+            <Text style={styles.bookTitle} numberOfLines={2}>
+              {club.book?.title || 'Libro no disponible'}
+            </Text>
+            <Text style={styles.bookAuthor} numberOfLines={1}>
+              {club.book?.author || 'Autor desconocido'}
+            </Text>
+          </View>
+
+          {/* Progress Section */}
           <View style={styles.progressSection}>
             <Text style={styles.progressLabel}>Reading Progress</Text>
-            <View style={styles.progressBar}>
-              <View 
-                style={[
-                  styles.progressFill, 
-                  { width: `${(club.currentBook.currentChapter / club.currentBook.totalChapters) * 100}%` }
-                ]} 
-              />
+            <View style={styles.progressBarContainer}>
+              <View style={styles.progressBarBackground}>
+                <View 
+                  style={[styles.progressBarFill, { width: `${progressPercentage}%` }]} 
+                />
+              </View>
             </View>
             <Text style={styles.progressText}>
-              Chapter {club.currentBook.currentChapter} of {club.currentBook.totalChapters}
+              Page {club.current_chapter || 0} of {club.book?.pages || '?'}
             </Text>
           </View>
-          
-          <View style={styles.clubDetails}>
-            <Text style={styles.clubDetailText}>
-              📅 Next: {new Date(club.nextMeeting).toLocaleDateString()}
-            </Text>
-            <Text style={styles.clubDetailText}>
-              ⏰ {club.meetingTime}
-            </Text>
-            <Text style={styles.clubDetailText}>
-              👥 {club.members} members
-            </Text>
+
+          {/* Meeting Info Box */}
+          <View style={styles.meetingInfoBox}>
+            <Text style={styles.meetingLabel}>Next Meeting</Text>
+            <Text style={styles.meetingDate}>{formattedDate} at {formattedTime}</Text>
           </View>
-          
-          <View style={styles.moderatorInfo}>
-            <Image source={{ uri: club.moderator.avatar }} style={styles.moderatorAvatar} />
+
+          {/* Members Info */}
+          <View style={styles.membersInfo}>
+            <Text style={styles.membersIcon}>👥</Text>
+            <Text style={styles.membersText}>{club.member_count} members</Text>
             <Text style={styles.moderatorText}>
-              Moderator: {club.moderator.name}
+              {club.moderator?.name || 'Moderador'} {club.moderator?.lastname || ''}
             </Text>
-          </View>
-          
-          <View style={styles.clubActions}>
-            {club.joined ? (
-              <>
-                <TouchableOpacity 
-                  style={styles.joinRoomButton}
-                  onPress={() => onJoinRoom(club)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.joinRoomButtonText}>🎤 Join Room</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.setMeetingButton}
-                  onPress={() => onSetMeeting(club)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.setMeetingButtonText}>📅 Set Meeting</Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <TouchableOpacity 
-                style={styles.joinClubButton}
-                onPress={() => onJoinClub(club.id)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.joinClubButtonText}>👥 Join Club</Text>
-              </TouchableOpacity>
-            )}
           </View>
         </View>
+      </View>
+
+      {/* Action Buttons */}
+      <View style={styles.actionButtons}>
+        {club.join_available ? (
+          <TouchableOpacity 
+            style={styles.primaryButton}
+            onPress={() => onJoinClub(club.id)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.primaryButtonText}>Join Reading Club</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity 
+            style={styles.primaryButton}
+            onPress={() => onJoinRoom(club)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.primaryButtonText}>Join Meeting</Text>
+          </TouchableOpacity>
+        )}
+        
+        {isUserModerator && (
+          <TouchableOpacity 
+            style={styles.secondaryButton}
+            onPress={() => onSetMeeting(club)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.secondaryButtonText}>Set Meeting</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -281,16 +259,38 @@ interface CommunityDetailScreenProps {
 
 export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ communityId }) => {
   const [activeTab, setActiveTab] = useState<'posts' | 'reading-clubs'>('posts');
-  const [newPostText, setNewPostText] = useState('');
   const [showCreateClubModal, setShowCreateClubModal] = useState(false);
   const [showSetMeetingModal, setShowSetMeetingModal] = useState(false);
-  const [selectedClub, setSelectedClub] = useState<typeof readingClubs[0] | null>(null);
+  const [selectedClub, setSelectedClub] = useState<any | null>(null);
   
-  // Simple scroll tracking for iOS compatibility (currently not used but kept for future enhancement)
-  // const scrollY = useRef(new Animated.Value(0)).current;
+  // Use hooks to fetch real data
+  const { 
+    community, 
+    loading: communityLoading, 
+    error: communityError, 
+    joinCommunity: joinCommunityAction, 
+    leaveCommunity: leaveCommunityAction 
+  } = useCommunity(communityId);
 
-  // Find the community based on the ID
-  const community = communities.find(c => c.id === communityId) || communities[0];
+  const {
+    posts,
+    loading: postsLoading,
+    error: postsError,
+    createPost,
+    refresh: refreshPosts,
+  } = usePosts(communityId);
+
+  const {
+    readingClubs,
+    loading: clubsLoading,
+    error: clubsError,
+    createReadingClub,
+    joinReadingClub,
+    updateMeeting,
+    refresh: refreshClubs,
+  } = useReadingClubs(communityId);
+
+  const { user } = useAuth();
 
   const handleUserClick = (userId: string) => {
     logger.info('User clicked:', userId);
@@ -308,8 +308,28 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
     logger.info('Join room for club:', club.name);
   };
 
-  const handleJoinClub = (clubId: string) => {
-    logger.info('Join club:', clubId);
+  const handleJoinClub = async (clubId: string) => {
+    console.log('🎯 Starting join reading club process for:', clubId);
+    
+    try {
+      const success = await joinReadingClub(clubId);
+      
+      if (success) {
+        console.log('✅ Successfully joined reading club:', clubId);
+        Alert.alert('Success', 'You have successfully joined the reading club!');
+        
+        // Refresh reading clubs to get updated data
+        console.log('🔄 Refreshing reading clubs after join...');
+        await refreshClubs();
+        console.log('✅ Reading clubs refreshed successfully');
+      } else {
+        console.log('❌ Failed to join reading club:', clubId);
+        Alert.alert('Error', 'Failed to join the reading club. Please try again.');
+      }
+    } catch (error) {
+      console.error('❌ Error in handleJoinClub:', error);
+      Alert.alert('Error', 'Failed to join the reading club. Please try again.');
+    }
   };
 
   const handleSetMeetingClick = (club: typeof readingClubs[0]) => {
@@ -317,72 +337,106 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
     setShowSetMeetingModal(true);
   };
 
-  const handleJoinActiveClub = (clubId: string) => {
-    logger.info('Join active club:', clubId);
-  };
 
-  const handleCreatePost = () => {
-    if (newPostText.trim()) {
-      logger.info('Create post:', newPostText);
-      setNewPostText('');
+  const handleCreatePost = async (content: string, images?: File[]) => {
+    if (content.trim() && communityId) {
+      try {
+        // Handle the first image if provided (backend supports single image for now)
+        const imageFile = images && images.length > 0 ? images[0] : null;
+        
+        const success = await createPost({
+          body: content,
+          community_id: communityId,
+        }, imageFile);
+        
+        if (success) {
+          logger.info('Post created successfully');
+        }
+      } catch (error) {
+        logger.error('Error creating post:', error);
+      }
     }
   };
 
-  const handleCreateClub = (clubData: {
+  const handleCreateClub = async (clubData: {
     name: string;
     description: string;
     selectedBook: any;
     nextMeeting: string;
   }) => {
-    // In a real app, this would create a new reading club
-    logger.info('Create club:', clubData);
-    logger.info('Formatted meeting date-time:', clubData.nextMeeting);
-    setShowCreateClubModal(false);
+    if (!communityId) return;
+    
+    try {
+      const success = await createReadingClub({
+        name: clubData.name,
+        description: clubData.description,
+        community_id: communityId,
+        book_id: clubData.selectedBook.id,
+        next_meeting: clubData.nextMeeting,
+      });
+      
+      if (success) {
+        setShowCreateClubModal(false);
+        refreshClubs(); // Refresh the reading clubs list
+        logger.info('Reading club created successfully');
+      }
+    } catch (error) {
+      logger.error('Error creating reading club:', error);
+    }
   };
 
-  const handleSetMeeting = (meetingData: {
+  const handleSetMeeting = async (meetingData: {
     chapter: number;
     nextMeeting: string;
   }) => {
-    // In a real app, this would update the meeting details
-    logger.info('Meeting scheduled:', meetingData);
-    logger.info('Formatted meeting date-time:', meetingData.nextMeeting);
-    setShowSetMeetingModal(false);
-    setSelectedClub(null);
-  };
-
-  // Find featured club - the one with the closest upcoming meeting
-  const getFeaturedClub = () => {
-    if (readingClubs.length === 0) return null;
-    const now = new Date();
-    return readingClubs.reduce((featured, current) => {
-      const currentDate = new Date(current.nextMeeting);
-      const featuredDate = featured ? new Date(featured.nextMeeting) : null;
+    if (!selectedClub) return;
+    
+    try {
+      const success = await updateMeeting(selectedClub.id, {
+        next_meeting: meetingData.nextMeeting,
+        current_chapter: meetingData.chapter,
+      });
       
-      if (currentDate < now) return featured;
-      
-      if (!featured || !featuredDate || currentDate < featuredDate) {
-        return {
-          ...current,
-          activeParticipants: Math.floor(Math.random() * 10) + 5
-        };
+      if (success) {
+        setShowSetMeetingModal(false);
+        setSelectedClub(null);
+        refreshClubs(); // Refresh the reading clubs list
+        logger.info('Meeting updated successfully');
       }
-      return featured;
-    }, null as any);
+    } catch (error) {
+      logger.error('Error updating meeting:', error);
+    }
   };
 
-  const featuredClub = getFeaturedClub();
 
-  const renderPost = ({ item }: { item: typeof communityPosts[0] }) => (
-    <PostCard
-      post={item}
-      onLike={handleLike}
-      onComment={handleComment}
-      onUserPress={handleUserClick}
-    />
-  );
+  const renderPost = ({ item }: { item: any }) => {
+    // Convert API post data to PostData interface
+    const postData: PostData = {
+      id: item.id,
+      user: {
+        id: item.user_id || item.author?.id || 'unknown',
+        name: item.author?.name || item.author?.username || 'Usuario',
+        image: item.author?.image || undefined,
+      },
+      content: item.body || item.content || '',
+      image: item.image || undefined,
+      createdAt: item.created_at || item.date_created || new Date().toISOString(),
+      likes: item.likes_count || item.likes || 0,
+      comments: item.comments_count || item.comments || 0,
+      isLiked: item.is_liked || false,
+    };
 
-  const renderClub = ({ item }: { item: typeof readingClubs[0] }) => (
+    return (
+      <Post
+        post={postData}
+        onLike={handleLike}
+        onComment={handleComment}
+        onUserPress={handleUserClick}
+      />
+    );
+  };
+
+  const renderClub = ({ item }: { item: any }) => (
     <ReadingClubCard
       club={item}
       onJoinRoom={handleJoinRoom}
@@ -391,153 +445,215 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
     />
   );
 
-  return (
-    <View style={styles.container}>
-      <ScrollView 
-        style={styles.scrollContainer}
-        showsVerticalScrollIndicator={false}
-        bounces={true}
-        alwaysBounceVertical={false}
-        contentInsetAdjustmentBehavior="automatic"
-      >
-        {/* Community Header */}
-        <View style={styles.communityHeader}>
-          <Image source={{ uri: community.image }} style={styles.communityImage} />
-          <View style={styles.communityOverlay}>
-            <View style={styles.communityInfo}>
-              <View style={styles.communityContent}>
-                <Text style={styles.communityTitle}>{community.name}</Text>
-                <Text style={styles.communityDescription}>{community.description}</Text>
-                <Text style={styles.communityMembers}>👥 {community.members} members</Text>
+  // Loading state
+  if (communityLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary.main} />
+        <Text style={styles.loadingText}>Loading community...</Text>
+      </View>
+    );
+  }
+
+  // Error state
+  if (communityError || !community) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorTitle}>Community not found</Text>
+        <Text style={styles.errorText}>
+          {communityError || 'The community you are looking for does not exist.'}
+        </Text>
+      </View>
+    );
+  }
+
+  // Prepare data for single FlatList
+  const prepareFlatListData = () => {
+    const data = [];
+    
+    // Header section
+    data.push({ type: 'header', data: community });
+    
+    // Tabs section
+    data.push({ type: 'tabs', activeTab });
+    
+    if (activeTab === 'posts') {
+      // Create post section
+      data.push({ type: 'createPost' });
+      
+      // Posts
+      posts.forEach(post => {
+        data.push({ type: 'post', data: post });
+      });
+    } else if (activeTab === 'reading-clubs') {
+      // Create club button
+      data.push({ type: 'createClub' });
+      
+      // All clubs title and clubs
+      if (readingClubs.length > 0) {
+        data.push({ type: 'allClubsTitle' });
+        
+        // Reading clubs
+        readingClubs.forEach(club => {
+          data.push({ type: 'club', data: club });
+        });
+      } else {
+        data.push({ type: 'emptyClubs' });
+      }
+    }
+    
+    return data;
+  };
+
+  const renderFlatListItem = ({ item }: { item: any }) => {
+    switch (item.type) {
+      case 'header':
+        return (
+          <View style={styles.communityHeader}>
+            {community.admin?.image ? (
+              <Image source={{ uri: community.admin.image }} style={styles.communityImage} />
+            ) : (
+              <View style={styles.communityImagePlaceholder}>
+                <Text style={styles.communityImagePlaceholderText}>
+                  {community.name.charAt(0).toUpperCase()}
+                </Text>
               </View>
-              <TouchableOpacity style={styles.joinCommunityButton} activeOpacity={0.8}>
-                <Text style={styles.joinCommunityButtonText}>Join Community</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-
-        {/* Sticky Navigation Tabs */}
-        <View style={styles.tabContainer}>
-          <TouchableOpacity 
-            style={[styles.tab, activeTab === 'posts' && styles.activeTab]}
-            onPress={() => setActiveTab('posts')}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.tabText, activeTab === 'posts' && styles.activeTabText]}>
-              Posts
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.tab, activeTab === 'reading-clubs' && styles.activeTab]}
-            onPress={() => setActiveTab('reading-clubs')}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.tabText, activeTab === 'reading-clubs' && styles.activeTabText]}>
-              Reading Clubs
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Tab Content */}
-        <View style={styles.tabContent}>
-        {activeTab === 'posts' && (
-          <View>
-            {/* Create New Post */}
-            <View style={styles.createPostContainer}>
-              <Image source={{ uri: users[0].avatar }} style={styles.createPostAvatar} />
-              <View style={styles.createPostContent}>
-                <TextInput
-                  style={styles.createPostInput}
-                  placeholder="¿Qué estás leyendo?"
-                  placeholderTextColor={colors.neutral.gray500}
-                  value={newPostText}
-                  onChangeText={setNewPostText}
-                  multiline
-                />
-                <View style={styles.createPostActions}>
-                  <TouchableOpacity style={styles.imageButton} activeOpacity={0.7}>
-                    <Text style={styles.imageButtonText}>🖼️</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[
-                      styles.publishButton,
-                      !newPostText.trim() && styles.publishButtonDisabled
-                    ]}
-                    onPress={handleCreatePost}
-                    disabled={!newPostText.trim()}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.publishButtonText}>Publicar</Text>
-                  </TouchableOpacity>
+            )}
+            <View style={styles.communityOverlay}>
+              <View style={styles.communityInfo}>
+                <View style={styles.communityContent}>
+                  <Text style={styles.communityTitle}>{community.name}</Text>
+                  <Text style={styles.communityDescription}>{community.description}</Text>
+                  <Text style={styles.communityMembers}>👥 {community.member_count} members</Text>
+                  <Text style={styles.communityAdmin}>
+                    Admin: {community.admin?.name} {community.admin?.lastname}
+                  </Text>
                 </View>
               </View>
             </View>
-
-            {/* Posts Feed */}
-            <FlatList
-              data={communityPosts}
-              renderItem={renderPost}
-              keyExtractor={(item) => item.id}
-              scrollEnabled={false}
-              ItemSeparatorComponent={() => <View style={styles.postSeparator} />}
+          </View>
+        );
+      
+      case 'tabs':
+        return (
+          <View style={styles.tabContainer}>
+            <TouchableOpacity 
+              style={[styles.tab, activeTab === 'posts' && styles.activeTab]}
+              onPress={() => setActiveTab('posts')}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.tabText, activeTab === 'posts' && styles.activeTabText]}>
+                Posts
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.tab, activeTab === 'reading-clubs' && styles.activeTab]}
+              onPress={() => setActiveTab('reading-clubs')}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.tabText, activeTab === 'reading-clubs' && styles.activeTabText]}>
+                Reading Clubs
+              </Text>
+            </TouchableOpacity>
+          </View>
+        );
+      
+      case 'createPost':
+        return (
+          <CreatePost 
+            onPost={handleCreatePost}
+            maxLength={280}
+            showCharacterCount={false}
+          />
+        );
+      
+      case 'post': {
+        const postData: PostData = {
+          id: item.data.id,
+          user: {
+            id: item.data.user_id || item.data.author?.id || 'unknown',
+            name: item.data.author?.name || item.data.author?.username || 'Usuario',
+            image: item.data.author?.image || undefined,
+          },
+          content: item.data.body || item.data.content || '',
+          image: item.data.image || undefined,
+          createdAt: item.data.created_at || item.data.date_created || new Date().toISOString(),
+          likes: item.data.likes_count || item.data.likes || 0,
+          comments: item.data.comments_count || item.data.comments || 0,
+          isLiked: item.data.is_liked || false,
+        };
+        return (
+          <Post
+            post={postData}
+            onLike={handleLike}
+            onComment={handleComment}
+            onUserPress={handleUserClick}
+          />
+        );
+      }
+      
+      case 'createClub':
+        return (
+          <View style={styles.createClubContainer}>
+            <TouchableOpacity 
+              style={styles.createClubButton}
+              onPress={() => setShowCreateClubModal(true)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.createClubButtonText}>+ Create Reading Club</Text>
+            </TouchableOpacity>
+          </View>
+        );
+      
+      case 'allClubsTitle':
+        return <Text style={styles.allClubsTitle}>All Reading Clubs</Text>;
+      
+      case 'club':
+        return (
+          <View style={{ marginBottom: 16 }}>
+            <ReadingClubCard
+              club={item.data}
+              onJoinRoom={handleJoinRoom}
+              onJoinClub={handleJoinClub}
+              onSetMeeting={handleSetMeetingClick}
             />
           </View>
-        )}
-
-        {activeTab === 'reading-clubs' && (
-          <View>
-            {/* Create New Reading Club Button */}
-            <View style={styles.createClubContainer}>
-              <TouchableOpacity 
-                style={styles.createClubButton}
-                onPress={() => setShowCreateClubModal(true)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.createClubButtonText}>+ Create Reading Club</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Featured Reading Club */}
-            {featuredClub && (
-              <View style={styles.featuredSection}>
-                <Text style={styles.featuredTitle}>Featured Active Club</Text>
-                <ActiveReadingClub club={featuredClub} onJoin={handleJoinActiveClub} />
-              </View>
-            )}
-
-            {/* Reading Clubs List */}
-            {readingClubs.length > 0 ? (
-              <View>
-                <Text style={styles.allClubsTitle}>All Reading Clubs</Text>
-                <FlatList
-                  data={readingClubs}
-                  renderItem={renderClub}
-                  keyExtractor={(item) => item.id}
-                  scrollEnabled={false}
-                  ItemSeparatorComponent={() => <View style={styles.clubSeparator} />}
-                />
-              </View>
-            ) : (
-              <View style={styles.emptyClubsContainer}>
-                <Text style={styles.emptyClubsIcon}>📖</Text>
-                <Text style={styles.emptyClubsTitle}>No reading clubs yet</Text>
-                <Text style={styles.emptyClubsText}>
-                  Create a reading club to start discussing books with community members.
-                </Text>
-                <TouchableOpacity 
-                  style={styles.createFirstClubButton}
-                  onPress={() => setShowCreateClubModal(true)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.createFirstClubButtonText}>+ Create your first reading club</Text>
-                </TouchableOpacity>
-              </View>
-            )}
+        );
+      
+      case 'emptyClubs':
+        return (
+          <View style={styles.emptyClubsContainer}>
+            <Text style={styles.emptyClubsIcon}>📖</Text>
+            <Text style={styles.emptyClubsTitle}>No reading clubs yet</Text>
+            <Text style={styles.emptyClubsText}>
+              Create a reading club to start discussing books with community members.
+            </Text>
+            <TouchableOpacity 
+              style={styles.createFirstClubButton}
+              onPress={() => setShowCreateClubModal(true)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.createFirstClubButtonText}>+ Create your first reading club</Text>
+            </TouchableOpacity>
           </View>
-        )}
-        </View>
-      </ScrollView>
+        );
+      
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <FlatList
+        data={prepareFlatListData()}
+        renderItem={renderFlatListItem}
+        keyExtractor={(item, index) => `${item.type}-${index}`}
+        showsVerticalScrollIndicator={false}
+        bounces={true}
+        contentInsetAdjustmentBehavior="automatic"
+        keyboardShouldPersistTaps="handled"
+      />
 
       {/* Create Reading Club Modal */}
       <CreateReadingClubModal
@@ -569,20 +685,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.neutral.gray50,
   },
-  scrollContainer: {
-    flex: 1,
-    ...Platform.select({
-      ios: {
-        backgroundColor: colors.neutral.gray50,
-      },
-      android: {
-        backgroundColor: colors.neutral.gray50,
-      },
-      web: {
-        backgroundColor: colors.neutral.gray50,
-      },
-    }),
-  },
   communityHeader: {
     position: 'relative',
     height: 200,
@@ -592,6 +694,18 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
+  },
+  communityImagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: colors.primary.main,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  communityImagePlaceholderText: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    color: colors.neutral.white,
   },
   communityOverlay: {
     position: 'absolute',
@@ -628,6 +742,13 @@ const styles = StyleSheet.create({
     color: colors.neutral.white,
     opacity: 0.8,
   },
+  communityAdmin: {
+    fontSize: 12,
+    color: colors.neutral.white,
+    fontWeight: '400',
+    opacity: 0.9,
+    marginTop: 4,
+  },
   joinCommunityButton: {
     backgroundColor: colors.primary.indigo600,
     paddingHorizontal: 16,
@@ -663,125 +784,6 @@ const styles = StyleSheet.create({
   activeTabText: {
     color: colors.primary.indigo600,
   },
-  tabContent: {
-    flex: 1,
-    backgroundColor: colors.neutral.gray50,
-  },
-  createPostContainer: {
-    backgroundColor: colors.neutral.white,
-    padding: 16,
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral.gray200,
-  },
-  createPostAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
-  },
-  createPostContent: {
-    flex: 1,
-  },
-  createPostInput: {
-    fontSize: 16,
-    color: colors.neutral.gray900,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral.gray200,
-    paddingBottom: 8,
-    marginBottom: 16,
-    minHeight: 40,
-  },
-  createPostActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  imageButton: {
-    padding: 8,
-  },
-  imageButtonText: {
-    fontSize: 20,
-  },
-  publishButton: {
-    backgroundColor: colors.primary.indigo600,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  publishButtonDisabled: {
-    backgroundColor: colors.primary.indigo200,
-  },
-  publishButtonText: {
-    color: colors.neutral.white,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  postCard: {
-    backgroundColor: colors.neutral.white,
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral.gray200,
-  },
-  postHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  userAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
-  },
-  userInfo: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral.gray900,
-  },
-  postTime: {
-    fontSize: 12,
-    color: colors.neutral.gray500,
-  },
-  postContent: {
-    fontSize: 16,
-    color: colors.neutral.gray800,
-    lineHeight: 22,
-    marginBottom: 12,
-  },
-  postImage: {
-    width: '100%',
-    height: 200,
-    borderRadius: 8,
-    marginBottom: 12,
-    resizeMode: 'cover',
-  },
-  postActions: {
-    flexDirection: 'row',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral.gray200,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 24,
-  },
-  actionIcon: {
-    fontSize: 18,
-    marginRight: 4,
-  },
-  actionText: {
-    fontSize: 14,
-    color: colors.neutral.gray500,
-  },
-  postSeparator: {
-    height: 1,
-    backgroundColor: colors.neutral.gray200,
-  },
   createClubContainer: {
     padding: 16,
     alignItems: 'flex-end',
@@ -797,15 +799,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  featuredSection: {
-    padding: 16,
-  },
-  featuredTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.neutral.gray900,
-    marginBottom: 12,
-  },
   allClubsTitle: {
     fontSize: 18,
     fontWeight: '600',
@@ -813,171 +806,168 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingHorizontal: 16,
   },
+  // New Reading Club Card Styles - Compact Design
   clubCard: {
     backgroundColor: colors.neutral.white,
     marginHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.neutral.gray200,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
     overflow: 'hidden',
+    marginBottom: 16,
   },
-  clubCardHeader: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral.gray200,
+  clubHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
-  clubCardInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  clubCardName: {
+  clubName: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.neutral.gray900,
-    flex: 1,
   },
-  clubStatus: {
-    marginLeft: 8,
-  },
-  memberBadge: {
-    backgroundColor: colors.green[100],
-    color: colors.green[600],
-    fontSize: 12,
-    fontWeight: '600',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  openBadge: {
-    backgroundColor: colors.neutral.gray100,
-    color: colors.neutral.gray600,
-    fontSize: 12,
-    fontWeight: '600',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  clubCardDescription: {
-    fontSize: 14,
-    color: colors.neutral.gray600,
-  },
-  clubCardContent: {
-    padding: 16,
+  clubContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
     flexDirection: 'row',
   },
-  clubBookCover: {
-    width: 96,
-    height: 144,
+  bookImageContainer: {
+    marginRight: 12,
+  },
+  bookImage: {
+    width: 80,
+    height: 120,
     borderRadius: 8,
-    marginRight: 16,
     resizeMode: 'cover',
   },
-  clubBookInfo: {
+  clubInfo: {
     flex: 1,
+    justifyContent: 'space-between',
   },
-  clubBookTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral.gray900,
-    marginBottom: 4,
-  },
-  clubBookAuthor: {
-    fontSize: 14,
-    color: colors.neutral.gray500,
-    marginBottom: 16,
-  },
-  progressSection: {
-    marginBottom: 16,
-  },
-  progressLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral.gray900,
+  bookTitleSection: {
     marginBottom: 8,
   },
-  progressBar: {
-    height: 8,
-    backgroundColor: colors.neutral.gray200,
-    borderRadius: 4,
-    marginBottom: 4,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: colors.primary.indigo600,
-    borderRadius: 4,
-  },
-  progressText: {
-    fontSize: 12,
-    color: colors.neutral.gray500,
-  },
-  clubDetails: {
-    marginBottom: 16,
-  },
-  clubDetailText: {
-    fontSize: 14,
-    color: colors.neutral.gray500,
+  bookTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.neutral.gray900,
+    lineHeight: 20,
     marginBottom: 2,
   },
-  moderatorInfo: {
+  bookAuthor: {
+    fontSize: 13,
+    color: colors.neutral.gray600,
+    fontWeight: '500',
+  },
+  progressSection: {
+    marginBottom: 8,
+  },
+  progressLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.neutral.gray700,
+    marginBottom: 4,
+  },
+  progressBarContainer: {
+    marginBottom: 4,
+  },
+  progressBarBackground: {
+    height: 4,
+    backgroundColor: colors.neutral.gray200,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: colors.primary.indigo600,
+    borderRadius: 2,
+  },
+  progressText: {
+    fontSize: 11,
+    color: colors.neutral.gray500,
+    fontWeight: '500',
+  },
+  meetingInfoBox: {
+    backgroundColor: '#f0f4ff',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary.indigo600,
+    marginBottom: 8,
+  },
+  meetingLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.neutral.gray600,
+    marginBottom: 2,
+  },
+  meetingDate: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.neutral.gray900,
+  },
+  membersInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    flexWrap: 'wrap',
   },
-  moderatorAvatar: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+  membersIcon: {
+    fontSize: 12,
+    marginRight: 4,
+  },
+  membersText: {
+    fontSize: 11,
+    color: colors.neutral.gray600,
+    fontWeight: '500',
     marginRight: 8,
   },
   moderatorText: {
-    fontSize: 14,
-    color: colors.neutral.gray600,
+    fontSize: 11,
+    color: colors.neutral.gray500,
+    fontWeight: '400',
   },
-  clubActions: {
+  actionButtons: {
     flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingBottom: 16,
     gap: 8,
   },
-  joinRoomButton: {
+  primaryButton: {
     backgroundColor: colors.primary.indigo600,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  joinRoomButtonText: {
+  primaryButtonText: {
     color: colors.neutral.white,
     fontSize: 14,
     fontWeight: '600',
-    textAlign: 'center',
   },
-  setMeetingButton: {
-    backgroundColor: colors.neutral.gray100,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+  secondaryButton: {
+    backgroundColor: 'transparent',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: colors.primary.indigo600,
   },
-  setMeetingButtonText: {
-    color: colors.neutral.gray700,
+  secondaryButtonText: {
+    color: colors.primary.indigo600,
     fontSize: 14,
     fontWeight: '600',
-    textAlign: 'center',
-  },
-  joinClubButton: {
-    backgroundColor: colors.primary.indigo600,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    flex: 1,
-  },
-  joinClubButtonText: {
-    color: colors.neutral.white,
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
   },
   clubSeparator: {
     height: 16,
@@ -1114,5 +1104,35 @@ const styles = StyleSheet.create({
     maxWidth: 400,
     maxHeight: '90%',
     overflow: 'hidden',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.neutral.gray50,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: colors.neutral.gray600,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.neutral.gray50,
+    paddingHorizontal: 40,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.neutral.gray900,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  errorText: {
+    fontSize: 16,
+    color: colors.neutral.gray600,
+    textAlign: 'center',
   },
 });

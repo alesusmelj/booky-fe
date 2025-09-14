@@ -172,6 +172,7 @@ export interface CommunityDto {
   admin_id: string;
   admin: UserPreviewDto;
   member_count: number;
+  join_available: boolean;
 }
 
 export interface CreateCommunityDto {
@@ -225,6 +226,9 @@ export interface ReadingClubDto {
   community: CommunityDto;
   moderator: UserPreviewDto;
   member_count: number;
+  join_available: boolean;
+  next_meeting?: string;
+  current_chapter?: number;
 }
 
 export interface CreateReadingClubDto {

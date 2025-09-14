@@ -1,21 +1,35 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { strings, theme, colors } from '../constants';
+import { UserDropdown } from './UserDropdown';
+import { useAuth } from '../contexts/AuthContext';
 
 interface TopNavbarProps {
   onNotificationPress?: () => void;
-  onProfilePress?: () => void;
   hasNotifications?: boolean;
-  userAvatar?: string;
 }
 
 export const TopNavbar: React.FC<TopNavbarProps> = ({ 
   onNotificationPress = () => {},
-  onProfilePress = () => {},
   hasNotifications = false,
-  userAvatar
 }) => {
+  const { user } = useAuth();
+  const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0 });
+  const profileButtonRef = useRef<any>(null);
+
+  const handleProfilePress = () => {
+    if (profileButtonRef.current) {
+      profileButtonRef.current.measure((x: number, y: number, width: number, height: number, pageX: number, pageY: number) => {
+        setDropdownPosition({
+          x: pageX + width,
+          y: pageY + height,
+        });
+        setDropdownVisible(true);
+      });
+    }
+  };
   return (
     <View style={styles.container}>
       <View style={styles.leftSection}>
@@ -37,15 +51,16 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
         </TouchableOpacity>
         
         <TouchableOpacity
+          ref={profileButtonRef}
           style={styles.profileButton}
-          onPress={onProfilePress}
+          onPress={handleProfilePress}
           activeOpacity={0.7}
           testID="profile-button"
           accessible={true}
           accessibilityLabel={strings.accessibility.profile}
         >
-          {userAvatar ? (
-            <Image source={{ uri: userAvatar }} style={styles.avatar} testID="user-avatar" />
+          {user?.image ? (
+            <Image source={{ uri: user.image }} style={styles.avatar} testID="user-avatar" />
           ) : (
             <View style={styles.defaultAvatar} testID="default-avatar">
               <MaterialIcons name="person" size={24} color={theme.icon.primary} />
@@ -53,6 +68,12 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
           )}
         </TouchableOpacity>
       </View>
+
+      <UserDropdown
+        visible={dropdownVisible}
+        onClose={() => setDropdownVisible(false)}
+        anchorPosition={dropdownPosition}
+      />
     </View>
   );
 };

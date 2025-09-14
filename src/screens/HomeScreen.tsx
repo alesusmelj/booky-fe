@@ -5,7 +5,7 @@ import { strings, colors } from '../constants';
 import { logger } from '../utils/logger';
 
 export const HomeScreen: React.FC = () => {
-  const handleCreatePost = (_content: string, _images?: string[]) => {
+  const handleCreatePost = (_content: string, _images?: File[]) => {
     // TODO: Implement API call to create post
     logger.info('Post created successfully');
   };

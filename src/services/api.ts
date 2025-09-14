@@ -34,9 +34,7 @@ import {
 } from '../types/api';
 
 // Configuration
-const API_BASE_URL = __DEV__ 
-  ? 'http://localhost:8080' 
-  : 'https://your-production-api.com';
+import { API_BASE_URL } from '../config/api';
 
 
 // Error class for API errors
@@ -115,8 +113,27 @@ const apiRequest = async <T = any>(
     if (error instanceof ApiError) {
       throw error;
     }
+    
+    // Handle specific network errors
+    if (error instanceof Error) {
+      if (error.message.includes('Failed to fetch') || error.message.includes('Network request failed')) {
+        throw new ApiError(
+          'No se puede conectar al servidor. Verifica que el backend esté corriendo en localhost:8080 y que CORS esté configurado correctamente.',
+          0,
+          { originalError: error.message }
+        );
+      }
+      if (error.message.includes('CORS')) {
+        throw new ApiError(
+          'Error de CORS: El servidor no permite requests desde este origen. Configura CORS en el backend.',
+          0,
+          { originalError: error.message }
+        );
+      }
+    }
+    
     throw new ApiError(
-      error instanceof Error ? error.message : 'Network error'
+      error instanceof Error ? error.message : 'Error de red desconocido'
     );
   }
 };

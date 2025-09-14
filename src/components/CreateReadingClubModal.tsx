@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -8,17 +8,24 @@ import {
   TextInput,
   Image,
   Modal,
+  ActivityIndicator,
+  FlatList,
 } from 'react-native';
 import { colors } from '../constants';
 import { TimePicker } from './TimePicker';
 import { Calendar } from './Calendar';
+import { useBooks } from '../hooks';
 
 interface Book {
   id: string;
   title: string;
   author: string;
-  cover: string;
-  totalChapters: number;
+  image?: string;
+  isbn?: string;
+  pages?: number;
+  overview?: string;
+  synopsis?: string;
+  categories?: string[];
 }
 
 interface CreateReadingClubModalProps {
@@ -32,37 +39,6 @@ interface CreateReadingClubModalProps {
   }) => void;
 }
 
-// Mock books data
-const availableBooks: Book[] = [
-  {
-    id: '1',
-    title: 'The Midnight Library',
-    author: 'Matt Haig',
-    cover: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=60',
-    totalChapters: 24
-  },
-  {
-    id: '2',
-    title: 'Project Hail Mary',
-    author: 'Andy Weir',
-    cover: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=60',
-    totalChapters: 32
-  },
-  {
-    id: '3',
-    title: 'Babel',
-    author: 'R.F. Kuang',
-    cover: 'https://images.unsplash.com/photo-1532012197267-da84d127e765?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=60',
-    totalChapters: 28
-  },
-  {
-    id: '4',
-    title: 'The Seven Husbands of Evelyn Hugo',
-    author: 'Taylor Jenkins Reid',
-    cover: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=60',
-    totalChapters: 20
-  }
-];
 
 export const CreateReadingClubModal: React.FC<CreateReadingClubModalProps> = ({
   visible,
@@ -75,6 +51,23 @@ export const CreateReadingClubModal: React.FC<CreateReadingClubModalProps> = ({
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedTime, setSelectedTime] = useState<{ hour: number; minute: number }>({ hour: 19, minute: 0 });
+  const [bookSearchQuery, setBookSearchQuery] = useState('');
+  
+  // Use the books hook for real search
+  const { books, loading: booksLoading, error: booksError, searchBooks, clearBooks } = useBooks();
+
+  // Handle book search with debounce
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (bookSearchQuery.trim()) {
+        searchBooks(bookSearchQuery);
+      } else {
+        clearBooks();
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [bookSearchQuery, searchBooks, clearBooks]);
 
   const resetForm = () => {
     setCurrentStep('details');
@@ -83,6 +76,8 @@ export const CreateReadingClubModal: React.FC<CreateReadingClubModalProps> = ({
     setSelectedBook(null);
     setSelectedDate(undefined);
     setSelectedTime({ hour: 19, minute: 0 });
+    setBookSearchQuery('');
+    clearBooks();
   };
 
   const handleClose = () => {
@@ -196,39 +191,93 @@ export const CreateReadingClubModal: React.FC<CreateReadingClubModalProps> = ({
 
   const renderBookStep = () => (
     <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>Selecciona el Primer Libro</Text>
+      <Text style={styles.stepTitle}>Busca y Selecciona el Primer Libro</Text>
       
-      <ScrollView style={styles.booksContainer} showsVerticalScrollIndicator={false}>
-        {availableBooks.map((book) => (
-          <TouchableOpacity
-            key={book.id}
-            style={[
-              styles.bookCard,
-              selectedBook?.id === book.id && styles.selectedBookCard
-            ]}
-            onPress={() => setSelectedBook(book)}
-            activeOpacity={0.7}
-          >
-            <Image source={{ uri: book.cover }} style={styles.bookCover} />
-            <View style={styles.bookInfo}>
-              <Text style={styles.bookTitle} numberOfLines={2}>
-                {book.title}
-              </Text>
-              <Text style={styles.bookAuthor}>
-                por {book.author}
-              </Text>
-              <Text style={styles.bookChapters}>
-                {book.totalChapters} capítulos
-              </Text>
-            </View>
-            {selectedBook?.id === book.id && (
-              <View style={styles.selectedIndicator}>
-                <Text style={styles.selectedCheckmark}>✓</Text>
+      {/* Search Input */}
+      <View style={styles.searchContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Buscar libros por título o autor..."
+          value={bookSearchQuery}
+          onChangeText={setBookSearchQuery}
+          autoCapitalize="none"
+        />
+      </View>
+
+      {/* Loading State */}
+      {booksLoading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" color={colors.primary.main} />
+          <Text style={styles.loadingText}>Buscando libros...</Text>
+        </View>
+      )}
+
+      {/* Error State */}
+      {booksError && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{booksError}</Text>
+        </View>
+      )}
+
+      {/* Empty State */}
+      {!booksLoading && !booksError && bookSearchQuery && books.length === 0 && (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No se encontraron libros</Text>
+          <Text style={styles.emptySubtext}>Intenta con otros términos de búsqueda</Text>
+        </View>
+      )}
+
+      {/* Search Prompt */}
+      {!bookSearchQuery && (
+        <View style={styles.promptContainer}>
+          <Text style={styles.promptText}>Escribe para buscar libros</Text>
+        </View>
+      )}
+      
+      {/* Books List */}
+      {books.length > 0 && (
+        <ScrollView style={styles.booksContainer} showsVerticalScrollIndicator={false}>
+          {books.map((book) => (
+            <TouchableOpacity
+              key={book.id}
+              style={[
+                styles.bookCard,
+                selectedBook?.id === book.id && styles.selectedBookCard
+              ]}
+              onPress={() => setSelectedBook(book)}
+              activeOpacity={0.7}
+            >
+              <Image 
+                source={{ uri: book.image || 'https://via.placeholder.com/80x120?text=No+Image' }} 
+                style={styles.bookCover} 
+              />
+              <View style={styles.bookInfo}>
+                <Text style={styles.bookTitle} numberOfLines={2}>
+                  {book.title}
+                </Text>
+                <Text style={styles.bookAuthor}>
+                  por {book.author}
+                </Text>
+                {book.pages && (
+                  <Text style={styles.bookChapters}>
+                    {book.pages} páginas
+                  </Text>
+                )}
+                {book.categories && book.categories.length > 0 && (
+                  <Text style={styles.bookCategories} numberOfLines={1}>
+                    {book.categories.join(', ')}
+                  </Text>
+                )}
               </View>
-            )}
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+              {selectedBook?.id === book.id && (
+                <View style={styles.selectedIndicator}>
+                  <Text style={styles.selectedCheckmark}>✓</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
     </View>
   );
 
@@ -552,6 +601,69 @@ const styles = StyleSheet.create({
   bookChapters: {
     fontSize: 12,
     color: colors.neutral.gray500,
+  },
+  bookCategories: {
+    fontSize: 12,
+    color: colors.primary.indigo600,
+    fontStyle: 'italic',
+    marginTop: 2,
+  },
+  searchContainer: {
+    marginBottom: 16,
+  },
+  searchInput: {
+    borderWidth: 1,
+    borderColor: colors.neutral.gray200,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    backgroundColor: colors.neutral.white,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+  },
+  loadingText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: colors.neutral.gray600,
+  },
+  errorContainer: {
+    padding: 16,
+    backgroundColor: colors.status.error + '10',
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  errorText: {
+    color: colors.status.error,
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  emptyContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.neutral.gray600,
+    marginBottom: 4,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: colors.neutral.gray500,
+  },
+  promptContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+  },
+  promptText: {
+    fontSize: 16,
+    color: colors.neutral.gray500,
+    fontStyle: 'italic',
   },
   selectedIndicator: {
     width: 24,

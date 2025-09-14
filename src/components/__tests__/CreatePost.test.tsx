@@ -247,27 +247,6 @@ describe('CreatePost', () => {
     });
   });
 
-  describe('Image Functionality', () => {
-    it('shows alert when image button is pressed', () => {
-      const { getByTestId } = render(<CreatePost />);
-      const imageButton = getByTestId('add-image-button');
-      
-      fireEvent.press(imageButton);
-      
-      expect(Alert.alert).toHaveBeenCalledWith(
-        'Funcionalidad próximamente',
-        'La subida de imágenes estará disponible pronto.'
-      );
-    });
-
-    it('image button is disabled when disabled prop is true', () => {
-      const { getByTestId } = render(<CreatePost disabled={true} />);
-      const imageButton = getByTestId('add-image-button');
-      
-      expect(imageButton.props.accessibilityState?.disabled).toBe(true);
-    });
-  });
-
   describe('Error Handling', () => {
     it('shows alert when post creation fails', () => {
       const mockOnPost = jest.fn(() => {

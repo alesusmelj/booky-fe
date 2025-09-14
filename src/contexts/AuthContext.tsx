@@ -5,7 +5,7 @@ import { authStorage, userStorage } from '../services/storage';
 import { logger } from '../utils/logger';
 
 // Enable mock mode for mobile testing (set to true to bypass backend)
-const ENABLE_MOCK_AUTH = true;
+const ENABLE_MOCK_AUTH = false;
 
 // Mock user data for testing
 const mockUser: UserDto = {

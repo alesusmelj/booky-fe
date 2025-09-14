@@ -95,14 +95,12 @@ function AppContent() {
           <TopNavbar 
             hasNotifications={true}
             onNotificationPress={() => {}}
-            onProfilePress={() => {}}
           />
         </View>
       ) : (
         <TopNavbar 
           hasNotifications={true}
           onNotificationPress={() => {}}
-          onProfilePress={() => {}}
         />
       )}
       <View style={styles.content}>

@@ -30,3 +30,4 @@ export { TimePicker } from './TimePicker';
 export { MeetingScheduler } from './MeetingScheduler';
 export { CreateReadingClubModal } from './CreateReadingClubModal';
 export { SetMeetingModal } from './SetMeetingModal';
+export { UserDropdown } from './UserDropdown';

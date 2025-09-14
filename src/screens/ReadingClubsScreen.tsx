@@ -18,7 +18,8 @@ const readingClubs = [
     currentBook: 'Pride and Prejudice',
     members: 28,
     meetingDay: 'Thursdays',
-    progress: 65
+    progress: 65,
+    join_available: true
   },
   {
     id: '2',
@@ -26,7 +27,8 @@ const readingClubs = [
     currentBook: 'The Silent Patient',
     members: 42,
     meetingDay: 'Tuesdays',
-    progress: 32
+    progress: 32,
+    join_available: false
   },
   {
     id: '3',
@@ -34,7 +36,8 @@ const readingClubs = [
     currentBook: 'Project Hail Mary',
     members: 15,
     meetingDay: 'Sundays',
-    progress: 78
+    progress: 78,
+    join_available: true
   },
 ];
 
@@ -42,9 +45,10 @@ interface ReadingClubCardProps {
   club: typeof readingClubs[0];
   onPress: (clubId: string) => void;
   onJoin: (clubId: string) => void;
+  onJoinRoom: (club: any) => void;
 }
 
-const ReadingClubCard: React.FC<ReadingClubCardProps> = ({ club, onPress, onJoin }) => {
+const ReadingClubCard: React.FC<ReadingClubCardProps> = ({ club, onPress, onJoin, onJoinRoom }) => {
   return (
     <TouchableOpacity 
       style={styles.clubCard} 
@@ -102,13 +106,23 @@ const ReadingClubCard: React.FC<ReadingClubCardProps> = ({ club, onPress, onJoin
         </Text>
       </View>
 
-      <TouchableOpacity 
-        style={styles.joinButton}
-        onPress={() => onJoin(club.id)}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.joinButtonText}>Join Club</Text>
-      </TouchableOpacity>
+      {club.join_available ? (
+        <TouchableOpacity 
+          style={styles.joinButton}
+          onPress={() => onJoin(club.id)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.joinButtonText}>Join Club</Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity 
+          style={styles.joinButton}
+          onPress={() => onJoinRoom(club)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.joinButtonText}>Join Meeting</Text>
+        </TouchableOpacity>
+      )}
     </TouchableOpacity>
   );
 };
@@ -124,6 +138,11 @@ export const ReadingClubsScreen: React.FC = () => {
     logger.info('Join club:', clubId);
   };
 
+  const handleJoinRoom = (club: any) => {
+    // TODO: Implement join meeting functionality
+    logger.info('Join meeting for club:', club.id);
+  };
+
   const handleCreateClub = () => {
     // TODO: Navigate to create club screen
     logger.info('Create club pressed');
@@ -134,6 +153,7 @@ export const ReadingClubsScreen: React.FC = () => {
       club={item}
       onPress={handleClubPress}
       onJoin={handleJoinClub}
+      onJoinRoom={handleJoinRoom}
     />
   );
 

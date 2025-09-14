@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -6,9 +6,11 @@ import {
   TouchableOpacity,
   FlatList,
   Dimensions,
+  Modal,
 } from 'react-native';
 import { colors } from '../constants';
 import { logger } from '../utils/logger';
+import { VideoCallRoom } from '../components';
 
 // Mock data - should be moved to a service later
 const readingClubs = [
@@ -128,6 +130,9 @@ const ReadingClubCard: React.FC<ReadingClubCardProps> = ({ club, onPress, onJoin
 };
 
 export const ReadingClubsScreen: React.FC = () => {
+  const [showVideoCall, setShowVideoCall] = useState(false);
+  const [videoCallClub, setVideoCallClub] = useState<any | null>(null);
+
   const handleClubPress = (clubId: string) => {
     // TODO: Navigate to club detail
     logger.info('Club pressed:', clubId);
@@ -139,8 +144,14 @@ export const ReadingClubsScreen: React.FC = () => {
   };
 
   const handleJoinRoom = (club: any) => {
-    // TODO: Implement join meeting functionality
     logger.info('Join meeting for club:', club.id);
+    setVideoCallClub(club);
+    setShowVideoCall(true);
+  };
+
+  const handleLeaveVideoCall = () => {
+    setShowVideoCall(false);
+    setVideoCallClub(null);
   };
 
   const handleCreateClub = () => {
@@ -181,6 +192,21 @@ export const ReadingClubsScreen: React.FC = () => {
         contentContainerStyle={styles.listContainer}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
+
+      {/* Video Call Modal */}
+      {showVideoCall && videoCallClub && (
+        <Modal
+          visible={showVideoCall}
+          animationType="slide"
+          presentationStyle="fullScreen"
+        >
+          <VideoCallRoom
+            readingClubId={videoCallClub.id}
+            clubName={videoCallClub.name}
+            onLeave={handleLeaveVideoCall}
+          />
+        </Modal>
+      )}
     </View>
   );
 };

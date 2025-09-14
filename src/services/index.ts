@@ -30,3 +30,4 @@ export { CommunitiesService } from './communitiesService';
 export { PostsService } from './postsService';
 export { ReadingClubsService } from './readingClubsService';
 export { BooksService } from './booksService';
+export { LiveKitService } from './liveKitService';

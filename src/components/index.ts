@@ -23,6 +23,7 @@ export { LibraryBookCard } from './LibraryBookCard';
 
 // Community components
 export { ActiveReadingClub } from './ActiveReadingClub';
+export { VideoCallRoom } from './VideoCallRoom.index';
 
 // Calendar and Time components
 export { Calendar } from './Calendar';

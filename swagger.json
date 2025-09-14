@@ -27,6 +27,10 @@
     ],
     "tags": [
         {
+            "name": "Meetings",
+            "description": "LiveKit meeting management for reading clubs"
+        },
+        {
             "name": "Book Management",
             "description": "APIs for book and library management"
         },
@@ -99,9 +103,6 @@
                     }
                 },
                 "responses": {
-                    "400": {
-                        "description": "Invalid input data"
-                    },
                     "200": {
                         "description": "User updated successfully",
                         "content": {
@@ -114,6 +115,9 @@
                     },
                     "404": {
                         "description": "User not found"
+                    },
+                    "400": {
+                        "description": "Invalid input data"
                     }
                 }
             }
@@ -148,8 +152,8 @@
                     "required": true
                 },
                 "responses": {
-                    "400": {
-                        "description": "Datos inválidos"
+                    "404": {
+                        "description": "Club de lectura no encontrado"
                     },
                     "200": {
                         "description": "Información de reunión actualizada exitosamente",
@@ -161,11 +165,11 @@
                             }
                         }
                     },
+                    "400": {
+                        "description": "Datos inválidos"
+                    },
                     "401": {
                         "description": "No autorizado"
-                    },
-                    "404": {
-                        "description": "Club de lectura no encontrado"
                     },
                     "403": {
                         "description": "Solo el moderador puede actualizar la reunión"
@@ -193,6 +197,9 @@
                     }
                 ],
                 "responses": {
+                    "404": {
+                        "description": "Publicación no encontrada"
+                    },
                     "200": {
                         "description": "Publicación encontrada",
                         "content": {
@@ -202,9 +209,6 @@
                                 }
                             }
                         }
-                    },
-                    "404": {
-                        "description": "Publicación no encontrada"
                     }
                 }
             },
@@ -237,14 +241,11 @@
                     "required": true
                 },
                 "responses": {
-                    "400": {
-                        "description": "Datos inválidos"
-                    },
-                    "401": {
-                        "description": "No autorizado"
-                    },
                     "404": {
                         "description": "Publicación no encontrada"
+                    },
+                    "400": {
+                        "description": "Datos inválidos"
                     },
                     "200": {
                         "description": "Publicación actualizada exitosamente",
@@ -255,6 +256,9 @@
                                 }
                             }
                         }
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     }
                 }
             },
@@ -277,14 +281,14 @@
                     }
                 ],
                 "responses": {
-                    "401": {
-                        "description": "No autorizado"
-                    },
                     "404": {
                         "description": "Publicación no encontrada"
                     },
                     "204": {
                         "description": "Publicación eliminada exitosamente"
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     }
                 }
             }
@@ -366,9 +370,6 @@
                     "required": true
                 },
                 "responses": {
-                    "403": {
-                        "description": "User not authorized for this action"
-                    },
                     "404": {
                         "description": "Exchange not found"
                     },
@@ -384,6 +385,9 @@
                                 }
                             }
                         }
+                    },
+                    "403": {
+                        "description": "User not authorized for this action"
                     }
                 }
             }
@@ -427,6 +431,12 @@
                     "required": true
                 },
                 "responses": {
+                    "404": {
+                        "description": "Exchange not found"
+                    },
+                    "400": {
+                        "description": "Invalid request data"
+                    },
                     "200": {
                         "description": "Counter offer created successfully",
                         "content": {
@@ -439,12 +449,6 @@
                     },
                     "403": {
                         "description": "User not authorized for this action"
-                    },
-                    "404": {
-                        "description": "Exchange not found"
-                    },
-                    "400": {
-                        "description": "Invalid request data"
                     }
                 }
             }
@@ -511,9 +515,6 @@
                     "required": true
                 },
                 "responses": {
-                    "404": {
-                        "description": "Book not found in user library"
-                    },
                     "200": {
                         "description": "Book status updated successfully",
                         "content": {
@@ -523,6 +524,9 @@
                                 }
                             }
                         }
+                    },
+                    "404": {
+                        "description": "Book not found in user library"
                     }
                 }
             }
@@ -593,9 +597,6 @@
                     "required": true
                 },
                 "responses": {
-                    "404": {
-                        "description": "Book not found in user library"
-                    },
                     "200": {
                         "description": "Exchange preference updated successfully",
                         "content": {
@@ -605,6 +606,9 @@
                                 }
                             }
                         }
+                    },
+                    "404": {
+                        "description": "Book not found in user library"
                     }
                 }
             }
@@ -656,17 +660,17 @@
                     "required": true
                 },
                 "responses": {
-                    "401": {
-                        "description": "Not authenticated"
-                    },
-                    "400": {
-                        "description": "Invalid input data"
-                    },
                     "200": {
                         "description": "Users found successfully",
                         "content": {
                             "application/json": {}
                         }
+                    },
+                    "401": {
+                        "description": "Not authenticated"
+                    },
+                    "400": {
+                        "description": "Invalid input data"
                     }
                 }
             }
@@ -718,9 +722,6 @@
                     "required": true
                 },
                 "responses": {
-                    "400": {
-                        "description": "Invalid input data or user already exists"
-                    },
                     "200": {
                         "description": "User registered successfully",
                         "content": {
@@ -730,6 +731,9 @@
                                 }
                             }
                         }
+                    },
+                    "400": {
+                        "description": "Invalid input data or user already exists"
                     }
                 }
             }
@@ -753,6 +757,12 @@
                     "required": true
                 },
                 "responses": {
+                    "401": {
+                        "description": "Invalid credentials"
+                    },
+                    "400": {
+                        "description": "Invalid input data"
+                    },
                     "200": {
                         "description": "Login successful",
                         "content": {
@@ -762,12 +772,6 @@
                                 }
                             }
                         }
-                    },
-                    "400": {
-                        "description": "Invalid input data"
-                    },
-                    "401": {
-                        "description": "Invalid credentials"
                     }
                 }
             }
@@ -846,14 +850,14 @@
                     }
                 ],
                 "responses": {
+                    "200": {
+                        "description": "Salió del club exitosamente"
+                    },
                     "404": {
                         "description": "Club no encontrado"
                     },
                     "400": {
                         "description": "Error al salir del club o usuario no es miembro"
-                    },
-                    "200": {
-                        "description": "Salió del club exitosamente"
                     },
                     "401": {
                         "description": "No autorizado"
@@ -881,17 +885,17 @@
                     }
                 ],
                 "responses": {
-                    "404": {
-                        "description": "Club no encontrado"
+                    "400": {
+                        "description": "Error al unirse al club"
                     },
                     "200": {
                         "description": "Unido al club exitosamente"
                     },
+                    "404": {
+                        "description": "Club no encontrado"
+                    },
                     "401": {
                         "description": "No autorizado"
-                    },
-                    "400": {
-                        "description": "Error al unirse al club"
                     }
                 }
             }
@@ -957,6 +961,12 @@
                     "required": true
                 },
                 "responses": {
+                    "404": {
+                        "description": "Exchange not found"
+                    },
+                    "400": {
+                        "description": "Invalid request data or exchange cannot be rated"
+                    },
                     "201": {
                         "description": "Rating created successfully",
                         "content": {
@@ -966,12 +976,6 @@
                                 }
                             }
                         }
-                    },
-                    "400": {
-                        "description": "Invalid request data or exchange cannot be rated"
-                    },
-                    "404": {
-                        "description": "Exchange not found"
                     }
                 }
             }
@@ -1014,14 +1018,14 @@
                     }
                 ],
                 "responses": {
+                    "401": {
+                        "description": "Unauthorized (for feed type)"
+                    },
                     "200": {
                         "description": "Posts retrieved successfully",
                         "content": {
                             "application/json": {}
                         }
-                    },
-                    "401": {
-                        "description": "Unauthorized (for feed type)"
                     }
                 }
             },
@@ -1058,9 +1062,6 @@
                     "400": {
                         "description": "Datos inválidos"
                     },
-                    "401": {
-                        "description": "No autorizado"
-                    },
                     "201": {
                         "description": "Publicación creada exitosamente",
                         "content": {
@@ -1070,6 +1071,9 @@
                                 }
                             }
                         }
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     }
                 }
             }
@@ -1170,6 +1174,9 @@
                     "required": true
                 },
                 "responses": {
+                    "400": {
+                        "description": "Invalid request data"
+                    },
                     "201": {
                         "description": "Exchange created successfully",
                         "content": {
@@ -1182,9 +1189,6 @@
                     },
                     "409": {
                         "description": "Cannot create exchange with yourself"
-                    },
-                    "400": {
-                        "description": "Invalid request data"
                     }
                 }
             }
@@ -1224,12 +1228,6 @@
                     "required": true
                 },
                 "responses": {
-                    "400": {
-                        "description": "Datos inválidos"
-                    },
-                    "401": {
-                        "description": "No autorizado"
-                    },
                     "201": {
                         "description": "Comunidad creada exitosamente",
                         "content": {
@@ -1239,6 +1237,12 @@
                                 }
                             }
                         }
+                    },
+                    "400": {
+                        "description": "Datos inválidos"
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     }
                 }
             }
@@ -1266,14 +1270,14 @@
                     "200": {
                         "description": "Unido a la comunidad exitosamente"
                     },
+                    "404": {
+                        "description": "Comunidad no encontrada"
+                    },
                     "400": {
                         "description": "Error al unirse a la comunidad"
                     },
                     "401": {
                         "description": "No autorizado"
-                    },
-                    "404": {
-                        "description": "Comunidad no encontrada"
                     }
                 }
             }
@@ -1297,14 +1301,11 @@
                     "required": true
                 },
                 "responses": {
-                    "400": {
-                        "description": "Datos inválidos"
-                    },
-                    "401": {
-                        "description": "No autorizado"
-                    },
                     "404": {
                         "description": "Post no encontrado"
+                    },
+                    "400": {
+                        "description": "Datos inválidos"
                     },
                     "201": {
                         "description": "Comentario creado exitosamente",
@@ -1315,6 +1316,9 @@
                                 }
                             }
                         }
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     }
                 }
             }
@@ -1328,6 +1332,16 @@
                 "description": "Returns all chats where the current user is a participant",
                 "operationId": "getUserChats",
                 "responses": {
+                    "200": {
+                        "description": "Chats retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ChatDto"
+                                }
+                            }
+                        }
+                    },
                     "401": {
                         "description": "Not authenticated",
                         "content": {
@@ -1337,16 +1351,6 @@
                                     "items": {
                                         "$ref": "#/components/schemas/ChatDto"
                                     }
-                                }
-                            }
-                        }
-                    },
-                    "200": {
-                        "description": "Chats retrieved successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ChatDto"
                                 }
                             }
                         }
@@ -1371,16 +1375,6 @@
                     "required": true
                 },
                 "responses": {
-                    "200": {
-                        "description": "Chat created or retrieved successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ChatDto"
-                                }
-                            }
-                        }
-                    },
                     "400": {
                         "description": "Invalid request data",
                         "content": {
@@ -1393,6 +1387,16 @@
                     },
                     "401": {
                         "description": "Not authenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ChatDto"
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "Chat created or retrieved successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1437,16 +1441,6 @@
                             }
                         }
                     },
-                    "200": {
-                        "description": "Messages retrieved successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/MessageDto"
-                                }
-                            }
-                        }
-                    },
                     "401": {
                         "description": "Not authenticated",
                         "content": {
@@ -1456,6 +1450,16 @@
                                     "items": {
                                         "$ref": "#/components/schemas/MessageDto"
                                     }
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "Messages retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MessageDto"
                                 }
                             }
                         }
@@ -1586,6 +1590,9 @@
                     "required": true
                 },
                 "responses": {
+                    "400": {
+                        "description": "Invalid request data"
+                    },
                     "200": {
                         "description": "Book added successfully",
                         "content": {
@@ -1601,9 +1608,161 @@
                     },
                     "409": {
                         "description": "Book already in library"
+                    }
+                }
+            }
+        },
+        "/api/reading-clubs/meetings/{clubId}/start": {
+            "post": {
+                "tags": [
+                    "Meetings"
+                ],
+                "summary": "Start a meeting (moderator only)",
+                "operationId": "startMeeting",
+                "parameters": [
+                    {
+                        "name": "clubId",
+                        "in": "path",
+                        "description": "Reading club ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "404": {
+                        "description": "Reading club not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MeetingActionResponseDto"
+                                }
+                            }
+                        }
                     },
-                    "400": {
-                        "description": "Invalid request data"
+                    "403": {
+                        "description": "Only moderators can start meetings",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MeetingActionResponseDto"
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "Meeting started successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MeetingActionResponseDto"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/reading-clubs/meetings/{clubId}/end": {
+            "post": {
+                "tags": [
+                    "Meetings"
+                ],
+                "summary": "End meeting (moderator only)",
+                "operationId": "endMeeting",
+                "parameters": [
+                    {
+                        "name": "clubId",
+                        "in": "path",
+                        "description": "Reading club ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "403": {
+                        "description": "Only moderators can end meetings",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MeetingActionResponseDto"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Reading club not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MeetingActionResponseDto"
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "Meeting ended successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MeetingActionResponseDto"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/reading-clubs/meetings/token": {
+            "post": {
+                "tags": [
+                    "Meetings"
+                ],
+                "summary": "Generate token for joining a meeting",
+                "operationId": "generateToken",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TokenRequestDto"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "403": {
+                        "description": "User is not a member of the reading club",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TokenResponseDto"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Reading club not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TokenResponseDto"
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "Token generated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TokenResponseDto"
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -1783,9 +1942,6 @@
                     }
                 ],
                 "responses": {
-                    "404": {
-                        "description": "Club no encontrado"
-                    },
                     "200": {
                         "description": "Club encontrado exitosamente",
                         "content": {
@@ -1795,6 +1951,9 @@
                                 }
                             }
                         }
+                    },
+                    "404": {
+                        "description": "Club no encontrado"
                     }
                 }
             }
@@ -2198,6 +2357,9 @@
                     }
                 ],
                 "responses": {
+                    "404": {
+                        "description": "Exchange not found"
+                    },
                     "200": {
                         "description": "Exchange found",
                         "content": {
@@ -2207,9 +2369,6 @@
                                 }
                             }
                         }
-                    },
-                    "404": {
-                        "description": "Exchange not found"
                     }
                 }
             }
@@ -2390,14 +2549,14 @@
                     }
                 ],
                 "responses": {
+                    "404": {
+                        "description": "Comunidad no encontrada"
+                    },
                     "200": {
                         "description": "Comunidad encontrada",
                         "content": {
                             "application/json": {}
                         }
-                    },
-                    "404": {
-                        "description": "Comunidad no encontrada"
                     }
                 }
             }
@@ -2510,17 +2669,17 @@
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "Comentario eliminado exitosamente"
-                    },
-                    "401": {
-                        "description": "No autorizado"
-                    },
                     "403": {
                         "description": "No tienes permisos para eliminar este comentario"
                     },
+                    "200": {
+                        "description": "Comentario eliminado exitosamente"
+                    },
                     "404": {
                         "description": "Comentario no encontrado"
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     }
                 }
             }
@@ -2603,8 +2762,8 @@
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "Chat found",
+                    "404": {
+                        "description": "Chat not found or user not authorized",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2613,8 +2772,8 @@
                             }
                         }
                     },
-                    "404": {
-                        "description": "Chat not found or user not authorized",
+                    "200": {
+                        "description": "Chat found",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2781,6 +2940,48 @@
                 }
             }
         },
+        "/api/reading-clubs/meetings/{clubId}/status": {
+            "get": {
+                "tags": [
+                    "Meetings"
+                ],
+                "summary": "Get meeting status",
+                "operationId": "getMeetingStatus",
+                "parameters": [
+                    {
+                        "name": "clubId",
+                        "in": "path",
+                        "description": "Reading club ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "404": {
+                        "description": "Reading club not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MeetingStatusResponseDto"
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "Meeting status retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MeetingStatusResponseDto"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/reading-clubs/{clubId}": {
             "delete": {
                 "tags": [
@@ -2801,17 +3002,17 @@
                     }
                 ],
                 "responses": {
+                    "400": {
+                        "description": "Error al eliminar el club o usuario no es moderador"
+                    },
+                    "204": {
+                        "description": "Club eliminado exitosamente"
+                    },
                     "404": {
                         "description": "Club no encontrado"
                     },
                     "401": {
                         "description": "No autorizado"
-                    },
-                    "204": {
-                        "description": "Club eliminado exitosamente"
-                    },
-                    "400": {
-                        "description": "Error al eliminar el club o usuario no es moderador"
                     }
                 }
             }
@@ -2913,17 +3114,17 @@
                     }
                 ],
                 "responses": {
-                    "400": {
-                        "description": "Error al salir de la comunidad"
-                    },
                     "200": {
                         "description": "Salió de la comunidad exitosamente"
                     },
-                    "401": {
-                        "description": "No autorizado"
-                    },
                     "404": {
                         "description": "Comunidad no encontrada"
+                    },
+                    "400": {
+                        "description": "Error al salir de la comunidad"
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     }
                 }
             }
@@ -3944,6 +4145,63 @@
                 },
                 "description": "Book data"
             },
+            "MeetingActionResponseDto": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "room_name": {
+                        "type": "string"
+                    },
+                    "timestamp": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "duration": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "message": {
+                        "type": "string"
+                    }
+                }
+            },
+            "TokenRequestDto": {
+                "required": [
+                    "participant_name",
+                    "reading_club_id"
+                ],
+                "type": "object",
+                "properties": {
+                    "reading_club_id": {
+                        "type": "string"
+                    },
+                    "participant_name": {
+                        "type": "string"
+                    }
+                }
+            },
+            "TokenResponseDto": {
+                "type": "object",
+                "properties": {
+                    "token": {
+                        "type": "string"
+                    },
+                    "room_name": {
+                        "type": "string"
+                    },
+                    "participant_name": {
+                        "type": "string"
+                    },
+                    "participant_id": {
+                        "type": "string"
+                    },
+                    "moderator": {
+                        "type": "boolean"
+                    }
+                }
+            },
             "UserRatingStatsDto": {
                 "type": "object",
                 "properties": {
@@ -3969,6 +4227,28 @@
                     },
                     "description": {
                         "type": "string"
+                    }
+                }
+            },
+            "MeetingStatusResponseDto": {
+                "type": "object",
+                "properties": {
+                    "participant_count": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "started_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "room_name": {
+                        "type": "string"
+                    },
+                    "exists": {
+                        "type": "boolean"
+                    },
+                    "active": {
+                        "type": "boolean"
                     }
                 }
             }

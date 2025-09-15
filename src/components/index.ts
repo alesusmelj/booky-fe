@@ -30,6 +30,8 @@ export { MyLibraryView } from './MyLibraryView';
 export { OfferCard } from './OfferCard';
 export { OrderCard } from './OrderCard';
 export { LibraryBookCard } from './LibraryBookCard';
+export { default as CreateExchangeModal } from './CreateExchangeModal';
+export { default as BookImage } from './BookImage';
 
 // Community components
 export { ActiveReadingClub } from './ActiveReadingClub';

@@ -32,3 +32,4 @@ export { ReadingClubsService } from './readingClubsService';
 export { BooksService } from './booksService';
 export { GamificationService } from './gamificationService';
 export { LiveKitService } from './liveKitService';
+export { exchangeService } from './exchangeService';

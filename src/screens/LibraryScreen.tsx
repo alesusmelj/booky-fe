@@ -16,7 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
-import { useBooks } from '../hooks/useBooks';
+import { useBooks, useBarcodeHandler } from '../hooks';
 import { UserLibraryBookCard } from '../components/BookCard';
 import { BarcodeScannerWrapper } from '../components/BarcodeScannerWrapper';
 import { UserBookDto, AddBookToLibraryDto, UpdateStatusDto, UpdateExchangePreferenceDto } from '../services/booksService';
@@ -45,6 +45,38 @@ export const LibraryScreen: React.FC = () => {
   const [bookPreview, setBookPreview] = useState<any>(null);
   const [loadingBookData, setLoadingBookData] = useState(false);
   const [isbnScannedMessage, setIsbnScannedMessage] = useState<string | null>(null);
+  const [lastFetchedISBN, setLastFetchedISBN] = useState<string | null>(null);
+  
+  // Barcode handler with debounce protection
+  const handleBarcodeScannedInternal = (scannedISBN: string) => {
+    logger.info('📱 [LIBRARY] Processing scanned ISBN:', scannedISBN);
+    
+    // Fill the ISBN input field and auto-fetch book data
+    setIsbn(scannedISBN);
+    setShowBarcodeScanner(false);
+    
+    // Show success message
+    setIsbnScannedMessage(`📷 ISBN scanned: ${scannedISBN}`);
+    
+    // Auto-fetch book data immediately (mark as from scanner to avoid duplicate alerts)
+    fetchBookByISBN(scannedISBN, true);
+    
+    // Reopen the Add Book modal so user can review and add manually
+    setTimeout(() => {
+      setShowAddBookModal(true);
+      logger.info('📱 [LIBRARY] Add Book modal reopened with scanned ISBN and book data');
+      
+      // Clear the message after a few seconds
+      setTimeout(() => {
+        setIsbnScannedMessage(null);
+      }, 3000);
+    }, 300);
+  };
+
+  const { handleBarcodeScanned } = useBarcodeHandler({
+    debounceMs: 2000, // 2 second debounce
+    onBarcodeProcessed: handleBarcodeScannedInternal
+  });
 
   const {
     userBooks,
@@ -150,57 +182,61 @@ export const LibraryScreen: React.FC = () => {
     }, 100);
   };
 
-  const handleBarcodeScanned = (scannedISBN: string) => {
-    logger.info('📱 [LIBRARY] ISBN scanned:', scannedISBN);
-    
-    // Fill the ISBN input field and auto-fetch book data
-    setIsbn(scannedISBN);
-    setShowBarcodeScanner(false);
-    
-    // Show success message
-    setIsbnScannedMessage(`📷 ISBN scanned: ${scannedISBN}`);
-    
-    // Auto-fetch book data immediately
-    fetchBookByISBN(scannedISBN);
-    
-    // Reopen the Add Book modal so user can review and add manually
-    setTimeout(() => {
-      setShowAddBookModal(true);
-      logger.info('📱 [LIBRARY] Add Book modal reopened with scanned ISBN and book data');
-      
-      // Clear the message after a few seconds
-      setTimeout(() => {
-        setIsbnScannedMessage(null);
-      }, 3000);
-    }, 300);
-  };
 
   const handleCloseBarcodeScanner = () => {
     setShowBarcodeScanner(false);
   };
 
-  const fetchBookByISBN = async (isbnValue: string) => {
+  const fetchBookByISBN = async (isbnValue: string, fromScanner: boolean = false) => {
     if (!isbnValue.trim()) {
       setBookPreview(null);
       return;
     }
 
+    const cleanISBN = isbnValue.trim();
+    
+    // Prevent duplicate calls - if we just fetched this ISBN, skip
+    if (lastFetchedISBN === cleanISBN && !fromScanner) {
+      logger.info('📚 [LIBRARY] Skipping duplicate fetch for ISBN:', cleanISBN);
+      return;
+    }
+
+    // If already loading, don't make another call
+    if (loadingBookData) {
+      logger.info('📚 [LIBRARY] Already loading book data, skipping duplicate call');
+      return;
+    }
+
+    setLastFetchedISBN(cleanISBN);
     setLoadingBookData(true);
+    
     try {
-      logger.info('📚 [LIBRARY] Fetching book data for ISBN:', isbnValue);
-      const bookData = await getBookByIsbn(isbnValue.trim());
+      logger.info('📚 [LIBRARY] Fetching book data for ISBN:', cleanISBN);
+      const bookData = await getBookByIsbn(cleanISBN);
       
       if (bookData) {
         setBookPreview(bookData);
         logger.info('📚 [LIBRARY] Book data fetched successfully:', bookData.title);
       } else {
         setBookPreview(null);
-        Alert.alert('Book Not Found', 'No book found with this ISBN. You can still add it manually.');
+        // Only show alert if this is from scanner - not from typing
+        if (fromScanner) {
+          // Use setTimeout to ensure only one alert shows
+          setTimeout(() => {
+            Alert.alert('Book Not Found', 'No book found with this ISBN. You can still add it manually.');
+          }, 100);
+        }
       }
     } catch (error) {
       logger.error('📚 [LIBRARY] Error fetching book data:', error);
       setBookPreview(null);
-      Alert.alert('Error', 'Failed to fetch book data. You can still add the book manually.');
+      // Only show alert if this is from scanner - not from typing
+      if (fromScanner) {
+        // Use setTimeout to ensure only one alert shows
+        setTimeout(() => {
+          Alert.alert('Error', 'Failed to fetch book data. You can still add the book manually.');
+        }, 100);
+      }
     } finally {
       setLoadingBookData(false);
     }

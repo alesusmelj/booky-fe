@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -21,29 +21,65 @@ export const WorkingExpoCameraScanner: React.FC<WorkingExpoCameraScannerProps> =
 }) => {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
+  const lastScannedRef = useRef<string | null>(null);
+  const processingRef = useRef<boolean>(false);
 
   useEffect(() => {
     logger.info('📷 [WORKING-CAMERA] Component initialized');
     logger.info('📷 [WORKING-CAMERA] Permission object:', permission);
   }, [permission]);
 
+  // Cleanup refs when component unmounts
+  useEffect(() => {
+    return () => {
+      processingRef.current = false;
+      lastScannedRef.current = null;
+      logger.info('📷 [WORKING-CAMERA] Component cleanup completed');
+    };
+  }, []);
+
   const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
-    if (scanned) return;
-    
-    setScanned(true);
-    logger.info('📷 [WORKING-CAMERA] Barcode scanned:', { type, data });
+    // Multiple protection layers to prevent duplicate processing
+    if (scanned || processingRef.current) {
+      logger.info('📷 [WORKING-CAMERA] Ignoring duplicate scan - already processed');
+      return;
+    }
     
     const cleanedData = data.replace(/[-\s]/g, '');
     
+    // Check if we just processed this same ISBN
+    if (lastScannedRef.current === cleanedData) {
+      logger.info('📷 [WORKING-CAMERA] Ignoring duplicate scan - same ISBN:', cleanedData);
+      return;
+    }
+    
+    // Set all protection flags immediately
+    setScanned(true);
+    processingRef.current = true;
+    lastScannedRef.current = cleanedData;
+    
+    logger.info('📷 [WORKING-CAMERA] Processing barcode:', { type, data: cleanedData });
+    
     if (cleanedData.length === 10 || cleanedData.length === 13) {
-      onBarcodeScanned(cleanedData);
-      onClose(); // Close scanner immediately after successful scan
+      // Use setTimeout to ensure state updates are processed
+      setTimeout(() => {
+        logger.info('📷 [WORKING-CAMERA] Calling onBarcodeScanned with:', cleanedData);
+        onBarcodeScanned(cleanedData);
+        onClose(); // Close scanner immediately after successful scan
+      }, 50);
     } else {
       Alert.alert(
         'Invalid ISBN',
         'The scanned code does not appear to be a valid ISBN. Please try again.',
         [
-          { text: 'Try Again', onPress: () => setScanned(false) },
+          { 
+            text: 'Try Again', 
+            onPress: () => {
+              setScanned(false);
+              processingRef.current = false;
+              lastScannedRef.current = null;
+            }
+          },
           { text: 'Cancel', onPress: onClose },
         ]
       );

@@ -20,7 +20,7 @@ import { MaterialIcons, Feather } from '@expo/vector-icons';
 import { colors } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 import { useGamification } from '../hooks/useGamification';
-import { useBooks } from '../hooks/useBooks';
+import { useBooks, useBarcodeHandler } from '../hooks';
 import { AchievementCard } from '../components/AchievementCard';
 import { UserLibraryBookCard } from '../components/BookCard';
 import { BarcodeScannerWrapper } from '../components/BarcodeScannerWrapper';
@@ -63,6 +63,38 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
   const [bookPreview, setBookPreview] = useState<any>(null);
   const [loadingBookData, setLoadingBookData] = useState(false);
   const [isbnScannedMessage, setIsbnScannedMessage] = useState<string | null>(null);
+  const [lastFetchedISBN, setLastFetchedISBN] = useState<string | null>(null);
+  
+  // Barcode handler with debounce protection
+  const handleBarcodeScannedInternal = (scannedISBN: string) => {
+    logger.info('📱 [PROFILE] Processing scanned ISBN:', scannedISBN);
+    
+    // Fill the ISBN input field and auto-fetch book data
+    setIsbn(scannedISBN);
+    setShowBarcodeScanner(false);
+    
+    // Show success message
+    setIsbnScannedMessage(`📷 ISBN scanned: ${scannedISBN}`);
+    
+    // Auto-fetch book data immediately (mark as from scanner to avoid duplicate alerts)
+    fetchBookByISBN(scannedISBN, true);
+    
+    // Reopen the Add Book modal so user can review and add manually
+    setTimeout(() => {
+      setShowAddBookModal(true);
+      logger.info('📱 [PROFILE] Add Book modal reopened with scanned ISBN and book data');
+      
+      // Clear the message after a few seconds
+      setTimeout(() => {
+        setIsbnScannedMessage(null);
+      }, 3000);
+    }, 300);
+  };
+
+  const { handleBarcodeScanned } = useBarcodeHandler({
+    debounceMs: 2000, // 2 second debounce
+    onBarcodeProcessed: handleBarcodeScannedInternal
+  });
   
   // Edit Profile Modal State
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
@@ -167,30 +199,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
     }, 100);
   };
 
-  const handleBarcodeScanned = (scannedISBN: string) => {
-    logger.info('📱 [PROFILE] ISBN scanned:', scannedISBN);
-    
-    // Fill the ISBN input field and auto-fetch book data
-    setIsbn(scannedISBN);
-    setShowBarcodeScanner(false);
-    
-    // Show success message
-    setIsbnScannedMessage(`📷 ISBN scanned: ${scannedISBN}`);
-    
-    // Auto-fetch book data immediately
-    fetchBookByISBN(scannedISBN);
-    
-    // Reopen the Add Book modal so user can review and add manually
-    setTimeout(() => {
-      setShowAddBookModal(true);
-      logger.info('📱 [PROFILE] Add Book modal reopened with scanned ISBN and book data');
-      
-      // Clear the message after a few seconds
-      setTimeout(() => {
-        setIsbnScannedMessage(null);
-      }, 3000);
-    }, 300);
-  };
 
   const updateBookStatus = async (bookId: string, newStatus: 'WISHLIST' | 'READING' | 'TO_READ' | 'READ') => {
     try {
@@ -364,28 +372,56 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
     }
   };
 
-  const fetchBookByISBN = async (isbnValue: string) => {
+  const fetchBookByISBN = async (isbnValue: string, fromScanner: boolean = false) => {
     if (!isbnValue.trim()) {
       setBookPreview(null);
       return;
     }
 
+    const cleanISBN = isbnValue.trim();
+    
+    // Prevent duplicate calls - if we just fetched this ISBN, skip
+    if (lastFetchedISBN === cleanISBN && !fromScanner) {
+      logger.info('📚 [PROFILE] Skipping duplicate fetch for ISBN:', cleanISBN);
+      return;
+    }
+
+    // If already loading, don't make another call
+    if (loadingBookData) {
+      logger.info('📚 [PROFILE] Already loading book data, skipping duplicate call');
+      return;
+    }
+
+    setLastFetchedISBN(cleanISBN);
     setLoadingBookData(true);
+    
     try {
-      logger.info('📚 [PROFILE] Fetching book data for ISBN:', isbnValue);
-      const bookData = await getBookByIsbn(isbnValue.trim());
+      logger.info('📚 [PROFILE] Fetching book data for ISBN:', cleanISBN);
+      const bookData = await getBookByIsbn(cleanISBN);
       
       if (bookData) {
         setBookPreview(bookData);
         logger.info('📚 [PROFILE] Book data fetched successfully:', bookData.title);
       } else {
         setBookPreview(null);
-        Alert.alert('Book Not Found', 'No book found with this ISBN. You can still add it manually.');
+        // Only show alert if this is from scanner - not from typing
+        if (fromScanner) {
+          // Use setTimeout to ensure only one alert shows
+          setTimeout(() => {
+            Alert.alert('Book Not Found', 'No book found with this ISBN. You can still add it manually.');
+          }, 100);
+        }
       }
     } catch (error) {
       logger.error('📚 [PROFILE] Error fetching book data:', error);
       setBookPreview(null);
-      Alert.alert('Error', 'Failed to fetch book data. You can still add the book manually.');
+      // Only show alert if this is from scanner - not from typing
+      if (fromScanner) {
+        // Use setTimeout to ensure only one alert shows
+        setTimeout(() => {
+          Alert.alert('Error', 'Failed to fetch book data. You can still add the book manually.');
+        }, 100);
+      }
     } finally {
       setLoadingBookData(false);
     }

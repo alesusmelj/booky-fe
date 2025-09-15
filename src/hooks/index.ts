@@ -6,3 +6,4 @@ export { useReadingClubs } from './useReadingClubs';
 export { useBooks } from './useBooks';
 export { useGamification } from './useGamification';
 export { useExchanges } from './useExchanges';
+export { useBarcodeHandler } from './useBarcodeHandler';

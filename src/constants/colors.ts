@@ -4,6 +4,11 @@ export const colors = {
     main: '#6366F1',      // Indigo-500 - Main brand color
     light: '#EEF2FF',     // Indigo-50 - Light backgrounds
     border: '#E0E7FF',    // Indigo-200 - Light borders
+    indigo50: '#EEF2FF',  // Indigo-50
+    indigo100: '#E0E7FF', // Indigo-100
+    indigo200: '#C7D2FE', // Indigo-200
+    indigo600: '#4F46E5', // Indigo-600
+    indigo700: '#4338CA', // Indigo-700
   },
 
   // Neutral colors
@@ -13,10 +18,13 @@ export const colors = {
     gray50: '#F9FAFB',
     gray100: '#F3F4F6',
     gray200: '#E5E7EB',
+    gray300: '#D1D5DB',
     gray400: '#9CA3AF',
     gray500: '#6B7280',
     gray600: '#374151',
+    gray700: '#374151',
     gray800: '#1F2937',
+    gray900: '#111827',
   },
 
   // Status colors
@@ -25,6 +33,17 @@ export const colors = {
     warning: '#F59E0B',   // Amber-500
     success: '#10B981',   // Emerald-500
     info: '#3B82F6',      // Blue-500
+  },
+
+  // Green colors
+  green: {
+    100: '#DCFCE7',       // Green-100
+    600: '#16A34A',       // Green-600
+  },
+
+  // Red colors
+  red: {
+    red600: '#DC2626',    // Red-600
   },
 
   // Disabled states

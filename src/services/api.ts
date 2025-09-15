@@ -34,9 +34,7 @@ import {
 } from '../types/api';
 
 // Configuration
-const API_BASE_URL = __DEV__ 
-  ? 'http://localhost:8080' 
-  : 'https://your-production-api.com';
+import { API_BASE_URL } from '../config/api';
 
 
 // Error class for API errors
@@ -65,16 +63,19 @@ export const clearAuthToken = () => {
 };
 
 // Base fetch wrapper
-const apiRequest = async <T = any>(
+export const apiRequest = async <T = any>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> => {
   const url = `${API_BASE_URL}${endpoint}`;
-  
+
+  // Don't set Content-Type for FormData, let browser/RN set it with boundary
+  const isFormData = options.body instanceof FormData;
+
   const config: RequestInit = {
     ...options,
     headers: {
-      'Content-Type': 'application/json',
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...options.headers,
     },
   };
@@ -89,7 +90,7 @@ const apiRequest = async <T = any>(
 
   try {
     const response = await fetch(url, config);
-    
+
     if (!response.ok) {
       let errorData;
       try {
@@ -97,7 +98,7 @@ const apiRequest = async <T = any>(
       } catch {
         errorData = { message: response.statusText };
       }
-      
+
       throw new ApiError(
         errorData.message || `HTTP ${response.status}`,
         response.status,
@@ -115,23 +116,42 @@ const apiRequest = async <T = any>(
     if (error instanceof ApiError) {
       throw error;
     }
+
+    // Handle specific network errors
+    if (error instanceof Error) {
+      if (error.message.includes('Failed to fetch') || error.message.includes('Network request failed')) {
+        throw new ApiError(
+          'No se puede conectar al servidor. Verifica que el backend esté corriendo en localhost:8080 y que CORS esté configurado correctamente.',
+          0,
+          { originalError: error.message }
+        );
+      }
+      if (error.message.includes('CORS')) {
+        throw new ApiError(
+          'Error de CORS: El servidor no permite requests desde este origen. Configura CORS en el backend.',
+          0,
+          { originalError: error.message }
+        );
+      }
+    }
+
     throw new ApiError(
-      error instanceof Error ? error.message : 'Network error'
+      error instanceof Error ? error.message : 'Error de red desconocido'
     );
   }
 };
 
 // FormData request for file uploads
-const apiFormDataRequest = async <T = any>(
+export const apiFormDataRequest = async <T = any>(
   endpoint: string,
   formData: FormData,
   options: RequestInit = {}
 ): Promise<T> => {
   const url = `${API_BASE_URL}${endpoint}`;
-  
+
   const config: RequestInit = {
-    ...options,
-    method: 'POST',
+    method: 'POST', // Default method
+    ...options, // This will override method if provided in options
     body: formData,
     headers: {
       ...options.headers,
@@ -149,7 +169,7 @@ const apiFormDataRequest = async <T = any>(
 
   try {
     const response = await fetch(url, config);
-    
+
     if (!response.ok) {
       let errorData;
       try {
@@ -157,7 +177,7 @@ const apiFormDataRequest = async <T = any>(
       } catch {
         errorData = { message: response.statusText };
       }
-      
+
       throw new ApiError(
         errorData.message || `HTTP ${response.status}`,
         response.status,
@@ -198,10 +218,15 @@ export const userApi = {
 
   updateUser: (userData: UserUpdateDto, image?: File): Promise<UserDto> => {
     const formData = new FormData();
-    formData.append('user', JSON.stringify(userData));
+
+    // Add user data with explicit Content-Type for JSON
+    const userBlob = new Blob([JSON.stringify(userData)], { type: 'application/json' });
+    formData.append('user', userBlob);
+
     if (image) {
       formData.append('image', image);
     }
+
     return apiFormDataRequest('/users', formData, { method: 'PUT' });
   },
 
@@ -249,7 +274,7 @@ export const bookApi = {
     if (params?.favorites !== undefined) searchParams.append('favorites', params.favorites.toString());
     if (params?.status) searchParams.append('status', params.status);
     if (params?.wantsToExchange !== undefined) searchParams.append('wantsToExchange', params.wantsToExchange.toString());
-    
+
     const queryString = searchParams.toString();
     return apiRequest(`/books/library/${userId}${queryString ? `?${queryString}` : ''}`);
   },
@@ -332,14 +357,18 @@ export const postApi = {
     if (params?.type) searchParams.append('type', params.type);
     if (params?.userId) searchParams.append('userId', params.userId);
     if (params?.communityId) searchParams.append('communityId', params.communityId);
-    
+
     const queryString = searchParams.toString();
     return apiRequest(`/posts${queryString ? `?${queryString}` : ''}`);
   },
 
   createPost: (postData: CreatePostDto, image?: File): Promise<PostDto> => {
     const formData = new FormData();
-    formData.append('post', JSON.stringify(postData));
+
+    // Add post data with explicit Content-Type for JSON
+    const postBlob = new Blob([JSON.stringify(postData)], { type: 'application/json' });
+    formData.append('post', postBlob);
+
     if (image) {
       formData.append('image', image);
     }

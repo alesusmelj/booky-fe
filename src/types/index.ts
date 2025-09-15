@@ -14,3 +14,10 @@ export interface ApiResponse<T> {
 
 // Export all API types
 export * from './api';
+
+// Export communities types (excluding duplicates)
+export type { 
+  GetCommunitiesResponse,
+  GetCommunityByIdResponse,
+  ApiError as CommunitiesApiError
+} from './communities';

@@ -14,7 +14,7 @@ import { strings, colors } from '../constants';
 import { logger } from '../utils/logger';
 
 interface CreatePostProps {
-  onPost?: (content: string, images?: string[]) => void;
+  onPost?: (content: string, images?: File[]) => void;
   maxLength?: number;
   disabled?: boolean;
   showCharacterCount?: boolean;
@@ -28,7 +28,7 @@ export const CreatePost: React.FC<CreatePostProps> = ({
 }) => {
   const { user } = useAuth();
   const [postContent, setPostContent] = useState('');
-  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
 
   const isPostDisabled = disabled || (postContent.trim().length === 0 && selectedImages.length === 0);
 
@@ -47,13 +47,23 @@ export const CreatePost: React.FC<CreatePostProps> = ({
   };
 
   const handleAddImage = () => {
-    // TODO: Implement image picker functionality
-    // This would typically use expo-image-picker
-    Alert.alert(
-      strings.createPost.imageUpcomingTitle,
-      strings.createPost.imageUpcomingMessage
-    );
-    logger.info('Image upload feature not implemented yet');
+    // Create a hidden file input element
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.multiple = false; // For now, only single image
+    input.onchange = (event: any) => {
+      const file = event.target.files[0];
+      if (file) {
+        setSelectedImages([file]); // Replace any existing image
+        logger.info('Image selected:', file.name);
+      }
+    };
+    input.click();
+  };
+
+  const removeImage = (index: number) => {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index));
   };
 
   const getUserAvatar = () => {
@@ -93,6 +103,27 @@ export const CreatePost: React.FC<CreatePostProps> = ({
             accessible={true}
             accessibilityLabel={strings.createPost.textInputAccessibility}
           />
+          
+          {/* Selected Images Preview */}
+          {selectedImages.length > 0 && (
+            <View style={styles.selectedImagesContainer}>
+              {selectedImages.map((image, index) => (
+                <View key={index} style={styles.selectedImageContainer}>
+                  <Image 
+                    source={{ uri: URL.createObjectURL(image) }} 
+                    style={styles.selectedImagePreview}
+                  />
+                  <TouchableOpacity 
+                    style={styles.removeImageButton}
+                    onPress={() => removeImage(index)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.removeImageText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
       </View>
 
@@ -232,5 +263,34 @@ const styles = StyleSheet.create({
   characterCountText: {
     fontSize: 12,
     color: colors.neutral.gray400,
+  },
+  selectedImagesContainer: {
+    marginTop: 12,
+  },
+  selectedImageContainer: {
+    position: 'relative',
+    marginBottom: 8,
+  },
+  selectedImagePreview: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+    backgroundColor: colors.neutral.gray100,
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removeImageText: {
+    color: colors.neutral.white,
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });

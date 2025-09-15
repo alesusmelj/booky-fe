@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, SafeAreaView, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Navbar, TopNavbar } from './components';
-import { HomeScreen, SearchScreen, LoginScreen, CommunitiesScreen, CommunityDetailScreen, ReadingClubsScreen } from './screens';
+import { HomeScreen, SearchScreen, LoginScreen, CommunitiesScreen, CommunityDetailScreen, ReadingClubsScreen, ProfileScreen, LibraryScreen } from './screens';
 import CommerceScreen from './screens/CommerceScreen';
 import { strings, colors } from './constants';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -43,6 +44,8 @@ function AppContent() {
         return <CommunityDetailScreen communityId={currentScreen.params?.communityId} />;
       case 'reading-clubs':
         return <ReadingClubsScreen />;
+      case 'profile':
+        return <ProfileScreen />;
       default:
         // Handle tab-based screens
         switch (activeTab) {
@@ -62,19 +65,9 @@ function AppContent() {
               </View>
             );
           case 'library':
-            return (
-              <View style={styles.placeholderContent}>
-                <Text style={styles.placeholderTitle}>{strings.placeholders.library.title}</Text>
-                <Text style={styles.placeholderSubtitle}>{strings.placeholders.comingSoon}</Text>
-              </View>
-            );
+            return <LibraryScreen />;
           case 'profile':
-            return (
-              <View style={styles.placeholderContent}>
-                <Text style={styles.placeholderTitle}>{strings.placeholders.profile.title}</Text>
-                <Text style={styles.placeholderSubtitle}>{strings.placeholders.comingSoon}</Text>
-              </View>
-            );
+            return <ProfileScreen />;
           default:
             return <HomeScreen />;
         }
@@ -119,11 +112,13 @@ function AppContent() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <NavigationProvider>
-        <AppContent />
-      </NavigationProvider>
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <NavigationProvider>
+          <AppContent />
+        </NavigationProvider>
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }
 

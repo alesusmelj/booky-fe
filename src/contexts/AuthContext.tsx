@@ -254,12 +254,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (!state.user?.id) return;
 
     try {
-      // You would typically have a refresh endpoint or get user endpoint
-      // For now, we'll just keep the existing user data
-      // In a real app, you might call: const updatedUser = await userApi.getUser(state.user.id);
-      logger.info('User refresh not implemented yet');
+      logger.info('🔄 Refreshing user data...');
+      // Get updated user data from server
+      const { UsersService } = await import('../services/usersService');
+      const updatedUser = await UsersService.getUserById(state.user.id);
+      
+      // Update user in state and storage
+      setState(prev => ({
+        ...prev,
+        user: updatedUser,
+      }));
+      
+      // Also update the stored user data
+      await userStorage.saveUser(updatedUser);
+      
+      logger.info('✅ User data refreshed successfully');
     } catch (error) {
-      logger.error('Failed to refresh user:', error);
+      logger.error('❌ Failed to refresh user:', error);
     }
   };
 

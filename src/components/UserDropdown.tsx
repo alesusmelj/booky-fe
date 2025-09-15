@@ -12,6 +12,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigation } from '../contexts/NavigationContext';
 
 interface UserDropdownProps {
   visible: boolean;
@@ -25,6 +26,7 @@ export const UserDropdown: React.FC<UserDropdownProps> = ({
   anchorPosition,
 }) => {
   const { signOut, user } = useAuth();
+  const { navigate } = useNavigation();
   const scaleAnim = useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
@@ -47,8 +49,7 @@ export const UserDropdown: React.FC<UserDropdownProps> = ({
 
   const handleMyProfile = () => {
     onClose();
-    // TODO: Navigate to profile screen
-    console.log('Navigate to profile');
+    navigate('profile');
   };
 
   const handleLogout = async () => {

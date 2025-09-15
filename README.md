@@ -2,6 +2,15 @@
 
 A React Native mobile application built with Expo, TypeScript, and modern development tools.
 
+## Features
+
+- 📚 Social network for book lovers
+- 👥 Community discussions and reading clubs
+- 🎥 **Video calls for reading club meetings** (LiveKit integration)
+- 📖 Book discovery and recommendations
+- 💬 Posts and comments
+- 🔄 Book trading and commerce
+
 ## Development Setup
 
 ### Using Dev Containers (Recommended)
@@ -108,6 +117,27 @@ For remote development (AWS, Coder, etc.), use tunnel mode to bypass network res
 npm run start:tunnel
 ```
 This uses a secure tunnel so mobile devices can connect to your development server regardless of network configuration.
+
+## Video Calling Setup (LiveKit)
+
+The app includes video calling functionality for reading club meetings using LiveKit.
+
+### Quick Setup
+```bash
+# Run the installation script
+./scripts/install-livekit.sh
+```
+
+### Manual Setup
+```bash
+# Install LiveKit packages
+npm install @livekit/react-native @livekit/react-native-webrtc
+
+# For iOS (if applicable)
+cd ios && pod install
+```
+
+For detailed setup instructions, backend API requirements, and troubleshooting, see [LIVEKIT_SETUP.md](./LIVEKIT_SETUP.md).
 
 ## Contributing
 

@@ -5,7 +5,7 @@ import { authStorage, userStorage } from '../services/storage';
 import { logger } from '../utils/logger';
 
 // Enable mock mode for mobile testing (set to true to bypass backend)
-const ENABLE_MOCK_AUTH = true;
+const ENABLE_MOCK_AUTH = false;
 
 // Mock user data for testing
 const mockUser: UserDto = {
@@ -254,12 +254,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (!state.user?.id) return;
 
     try {
-      // You would typically have a refresh endpoint or get user endpoint
-      // For now, we'll just keep the existing user data
-      // In a real app, you might call: const updatedUser = await userApi.getUser(state.user.id);
-      logger.info('User refresh not implemented yet');
+      logger.info('🔄 Refreshing user data...');
+      // Get updated user data from server
+      const { UsersService } = await import('../services/usersService');
+      const updatedUser = await UsersService.getUserById(state.user.id);
+      
+      // Update user in state and storage
+      setState(prev => ({
+        ...prev,
+        user: updatedUser,
+      }));
+      
+      // Also update the stored user data
+      await userStorage.saveUser(updatedUser);
+      
+      logger.info('✅ User data refreshed successfully');
     } catch (error) {
-      logger.error('Failed to refresh user:', error);
+      logger.error('❌ Failed to refresh user:', error);
     }
   };
 

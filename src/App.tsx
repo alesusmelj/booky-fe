@@ -1,15 +1,18 @@
 import { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, SafeAreaView, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, SafeAreaView, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Navbar, TopNavbar } from './components';
-import { HomeScreen, SearchScreen, LoginScreen } from './screens';
+import { HomeScreen, SearchScreen, LoginScreen, CommunitiesScreen, CommunityDetailScreen, ReadingClubsScreen, ProfileScreen, LibraryScreen } from './screens';
 import CommerceScreen from './screens/CommerceScreen';
 import { strings, colors } from './constants';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { NavigationProvider, useNavigation } from './contexts/NavigationContext';
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState('home');
   const { isAuthenticated, isLoading } = useAuth();
+  const { currentScreen, goBack, canGoBack } = useNavigation();
 
   const handleTabPress = (tab: string) => {
     setActiveTab(tab);
@@ -35,60 +38,73 @@ function AppContent() {
   }
 
   const renderContent = () => {
-    switch (activeTab) {
-      case 'home':
-        return <HomeScreen />;
-      case 'search':
-        return <SearchScreen />;
-      case 'community':
-        return (
-          <View style={styles.placeholderContent}>
-            <Text style={styles.placeholderTitle}>{strings.placeholders.communities.title}</Text>
-            <Text style={styles.placeholderSubtitle}>{strings.placeholders.comingSoon}</Text>
-          </View>
-        );
-      case 'commerce':
-        return <CommerceScreen />;
-      case 'messages':
-        return (
-          <View style={styles.placeholderContent}>
-            <Text style={styles.placeholderTitle}>{strings.navigation.messages}</Text>
-            <Text style={styles.placeholderSubtitle}>{strings.placeholders.comingSoon}</Text>
-          </View>
-        );
-      case 'library':
-        return (
-          <View style={styles.placeholderContent}>
-            <Text style={styles.placeholderTitle}>{strings.placeholders.library.title}</Text>
-            <Text style={styles.placeholderSubtitle}>{strings.placeholders.comingSoon}</Text>
-          </View>
-        );
+    // Handle navigation screens first
+    switch (currentScreen.screen) {
+      case 'community-detail':
+        return <CommunityDetailScreen communityId={currentScreen.params?.communityId} />;
+      case 'reading-clubs':
+        return <ReadingClubsScreen />;
       case 'profile':
-        return (
-          <View style={styles.placeholderContent}>
-            <Text style={styles.placeholderTitle}>{strings.placeholders.profile.title}</Text>
-            <Text style={styles.placeholderSubtitle}>{strings.placeholders.comingSoon}</Text>
-          </View>
-        );
+        return <ProfileScreen />;
       default:
-        return <HomeScreen />;
+        // Handle tab-based screens
+        switch (activeTab) {
+          case 'home':
+            return <HomeScreen />;
+          case 'search':
+            return <SearchScreen />;
+          case 'community':
+            return <CommunitiesScreen />;
+          case 'commerce':
+            return <CommerceScreen />;
+          case 'messages':
+            return (
+              <View style={styles.placeholderContent}>
+                <Text style={styles.placeholderTitle}>{strings.navigation.messages}</Text>
+                <Text style={styles.placeholderSubtitle}>{strings.placeholders.comingSoon}</Text>
+              </View>
+            );
+          case 'library':
+            return <LibraryScreen />;
+          case 'profile':
+            return <ProfileScreen />;
+          default:
+            return <HomeScreen />;
+        }
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <TopNavbar 
-        hasNotifications={true}
-        onNotificationPress={() => {}}
-        onProfilePress={() => {}}
-      />
+      {canGoBack() ? (
+        <View style={styles.headerWithBack}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={goBack}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.backButtonText}>← Volver</Text>
+          </TouchableOpacity>
+          <TopNavbar 
+            hasNotifications={true}
+            onNotificationPress={() => {}}
+          />
+        </View>
+      ) : (
+        <TopNavbar 
+          hasNotifications={true}
+          onNotificationPress={() => {}}
+        />
+      )}
       <View style={styles.content}>
         {renderContent()}
       </View>
-      <Navbar 
-        activeTab={activeTab} 
-        onTabPress={handleTabPress} 
-      />
+      {!canGoBack() && (
+        <Navbar 
+          activeTab={activeTab} 
+          onTabPress={handleTabPress} 
+        />
+      )}
       <StatusBar style="auto" />
     </SafeAreaView>
   );
@@ -96,9 +112,13 @@ function AppContent() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <NavigationProvider>
+          <AppContent />
+        </NavigationProvider>
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }
 
@@ -115,6 +135,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: colors.neutral.white,
+  },
+  headerWithBack: {
+    backgroundColor: colors.neutral.white,
+  },
+  backButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: colors.neutral.white,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutral.gray200,
+  },
+  backButtonText: {
+    fontSize: 16,
+    color: colors.primary.indigo600,
+    fontWeight: '600',
   },
   placeholderContent: {
     flex: 1,

@@ -91,12 +91,17 @@ export const strings = {
     },
     sections: {
       receivedOffers: 'Ofertas Recibidas',
-      activeOrders: 'Tus Pedidos Activos',
+      activeOrders: 'Mis Intercambios',
       myBooks: 'Mis Libros',
     },
     status: {
-      pending: 'PENDIENTE',
-      active: 'ACTIVO',
+      pending: 'Pendiente',
+      accepted: 'Aceptado',
+      rejected: 'Rechazado',
+      countered: 'Contraoferta',
+      cancelled: 'Cancelado',
+      completed: 'Completado',
+      active: 'ACTIVO', // Legacy - can be removed later
       available: 'Disponible para intercambio',
       notAvailable: 'Toca para marcar como disponible',
     },

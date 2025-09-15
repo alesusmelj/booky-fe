@@ -35,6 +35,34 @@ export const colors = {
     info: '#3B82F6',      // Blue-500
   },
 
+  // Error colors
+  error: {
+    main: '#EF4444',      // Red-500
+    light: '#FEF2F2',     // Red-50
+    dark: '#DC2626',      // Red-600
+  },
+
+  // Warning colors
+  warning: {
+    main: '#F59E0B',      // Amber-500
+    light: '#FFFBEB',     // Amber-50
+    dark: '#D97706',      // Amber-600
+  },
+
+  // Success colors
+  success: {
+    main: '#10B981',      // Emerald-500
+    light: '#ECFDF5',     // Emerald-50
+    dark: '#059669',      // Emerald-600
+  },
+
+  // Info colors
+  info: {
+    main: '#3B82F6',      // Blue-500
+    light: '#EFF6FF',     // Blue-50
+    dark: '#2563EB',      // Blue-600
+  },
+
   // Green colors
   green: {
     100: '#DCFCE7',       // Green-100

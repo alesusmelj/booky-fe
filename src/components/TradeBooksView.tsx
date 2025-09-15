@@ -1,73 +1,89 @@
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { OfferCard } from './OfferCard';
 import { OrderCard } from './OrderCard';
+import CreateExchangeModal from './CreateExchangeModal';
 import { strings, colors, theme } from '../constants';
+import { useExchanges } from '../hooks';
+import { useAuth } from '../contexts/AuthContext';
+import { getExchangeStatusInSpanish } from '../utils';
+import { useState } from 'react';
 
-// Mock data - replace with actual API data
-const mockReceivedOffers = [
-  {
-    id: 1,
-    exchangeNumber: 'Intercambio #1',
-    date: '2024-02-11',
-    status: 'PENDIENTE' as const,
-    requester: {
-      name: 'Ana Martínez',
-      role: 'Solicitante',
-      avatar: 'A',
-    },
-    requestedBooks: [
-      {
-        title: 'Cien años de soledad',
-        author: 'Gabriel García Márquez',
-        image: '/book1.jpg',
-      },
-    ],
-    offeredBooks: [
-      {
-        title: '1984',
-        author: 'George Orwell',
-        image: '/book2.jpg',
-      },
-    ],
-  },
-];
-
-const mockActiveOrders = [
-  {
-    id: 1,
-    exchangeNumber: 'Intercambio #1',
-    date: '2024-02-10',
-    status: 'ACTIVO' as const,
-    requester: {
-      name: 'Carlos Rodriguez',
-      location: 'Buenos Aires, Argentina',
-      avatar: '/avatar.jpg',
-    },
-    requestedBooks: [
-      {
-        title: '1984',
-        author: 'George Orwell',
-        image: '/book2.jpg',
-      },
-    ],
-    offeredBooks: [
-      {
-        title: 'Cien años de soledad',
-        author: 'Gabriel García Márquez',
-        image: '/book1.jpg',
-      },
-    ],
-  },
-];
+// Component uses real API data via useExchanges hook
 
 export function TradeBooksView() {
+  const { user } = useAuth();
+  const { 
+    receivedOffers, 
+    activeOrders, 
+    loading, 
+    error, 
+    updateExchangeStatus,
+    loadExchanges 
+  } = useExchanges();
+
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
   const handleNewExchange = () => {
-    // TODO: Navigate to new exchange screen
+    setShowCreateModal(true);
   };
 
+  const handleExchangeCreated = (exchange: any) => {
+    // Refresh the exchanges list
+    loadExchanges();
+  };
+
+  const handleAcceptOffer = async (exchangeId: string) => {
+    try {
+      await updateExchangeStatus(exchangeId, 'ACCEPTED');
+    } catch (err) {
+      // Error is handled by the useExchanges hook
+    }
+  };
+
+  const handleRejectOffer = async (exchangeId: string) => {
+    try {
+      await updateExchangeStatus(exchangeId, 'REJECTED');
+    } catch (err) {
+      // Error is handled by the useExchanges hook
+    }
+  };
+
+  const handleCompleteOrder = async (exchangeId: string) => {
+    try {
+      await updateExchangeStatus(exchangeId, 'COMPLETED');
+    } catch (err) {
+      // Error is handled by the useExchanges hook
+    }
+  };
+
+  const handleCancelOrder = async (exchangeId: string) => {
+    try {
+      await updateExchangeStatus(exchangeId, 'CANCELLED');
+    } catch (err) {
+      // Error is handled by the useExchanges hook
+    }
+  };
+
+  const handleCounterOffer = (exchangeId: string) => {
+    // TODO: Implement counter offer logic
+    // This would typically open a modal for creating a counter offer
+    // For now, we'll just show an alert
+    alert(`Counter offer functionality for exchange ${exchangeId} will be implemented soon`);
+  };
+
+  if (loading && receivedOffers.length === 0 && activeOrders.length === 0) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary.main} />
+        <Text style={styles.loadingText}>Loading exchanges...</Text>
+      </View>
+    );
+  }
+
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <TouchableOpacity
         style={styles.newExchangeButton}
         onPress={handleNewExchange}
@@ -81,26 +97,151 @@ export function TradeBooksView() {
         </Text>
       </TouchableOpacity>
 
+      {error && (
+        <View style={styles.errorContainer}>
+          <MaterialIcons name="error-outline" size={24} color={colors.error.main} />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity onPress={loadExchanges} style={styles.retryButton}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{strings.commerce.sections.receivedOffers}</Text>
-        {mockReceivedOffers.map((offer) => (
-          <OfferCard key={offer.id} offer={offer} />
-        ))}
+        {receivedOffers.length > 0 ? (
+          receivedOffers.map((exchange) => (
+                <OfferCard 
+                  key={exchange.id}
+                  currentUserId={user?.id || ''}
+                  offer={{
+                id: exchange.id,
+                exchangeNumber: `Exchange #${exchange.id.slice(-4)}`,
+                date: new Date(exchange.date_created).toLocaleDateString(),
+                status: getExchangeStatusInSpanish(exchange.status) as any,
+                requester: {
+                  id: exchange.requester?.id,
+                  name: exchange.requester 
+                    ? `${exchange.requester.name} ${exchange.requester.lastname}` 
+                    : 'Usuario no disponible',
+                  role: 'Solicitante',
+                  avatar: exchange.requester?.image || (exchange.requester?.name?.charAt(0) || 'U'),
+                },
+                requestedBooks: (exchange.owner_books || []).map(ub => ({
+                  title: ub?.book?.title || 'Título no disponible',
+                  author: ub?.book?.author || 'Autor no disponible',
+                  image: ub?.book?.image || '/default-book.jpg',
+                })),
+                offeredBooks: (exchange.requester_books || []).map(ub => ({
+                  title: ub?.book?.title || 'Título no disponible',
+                  author: ub?.book?.author || 'Autor no disponible',
+                  image: ub?.book?.image || '/default-book.jpg',
+                })),
+              }}
+              onAccept={() => handleAcceptOffer(exchange.id)}
+              onReject={() => handleRejectOffer(exchange.id)}
+            />
+          ))
+        ) : (
+          <Text style={styles.emptyText}>No received offers</Text>
+        )}
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{strings.commerce.sections.activeOrders}</Text>
-        {mockActiveOrders.map((order) => (
-          <OrderCard key={order.id} order={order} />
-        ))}
+        {activeOrders.length > 0 ? (
+          activeOrders.map((exchange) => (
+                <OrderCard 
+                  key={exchange.id}
+                  currentUserId={user?.id || ''}
+                  order={{
+                id: exchange.id,
+                exchangeNumber: `Exchange #${exchange.id.slice(-4)}`,
+                date: new Date(exchange.date_created).toLocaleDateString(),
+                status: getExchangeStatusInSpanish(exchange.status) as any,
+                requester: {
+                  id: exchange.requester?.id,
+                  name: exchange.requester 
+                    ? `${exchange.requester.name} ${exchange.requester.lastname}` 
+                    : 'Usuario no disponible',
+                  location: (exchange.requester as any)?.address 
+                    ? `${(exchange.requester as any).address.state}, ${(exchange.requester as any).address.country}`
+                    : undefined,
+                  avatar: exchange.requester?.image || '/default-avatar.jpg',
+                },
+                requestedBooks: (exchange.owner_books || []).map(ub => ({
+                  title: ub?.book?.title || 'Título no disponible',
+                  author: ub?.book?.author || 'Autor no disponible',
+                  image: ub?.book?.image || '/default-book.jpg',
+                })),
+                offeredBooks: (exchange.requester_books || []).map(ub => ({
+                  title: ub?.book?.title || 'Título no disponible',
+                  author: ub?.book?.author || 'Autor no disponible',
+                  image: ub?.book?.image || '/default-book.jpg',
+                })),
+              }}
+                  onAccept={() => handleAcceptOffer(exchange.id)}
+                  onReject={() => handleRejectOffer(exchange.id)}
+                  onCancel={() => handleCancelOrder(exchange.id)}
+                  onComplete={() => handleCompleteOrder(exchange.id)}
+                  onCounterOffer={() => handleCounterOffer(exchange.id)}
+            />
+          ))
+        ) : (
+          <Text style={styles.emptyText}>No active orders</Text>
+        )}
       </View>
     </ScrollView>
+
+      <CreateExchangeModal
+        isVisible={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        currentUserId={user?.id || ''}
+        onSuccess={handleExchangeCreated}
+      />
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: theme.text.secondary,
+  },
+  errorContainer: {
+    backgroundColor: colors.error.light,
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  errorText: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.error.main,
+  },
+  retryButton: {
+    backgroundColor: colors.error.main,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  retryButtonText: {
+    color: colors.neutral.white,
+    fontSize: 12,
+    fontWeight: '600',
   },
   newExchangeButton: {
     flexDirection: 'row',
@@ -126,5 +267,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: theme.text.primary,
     marginBottom: 16,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: theme.text.secondary,
+    textAlign: 'center',
+    paddingVertical: 20,
+    fontStyle: 'italic',
   },
 });

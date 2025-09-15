@@ -1,6 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { strings, colors, theme } from '../constants';
+import BookImage from './BookImage';
 
 interface Book {
   title: string;
@@ -9,16 +10,17 @@ interface Book {
 }
 
 interface User {
+  id?: string;
   name: string;
   location?: string;
   avatar: string;
 }
 
 interface Order {
-  id: number;
+  id: string;
   exchangeNumber: string;
   date: string;
-  status: 'PENDIENTE' | 'ACTIVO';
+  status: string;
   requester: User;
   requestedBooks: Book[];
   offeredBooks: Book[];
@@ -26,15 +28,145 @@ interface Order {
 
 interface OrderCardProps {
   order: Order;
+  currentUserId: string;
+  onComplete?: () => void;
+  onCancel?: () => void;
+  onChat?: () => void;
+  onAccept?: () => void;
+  onReject?: () => void;
+  onCounterOffer?: () => void;
 }
 
-export function OrderCard({ order }: OrderCardProps) {
+export function OrderCard({ 
+  order, 
+  currentUserId,
+  onComplete, 
+  onCancel, 
+  onChat,
+  onAccept,
+  onReject,
+  onCounterOffer 
+}: OrderCardProps) {
   const handleChat = () => {
-    // TODO: Open chat with user
+    onChat?.();
   };
 
   const handleCancel = () => {
-    // TODO: Cancel order
+    onCancel?.();
+  };
+
+  const handleComplete = () => {
+    onComplete?.();
+  };
+
+  const handleAccept = () => {
+    onAccept?.();
+  };
+
+  const handleReject = () => {
+    onReject?.();
+  };
+
+  const handleCounterOffer = () => {
+    onCounterOffer?.();
+  };
+
+  // Determine user role and what buttons to show
+  const isRequester = currentUserId === order.requester.id;
+  const isOwner = !isRequester; // Assuming if not requester, then owner
+  const status = order.status;
+
+  const renderActionButtons = () => {
+    // If requester and status is PENDING - show Cancel
+    if (isRequester && status === 'PENDIENTE') {
+      return (
+        <TouchableOpacity
+          style={styles.cancelButton}
+          onPress={handleCancel}
+          testID="cancel-button"
+        >
+          <Text style={styles.cancelText}>Cancelar</Text>
+        </TouchableOpacity>
+      );
+    }
+
+    // If owner and status is PENDING - show Accept, Reject, Counter Offer
+    if (isOwner && status === 'PENDIENTE') {
+      return (
+        <>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.acceptButton]}
+            onPress={handleAccept}
+            testID="accept-button"
+          >
+            <Text style={styles.acceptText}>Aceptar</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[styles.actionButton, styles.counterOfferButton]}
+            onPress={handleCounterOffer}
+            testID="counter-offer-button"
+          >
+            <Text style={styles.counterOfferText}>Contra Oferta</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.rejectButton}
+            onPress={handleReject}
+            testID="reject-button"
+          >
+            <Text style={styles.rejectText}>Rechazar</Text>
+          </TouchableOpacity>
+        </>
+      );
+    }
+
+    // If status is ACCEPTED (either requester or owner) - show Complete
+    if (status === 'Aceptado') {
+      return (
+        <>
+          <TouchableOpacity
+            style={styles.chatButton}
+            onPress={handleChat}
+            testID="chat-button"
+          >
+            <MaterialIcons name="chat" size={14} color={colors.neutral.white} />
+            <Text style={styles.chatText}>Chat</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.completeButton}
+            onPress={handleComplete}
+            testID="complete-button"
+          >
+            <MaterialIcons name="check" size={14} color={colors.neutral.white} />
+            <Text style={styles.completeText}>Completar</Text>
+          </TouchableOpacity>
+        </>
+      );
+    }
+
+    // Default case - show chat and cancel
+    return (
+      <>
+        <TouchableOpacity
+          style={styles.chatButton}
+          onPress={handleChat}
+          testID="chat-button"
+        >
+          <MaterialIcons name="chat" size={14} color={colors.neutral.white} />
+          <Text style={styles.chatText}>Chat</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.cancelButton}
+          onPress={handleCancel}
+          testID="cancel-button"
+        >
+          <Text style={styles.cancelText}>Cancelar</Text>
+        </TouchableOpacity>
+      </>
+    );
   };
 
   return (
@@ -64,7 +196,11 @@ export function OrderCard({ order }: OrderCardProps) {
       <Text style={styles.sectionLabel}>{strings.commerce.labels.requests}</Text>
       {order.requestedBooks.map((book, index) => (
         <View key={index} style={styles.bookItem}>
-          <View style={styles.bookImagePlaceholder} />
+          <BookImage 
+            source={book.image} 
+            containerStyle={styles.bookImageContainer}
+            size="small"
+          />
           <View style={styles.bookInfo}>
             <Text style={styles.bookTitle}>{book.title}</Text>
             <Text style={styles.bookAuthor}>{book.author}</Text>
@@ -85,9 +221,10 @@ export function OrderCard({ order }: OrderCardProps) {
         </View>
         <View style={styles.userInfo}>
           <Text style={styles.userName}>{order.requester.name}</Text>
+          <Text style={styles.userRole}>Propietario de los libros</Text>
           {order.requester.location && (
             <View style={styles.locationContainer}>
-              <MaterialIcons name="location-on" size={12} color={theme.text.secondary} />
+              <MaterialIcons name="location-on" size={14} color={colors.primary.main} />
               <Text style={styles.location}>{order.requester.location}</Text>
             </View>
           )}
@@ -97,7 +234,11 @@ export function OrderCard({ order }: OrderCardProps) {
       <Text style={styles.sectionLabel}>{strings.commerce.labels.offers}</Text>
       {order.offeredBooks.map((book, index) => (
         <View key={index} style={styles.bookItem}>
-          <View style={styles.bookImagePlaceholder} />
+          <BookImage 
+            source={book.image} 
+            containerStyle={styles.bookImageContainer}
+            size="small"
+          />
           <View style={styles.bookInfo}>
             <Text style={styles.bookTitle}>{book.title}</Text>
             <Text style={styles.bookAuthor}>{book.author}</Text>
@@ -106,26 +247,7 @@ export function OrderCard({ order }: OrderCardProps) {
       ))}
 
       <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.chatButton}
-          onPress={handleChat}
-          testID="chat-button"
-          accessible={true}
-          accessibilityLabel={strings.commerce.actions.chat}
-        >
-          <MaterialIcons name="chat" size={16} color={colors.neutral.white} />
-          <Text style={styles.chatText}>{strings.commerce.actions.chat}</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={styles.cancelButton}
-          onPress={handleCancel}
-          testID="cancel-button"
-          accessible={true}
-          accessibilityLabel={strings.commerce.actions.cancel}
-        >
-          <Text style={styles.cancelText}>{strings.commerce.actions.cancel}</Text>
-        </TouchableOpacity>
+        {renderActionButtons()}
       </View>
     </View>
   );
@@ -135,83 +257,105 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.neutral.white,
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    padding: 14,
+    marginBottom: 12,
     shadowColor: colors.shadow.default,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.08,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: colors.neutral.gray100,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutral.gray100,
   },
   exchangeInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
   exchangeNumber: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
     color: colors.primary.main,
   },
   statusBadge: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 16,
+    backgroundColor: colors.status.success,
   },
   statusText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 10,
+    fontWeight: '700',
     color: colors.neutral.white,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   date: {
-    fontSize: 12,
+    fontSize: 11,
     color: theme.text.secondary,
-    marginBottom: 16,
+    marginBottom: 10,
   },
   userSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
     backgroundColor: colors.neutral.gray50,
-    padding: 12,
+    padding: 10,
     borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary.main,
   },
   otherUserSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
     backgroundColor: colors.primary.light,
-    padding: 12,
+    padding: 10,
     borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary.main,
   },
   avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: colors.primary.main,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
+    shadowColor: colors.primary.main,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
   },
   avatarText: {
     color: colors.neutral.white,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   userAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: colors.primary.main,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
+    shadowColor: colors.primary.main,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
   },
   userInfo: {
     flex: 1,
@@ -223,64 +367,119 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   userRole: {
-    fontSize: 12,
+    fontSize: 11,
+    fontWeight: '500',
     color: theme.text.secondary,
+    marginBottom: 4,
   },
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    gap: 3,
+    backgroundColor: colors.neutral.white,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
   },
   location: {
-    fontSize: 12,
-    color: theme.text.secondary,
+    fontSize: 10,
+    fontWeight: '500',
+    color: colors.primary.main,
   },
   sectionLabel: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 13,
+    fontWeight: '600',
     color: theme.text.primary,
-    marginBottom: 12,
+    marginBottom: 8,
+    marginTop: 4,
   },
   bookItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
+    backgroundColor: colors.neutral.white,
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.neutral.gray100,
+    shadowColor: colors.shadow.default,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 1,
+    elevation: 1,
   },
-  bookImagePlaceholder: {
-    width: 40,
-    height: 56,
-    backgroundColor: colors.neutral.gray200,
-    borderRadius: 4,
-    marginRight: 12,
+  bookImageContainer: {
+    marginRight: 10,
   },
   bookInfo: {
     flex: 1,
   },
   bookTitle: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 13,
+    fontWeight: '600',
     color: theme.text.primary,
     marginBottom: 2,
+    lineHeight: 16,
   },
   bookAuthor: {
-    fontSize: 12,
+    fontSize: 11,
+    fontWeight: '500',
     color: theme.text.secondary,
   },
   exchangeIcon: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 16,
-    gap: 4,
+    marginVertical: 8,
+    gap: 3,
   },
   exchangeText: {
-    fontSize: 12,
+    fontSize: 10,
     color: colors.neutral.gray400,
   },
   actions: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 16,
+    gap: 8,
+    marginTop: 8,
+    flexWrap: 'wrap',
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    borderRadius: 6,
+    gap: 3,
+  },
+  acceptButton: {
+    backgroundColor: colors.status.success,
+  },
+  acceptText: {
+    color: colors.neutral.white,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  counterOfferButton: {
+    backgroundColor: colors.neutral.white,
+    borderWidth: 1,
+    borderColor: colors.primary.main,
+  },
+  counterOfferText: {
+    color: colors.primary.main,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  rejectButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+  },
+  rejectText: {
+    color: colors.status.error,
+    fontSize: 12,
+    fontWeight: '500',
   },
   chatButton: {
     flex: 1,
@@ -288,23 +487,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.primary.main,
-    paddingVertical: 12,
-    borderRadius: 8,
-    gap: 4,
+    paddingVertical: 8,
+    borderRadius: 6,
+    gap: 3,
   },
   chatText: {
     color: colors.neutral.white,
-    fontSize: 14,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  completeButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.status.success,
+    paddingVertical: 8,
+    borderRadius: 6,
+    gap: 3,
+  },
+  completeText: {
+    color: colors.neutral.white,
+    fontSize: 12,
     fontWeight: '500',
   },
   cancelButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     alignItems: 'center',
   },
   cancelText: {
     color: theme.text.secondary,
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
   },
 });

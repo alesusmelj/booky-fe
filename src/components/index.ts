@@ -44,3 +44,11 @@ export { MeetingScheduler } from './MeetingScheduler';
 export { CreateReadingClubModal } from './CreateReadingClubModal';
 export { SetMeetingModal } from './SetMeetingModal';
 export { UserDropdown } from './UserDropdown';
+
+// 360° Scene Viewer components
+export { PanoramaViewer } from './PanoramaViewer';
+export { PanoramaViewerSafe } from './PanoramaViewerSafe';
+export { ThreeJSViewer } from './ThreeJSViewer';
+export { ThreeJSViewerImproved } from './ThreeJSViewerImproved';
+export { ThreeJSViewerFixed } from './ThreeJSViewerFixed';
+export { SimpleImageViewer } from './SimpleImageViewer';

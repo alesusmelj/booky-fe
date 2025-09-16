@@ -304,6 +304,58 @@ export const bookApi = {
     apiRequest('/books/exchange'),
 };
 
+// Scene Image Generation API
+export interface SceneImageRequest {
+  text: string;
+  style?: string;
+  seed?: number;
+  returnBase64?: boolean;
+  size?: string;
+}
+
+export interface SceneImageResponse {
+  bookId: string;
+  craftedPrompt: string;
+  imageUrl?: string;
+  imageBase64?: string;
+  size: string;
+  style?: string;
+  seed?: number;
+  createdAt: string;
+}
+
+export const sceneApi = {
+  generateSceneImage: (bookId: string, request: SceneImageRequest): Promise<SceneImageResponse> =>
+    apiRequest(`/api/books/${bookId}/scene-image`, {
+      method: 'POST',
+      body: JSON.stringify(request),
+    }),
+
+  getBookSceneGenerations: (bookId: string): Promise<any[]> =>
+    apiRequest(`/api/books/${bookId}/scene-generations`),
+
+  getBookGenerationCount: (bookId: string): Promise<number> =>
+    apiRequest(`/api/books/${bookId}/scene-generations/count`),
+};
+
+// Convenience function for generating scene images
+export const generateSceneImage = async (params: {
+  bookId: string;
+  text: string;
+  style?: string;
+  seed?: number;
+  returnBase64?: boolean;
+  size?: string;
+}): Promise<SceneImageResponse> => {
+  const { bookId, ...request } = params;
+  return sceneApi.generateSceneImage(bookId, {
+    style: 'photorealistic',
+    returnBase64: false,
+    size: '4096x2048',
+    ...request,
+  });
+};
+
 // Book Exchange API
 export const exchangeApi = {
   createExchange: (exchangeData: CreateBookExchangeDto): Promise<BookExchangeDto> =>
@@ -519,6 +571,7 @@ export const api = {
   community: communityApi,
   readingClub: readingClubApi,
   gamification: gamificationApi,
+  scene: sceneApi,
 };
 
 export default api;

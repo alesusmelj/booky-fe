@@ -7,14 +7,17 @@ import {
   Text,
   TouchableOpacity,
   Alert,
+  Platform,
 } from 'react-native';
 import { DeviceMotion, DeviceMotionMeasurement, Gyroscope } from 'expo-sensors';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { GLView } from 'expo-gl';
 import { Asset } from 'expo-asset';
 import { Renderer } from 'expo-three';
+import * as ExpoTHREE from 'expo-three';
 import * as THREE from 'three';
 import * as FileSystem from 'expo-file-system';
+import * as ImageManipulator from 'expo-image-manipulator';
 
 export interface SimpleImageViewerProps {
   imageSource: {
@@ -39,7 +42,7 @@ const uriFromSource = async (src: { uri?: string; base64?: string }): Promise<st
       console.log('📄 [URI] Convirtiendo base64 a archivo local...');
       console.log('🔍 [URI] Base64 length:', src.base64.length);
       
-      const filePath = `${FileSystem.documentDirectory}panorama_${Date.now()}.jpg`;
+      const filePath = `${(FileSystem as any).documentDirectory}panorama_${Date.now()}.jpg`;
       console.log('🔍 [URI] Ruta de archivo:', filePath);
       
       await FileSystem.writeAsStringAsync(filePath, src.base64, { 
@@ -100,115 +103,162 @@ const uriFromSource = async (src: { uri?: string; base64?: string }): Promise<st
   }
 };
 
-// Loader robusto con timeout y retry - CORREGIDO para usar callbacks correctamente
-const loadTextureRobustAsync = async (
-  url: string, 
-  opts?: { timeoutMs?: number; noMipmaps?: boolean }
-): Promise<THREE.Texture> => {
-  const timeoutMs = opts?.timeoutMs ?? 10000;
-  console.log('🖼️ [ROBUST] Iniciando carga robusta de textura:', url);
+// Tipos para las opciones de carga
+type LoadOpts = {
+  timeoutMs?: number;
+  noMipmaps?: boolean;
+  maxWidth?: number; // p.ej. 4096
+};
 
-  const loadWithCallbacks = (): Promise<THREE.Texture> =>
-    new Promise<THREE.Texture>((resolve, reject) => {
-      console.log('🔄 [ROBUST] Creando TextureLoader con callbacks...');
-      console.log('🔍 [ROBUST] URL a cargar:', url);
-      console.log('🔍 [ROBUST] Tipo de URL:', url.startsWith('file://') ? 'FILE' : url.startsWith('data:') ? 'DATA_URI' : url.startsWith('http') ? 'HTTP' : 'UNKNOWN');
+// Loader robusto mejorado para iOS/Expo Go con expo-three y timeout real
+const loadTextureRobustAsync = async (
+  url: string,
+  opts: LoadOpts = {}
+): Promise<THREE.Texture> => {
+  const timeoutMs = opts.timeoutMs ?? 10000;
+  const maxWidth = opts.maxWidth ?? 4096;
+
+  console.log('🖼️ [ROBUST] Iniciando carga robusta mejorada:', url);
+  console.log('🔍 [ROBUST] Opciones:', { timeoutMs, maxWidth, noMipmaps: opts.noMipmaps });
+
+  // Validación temprana para iOS ATS
+  if (url.startsWith('http://')) {
+    const error = new Error('iOS/ATS bloquea http:// — usa https://');
+    console.error('❌ [ROBUST] Error ATS:', error.message);
+    throw error;
+  }
+
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => {
+      console.error(`⏰ [ROBUST] Timeout tras ${timeoutMs} ms`);
+      reject(new Error(`Timeout tras ${timeoutMs} ms`));
+    }, timeoutMs)
+  );
+
+  const loadOp = (async () => {
+    const isNative = Platform.OS === 'ios' || Platform.OS === 'android';
+    console.log('🔍 [ROBUST] Plataforma:', Platform.OS, 'isNative:', isNative);
+
+    if (isNative) {
+      console.log('📱 [ROBUST] Usando ruta nativa optimizada para RN/Expo Go...');
       
-      const loader = new THREE.TextureLoader();
+      // 1) Normalizar y descargar el asset
+      console.log('📁 [ROBUST] Creando Asset...');
+      const asset = /^\d+$/.test(url) ? Asset.fromModule(Number(url)) : Asset.fromURI(url);
       
-      // Configurar crossOrigin para evitar problemas CORS
-      if (url.startsWith('http')) {
-        loader.crossOrigin = 'anonymous';
-        console.log('🔍 [ROBUST] CrossOrigin configurado para HTTP');
+      console.log('⬇️ [ROBUST] Descargando Asset...');
+      await asset.downloadAsync();
+      let localUri = asset.localUri ?? asset.uri;
+      console.log('✅ [ROBUST] Asset descargado:', localUri);
+
+      // 2) Redimensionar preventivo (evita cuelgues por MAX_TEXTURE_SIZE)
+      try {
+        console.log('🔧 [ROBUST] Redimensionando imagen preventivo...');
+        const resized = await ImageManipulator.manipulateAsync(
+          localUri,
+          [{ resize: { width: maxWidth } }],
+          { compress: 0.9, format: ImageManipulator.SaveFormat.JPEG }
+        );
+        localUri = resized.uri;
+        console.log('✅ [ROBUST] Imagen redimensionada:', localUri);
+      } catch (resizeError) {
+        console.warn('⚠️ [ROBUST] Fallo redimensionamiento, usando original:', resizeError);
+        // si falla el resize, seguimos con el original
+      }
+
+      // 3) Cargar textura con expo-three (más estable que TextureLoader en RN)
+      console.log('🎨 [ROBUST] Cargando textura con ExpoTHREE.loadAsync...');
+      const texture: THREE.Texture = await ExpoTHREE.loadAsync(localUri);
+      console.log('✅ [ROBUST] Textura cargada con ExpoTHREE');
+
+      // 4) Ajustes recomendados para panoramas en móvil
+      console.log('⚙️ [ROBUST] Aplicando configuraciones optimizadas...');
+      if (opts.noMipmaps) {
+        texture.generateMipmaps = false;
+        texture.minFilter = THREE.LinearFilter;
+      }
+      texture.magFilter = THREE.LinearFilter;
+      texture.wrapS = THREE.ClampToEdgeWrapping;
+      texture.wrapT = THREE.ClampToEdgeWrapping;
+      texture.flipY = false;
+      
+      // Color space moderno
+      if ((texture as any).colorSpace !== undefined) {
+        (texture as any).colorSpace = THREE.SRGBColorSpace;
+      } else if ((THREE as any).sRGBEncoding !== undefined) {
+        (texture as any).encoding = (THREE as any).sRGBEncoding;
       }
       
-      // CORRECCIÓN: Usar los callbacks correctamente según la documentación
+      texture.needsUpdate = true;
+      console.log('✅ [ROBUST] Configuraciones aplicadas');
+
+      return texture;
+    }
+
+    // --- Web fallback: TextureLoader "clásico" ---
+    console.log('🌐 [ROBUST] Usando fallback web con TextureLoader...');
+    const loader = new THREE.TextureLoader();
+    
+    // Configurar crossOrigin correctamente
+    if (typeof (loader as any).setCrossOrigin === 'function') {
+      (loader as any).setCrossOrigin('anonymous');
+    } else {
+      loader.crossOrigin = 'anonymous';
+    }
+
+    return await new Promise<THREE.Texture>((resolve, reject) => {
       loader.load(
-        // URL del recurso
         url,
-        
-        // Callback cuando el recurso se carga exitosamente
         (texture) => {
-          console.log('✅ [ROBUST] Textura cargada exitosamente via callback!');
-          console.log('🔍 [ROBUST] Textura info:', {
-            width: texture.image?.width || 'unknown',
-            height: texture.image?.height || 'unknown',
-            format: texture.format,
-            type: texture.type,
-            flipY: texture.flipY
-          });
+          console.log('✅ [ROBUST] Textura cargada con TextureLoader web');
           
-          // Configuración optimizada para panoramas
-          if (opts?.noMipmaps) {
+          if (opts.noMipmaps) {
             texture.generateMipmaps = false;
             texture.minFilter = THREE.LinearFilter;
           }
           texture.magFilter = THREE.LinearFilter;
-          texture.wrapS = THREE.RepeatWrapping;
+          texture.wrapS = THREE.ClampToEdgeWrapping;
           texture.wrapT = THREE.ClampToEdgeWrapping;
-          texture.flipY = false; // Importante para equirectangular
+          texture.flipY = false;
           
-          // Resolver la Promise con la textura cargada
+          // Color space
+          if ((texture as any).colorSpace !== undefined) {
+            (texture as any).colorSpace = THREE.SRGBColorSpace;
+          } else if ((THREE as any).sRGBEncoding !== undefined) {
+            (texture as any).encoding = (THREE as any).sRGBEncoding;
+          }
+          
+          texture.needsUpdate = true;
           resolve(texture);
         },
-        
-        // Callback de progreso
-        (progress) => {
-          if (progress.lengthComputable && progress.total > 0) {
-            const percentage = Math.round((progress.loaded / progress.total) * 100);
-            console.log('📊 [ROBUST] Progreso:', percentage + '%', `(${progress.loaded}/${progress.total} bytes)`);
-          } else {
-            console.log('📊 [ROBUST] Descargando...', progress.loaded, 'bytes');
-          }
-        },
-        
-        // Callback de error
-        (error) => {
-          console.error('❌ [ROBUST] Error en callback de TextureLoader:', {
-            error: error,
-            message: error?.message || 'Sin mensaje',
-            url: url,
-            type: typeof error
-          });
-          // Rechazar la Promise con el error
-          reject(new Error(`TextureLoader failed: ${error?.message || 'Unknown error'}`));
+        undefined, // onProgress: poco fiable en web también
+        (err: any) => {
+          console.error('❌ [ROBUST] Error TextureLoader web:', err);
+          reject(new Error(`TextureLoader failed: ${err?.message ?? 'Unknown'}`));
         }
       );
     });
+  })();
 
-  // Implementar timeout y retry usando Promise.race
-  const loadWithTimeout = (attempt: number): Promise<THREE.Texture> => {
-    console.log(`🎯 [ROBUST] Intento ${attempt} de carga con timeout de ${timeoutMs}ms...`);
-    
-    return Promise.race([
-      loadWithCallbacks(),
-      new Promise<never>((_, reject) => 
-        setTimeout(() => {
-          console.error(`⏰ [ROBUST] Timeout en intento ${attempt} (${timeoutMs}ms)`);
-          reject(new Error(`Texture load timeout on attempt ${attempt}`));
-        }, timeoutMs)
-      ),
-    ]);
-  };
+  // Timeout real (nota: no cancela la descarga subyacente, sólo rechaza antes)
+  console.log('🏁 [ROBUST] Iniciando carrera con timeout...');
+  return Promise.race([loadOp, timeout]);
+};
 
-  try {
-    // Primer intento
-    const texture = await loadWithTimeout(1);
-    console.log('🎉 [ROBUST] Carga exitosa en primer intento');
-    return texture;
-  } catch (firstError) {
-    console.warn('⚠️ [ROBUST] Primer intento falló:', firstError);
-    
-    try {
-      // Segundo intento (retry)
-      const texture = await loadWithTimeout(2);
-      console.log('🎉 [ROBUST] Carga exitosa en retry');
-      return texture;
-    } catch (retryError) {
-      console.error('❌ [ROBUST] Ambos intentos fallaron:', retryError);
-      throw retryError;
-    }
+// Función auxiliar para configurar wrapping alternativo si se necesita "girar" la panorámica
+const configureTextureWrapping = (texture: THREE.Texture, mode: 'clamp' | 'repeat-horizontal' = 'clamp') => {
+  if (mode === 'repeat-horizontal') {
+    console.log('🔄 [TEXTURE] Configurando RepeatWrapping horizontal para rotación');
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    texture.repeat.x = -1;     // invierte horizontal
+    texture.center.set(0.5, 0.5);
+  } else {
+    console.log('🔒 [TEXTURE] Configurando ClampToEdgeWrapping (recomendado)');
+    texture.wrapS = THREE.ClampToEdgeWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
   }
+  texture.needsUpdate = true;
 };
 
 // Crear textura procedural para iOS (sin cargar archivos externos)
@@ -317,9 +367,16 @@ const createProceduralTexture = (type: 'panorama' | 'test' = 'panorama'): THREE.
   texture.magFilter = THREE.LinearFilter;
   texture.format = THREE.RGBAFormat;
   texture.type = THREE.UnsignedByteType;
-  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapS = THREE.ClampToEdgeWrapping; // Cambiado para evitar seams
   texture.wrapT = THREE.ClampToEdgeWrapping;
   texture.flipY = false;
+  
+  // Color space moderno
+  if ((texture as any).colorSpace !== undefined) {
+    (texture as any).colorSpace = THREE.SRGBColorSpace;
+  } else if ((THREE as any).sRGBEncoding !== undefined) {
+    (texture as any).encoding = (THREE as any).sRGBEncoding;
+  }
   
   console.log('✅ [PROCEDURAL] Textura procedural creada:', width + 'x' + height);
   return texture;
@@ -341,7 +398,8 @@ const loadPanoramaTexture = async (src: { uri?: string; base64?: string }): Prom
         try {
           const texture = await loadTextureRobustAsync(src.uri, {
             timeoutMs: 15000,
-            noMipmaps: true
+            noMipmaps: true,
+            maxWidth: 4096
           });
           console.log('🎉 [TEXTURE] Carga HTTP directa exitosa');
           return texture;
@@ -355,7 +413,8 @@ const loadPanoramaTexture = async (src: { uri?: string; base64?: string }): Prom
       const localUri = await uriFromSource(src);
       const texture = await loadTextureRobustAsync(localUri, {
         timeoutMs: 10000,
-        noMipmaps: true
+        noMipmaps: true,
+        maxWidth: 4096
       });
       console.log('🎉 [TEXTURE] Carga local exitosa');
       return texture;

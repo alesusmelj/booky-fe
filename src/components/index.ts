@@ -52,3 +52,5 @@ export { ThreeJSViewer } from './ThreeJSViewer';
 export { ThreeJSViewerImproved } from './ThreeJSViewerImproved';
 export { ThreeJSViewerFixed } from './ThreeJSViewerFixed';
 export { SimpleImageViewer } from './SimpleImageViewer';
+export { PanoramaViewerFullscreen } from './PanoramaViewerFullscreen';
+export { PanoramaViewerMeeting } from './PanoramaViewerMeeting';

@@ -180,7 +180,7 @@ const loadTextureRobustAsync = async (
       texture.magFilter = THREE.LinearFilter;
       texture.wrapS = THREE.ClampToEdgeWrapping;
       texture.wrapT = THREE.ClampToEdgeWrapping;
-      texture.flipY = false;
+      texture.flipY = true; // Configuración óptima encontrada
       
       // Color space moderno
       if ((texture as any).colorSpace !== undefined) {
@@ -219,7 +219,7 @@ const loadTextureRobustAsync = async (
           texture.magFilter = THREE.LinearFilter;
           texture.wrapS = THREE.ClampToEdgeWrapping;
           texture.wrapT = THREE.ClampToEdgeWrapping;
-          texture.flipY = false;
+          texture.flipY = true; // Configuración óptima encontrada
           
           // Color space
           if ((texture as any).colorSpace !== undefined) {
@@ -258,6 +258,8 @@ const configureTextureWrapping = (texture: THREE.Texture, mode: 'clamp' | 'repea
     texture.wrapS = THREE.ClampToEdgeWrapping;
     texture.wrapT = THREE.ClampToEdgeWrapping;
   }
+  // Mantener la configuración óptima de flipY
+  texture.flipY = true;
   texture.needsUpdate = true;
 };
 
@@ -369,7 +371,7 @@ const createProceduralTexture = (type: 'panorama' | 'test' = 'panorama'): THREE.
   texture.type = THREE.UnsignedByteType;
   texture.wrapS = THREE.ClampToEdgeWrapping; // Cambiado para evitar seams
   texture.wrapT = THREE.ClampToEdgeWrapping;
-  texture.flipY = false;
+  texture.flipY = true; // Configuración óptima encontrada
   
   // Color space moderno
   if ((texture as any).colorSpace !== undefined) {
@@ -744,6 +746,38 @@ export const SimpleImageViewer: React.FC<SimpleImageViewerProps> = ({
     }));
   };
 
+  // Función para probar diferentes orientaciones de la textura
+  const sphereRef = useRef<THREE.Mesh | null>(null);
+  const [orientationMode, setOrientationMode] = useState(4); // Empezar en modo 4 (FlipY=true)
+  
+  const cycleOrientation = () => {
+    if (!sphereRef.current) return;
+    
+    const modes = [
+      { scale: [1, 1, 1], flipY: false, name: "Normal" },
+      { scale: [-1, 1, 1], flipY: false, name: "Flip X" },
+      { scale: [1, -1, 1], flipY: false, name: "Flip Y" },
+      { scale: [-1, -1, 1], flipY: false, name: "Flip X+Y" },
+      { scale: [1, 1, 1], flipY: true, name: "FlipY=true" },
+      { scale: [-1, 1, 1], flipY: true, name: "Flip X + FlipY=true" },
+    ];
+    
+    const nextMode = (orientationMode + 1) % modes.length;
+    const mode = modes[nextMode];
+    
+    sphereRef.current.scale.set(mode.scale[0], mode.scale[1], mode.scale[2]);
+    
+    // Actualizar flipY de la textura si es necesario
+    const material = sphereRef.current.material as THREE.MeshBasicMaterial;
+    if (material.map) {
+      material.map.flipY = mode.flipY;
+      material.map.needsUpdate = true;
+    }
+    
+    setOrientationMode(nextMode);
+    console.log(`🔄 [ORIENTATION] Modo ${nextMode}: ${mode.name}`, mode);
+  };
+
 
   const handleImageLoad = () => {
     console.log('✅ Image loaded successfully');
@@ -873,10 +907,14 @@ export const SimpleImageViewer: React.FC<SimpleImageViewerProps> = ({
       const sphere = new THREE.Mesh(geometry, material);
       console.log('🌐 [3D] Mesh de esfera creado');
 
-      // Truco común para orientar correctamente el equirectangular
-      sphere.scale.x = -1; // invierte horizontalmente para evitar espejo
+      // Guardar referencia para poder cambiar orientación
+      sphereRef.current = sphere;
+
+      // Configuración óptima para orientación correcta del equirectangular
+      // Modo 4: scale(1,1,1) + flipY=true - configuración que funciona mejor
+      sphere.scale.set(1, 1, 1); // escala normal
       scene.add(sphere);
-      console.log('✅ [3D] Esfera agregada a la escena con scale.x = -1');
+      console.log('✅ [3D] Esfera agregada con configuración óptima (Modo 4)');
 
       setImageLoaded(true);
       setIsLoading(false);
@@ -975,6 +1013,14 @@ export const SimpleImageViewer: React.FC<SimpleImageViewerProps> = ({
               </TouchableOpacity>
             </>
           )}
+          
+          {/* Botón para probar orientaciones */}
+          <TouchableOpacity 
+            style={styles.controlButton} 
+            onPress={cycleOrientation}
+          >
+            <Text style={styles.controlButtonText}>🔄</Text>
+          </TouchableOpacity>
         </View>
       )}
       
@@ -991,7 +1037,7 @@ export const SimpleImageViewer: React.FC<SimpleImageViewerProps> = ({
           ) : '👆 Control Táctil'}
         </Text>
         <Text style={styles.statusSubtext}>
-          Sistema 3D • Sens: {sensorSystem.sensitivity.toFixed(1)} • Yaw: {radToDeg(yawRef.current).toFixed(0)}° Pitch: {radToDeg(pitchRef.current).toFixed(0)}° • {orientation}
+          Sistema 3D • Sens: {sensorSystem.sensitivity.toFixed(1)} • Yaw: {radToDeg(yawRef.current).toFixed(0)}° Pitch: {radToDeg(pitchRef.current).toFixed(0)}° • Orientación: {orientationMode} • {orientation}
         </Text>
         </View>
       )}

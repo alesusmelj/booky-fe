@@ -20,16 +20,17 @@ export const PanoramaViewerMeeting: React.FC<PanoramaViewerMeetingProps> = ({
   onClose,
 }) => {
   useEffect(() => {
-    // Permitir cualquier orientación para máxima flexibilidad
-    const unlockOrientation = async () => {
+    // Forzar orientación horizontal para mejor experiencia panorámica
+    const lockToLandscape = async () => {
       try {
-        await ScreenOrientation.unlockAsync();
+        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+        console.log('🔄 [PANORAMA] Orientación forzada a horizontal');
       } catch (error) {
-        console.warn('No se pudo desbloquear la orientación:', error);
+        console.warn('No se pudo bloquear la orientación a horizontal:', error);
       }
     };
 
-    unlockOrientation();
+    lockToLandscape();
 
     // Restaurar orientación al salir
     return () => {

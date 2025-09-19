@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { colors } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
+import { logger } from '../utils/logger';
 
 interface ActiveReadingClubProps {
   club: {
@@ -45,6 +46,18 @@ export const ActiveReadingClub: React.FC<ActiveReadingClubProps> = ({
 }) => {
   const { user } = useAuth();
   const isUserModerator = user?.id === club.moderator_id;
+
+  // 🔍 Debug logging for book attributes in ActiveReadingClub
+  logger.info('📖 ActiveReadingClub - Club data:', {
+    clubId: club.id,
+    clubName: club.name,
+    book: club.book,
+    bookTitle: club.book?.title,
+    bookAuthor: club.book?.author,
+    bookPages: club.book?.pages,
+    currentChapter: club.current_chapter,
+    fullClubObject: JSON.stringify(club, null, 2)
+  });
 
   return (
     <View style={styles.container}>

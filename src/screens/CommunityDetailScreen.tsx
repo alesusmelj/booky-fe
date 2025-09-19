@@ -139,6 +139,18 @@ interface ReadingClubCardProps {
 const ReadingClubCard: React.FC<ReadingClubCardProps> = ({ club, onJoinRoom, onJoinClub, onSetMeeting }) => {
   const { user } = useAuth();
   const isUserModerator = user?.id === club.moderator_id;
+
+  // 🔍 Debug logging for book attributes
+  logger.info('📚 ReadingClubCard - Club data:', {
+    clubId: club.id,
+    clubName: club.name,
+    book: club.book,
+    bookTitle: club.book?.title,
+    bookAuthor: club.book?.author,
+    bookPages: club.book?.pages,
+    currentChapter: club.current_chapter,
+    fullClubObject: JSON.stringify(club, null, 2)
+  });
   
   // Calculate progress percentage
   const progressPercentage = club.current_chapter && club.book?.pages 

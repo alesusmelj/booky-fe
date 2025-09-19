@@ -20,7 +20,7 @@ const navItems: NavItem[] = [
   { key: 'search', icon: 'search', label: strings.navigation.search, iconFamily: 'MaterialIcons' },
   { key: 'commerce', icon: 'shopping-bag', label: strings.navigation.commerce, iconFamily: 'Feather' },
   { key: 'community', icon: 'people', label: strings.navigation.community, iconFamily: 'MaterialIcons' },
-  { key: 'library', icon: 'library-books', label: strings.navigation.library, iconFamily: 'MaterialIcons' },
+  { key: 'messages', icon: 'message-circle', label: strings.navigation.messages, iconFamily: 'Feather' },
 ];
 
 export const Navbar: React.FC<NavbarProps> = ({ 

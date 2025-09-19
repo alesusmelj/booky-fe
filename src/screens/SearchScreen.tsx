@@ -1,191 +1,231 @@
-import { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { 
+  View, 
+  Text, 
+  ScrollView, 
+  StyleSheet, 
+  ActivityIndicator,
+  Alert 
+} from 'react-native';
 import { 
   SearchBox, 
   SearchFilters, 
-  FilterType, 
-  BookCard, 
-  BookData, 
-  PersonCard, 
-  PersonData, 
-  CommunityCard, 
-  CommunityData,
+  FilterType,
+  UserSearchCard,
+  BookSearchCard,
+  CommunitySearchCard,
   ReadersMapButton 
 } from '../components';
-import { colors, strings } from '../constants';
-
-// Mock data for development
-const mockBooks: BookData[] = [
-  {
-    id: '1',
-    title: 'Cien años de soledad',
-    author: 'Gabriel García Márquez',
-    genre: 'Literary Fiction',
-    rating: 5,
-    status: 'read',
-    coverUrl: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=200&h=300&fit=crop',
-    isFavorite: true,
-  },
-  {
-    id: '2',
-    title: '1984',
-    author: 'George Orwell',
-    genre: 'Dystopian',
-    rating: 4,
-    status: 'reading',
-    coverUrl: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=200&h=300&fit=crop',
-    isFavorite: false,
-  },
-  {
-    id: '3',
-    title: 'The Alchemist',
-    author: 'Paulo Coelho',
-    genre: 'Fiction',
-    rating: 3,
-    status: 'available',
-    coverUrl: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=200&h=300&fit=crop',
-    isFavorite: true,
-  },
-  {
-    id: '4',
-    title: 'Pride and Prejudice',
-    author: 'Jane Austen',
-    genre: 'Classic',
-    rating: 0,
-    status: 'wishlist',
-    coverUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=300&fit=crop',
-    isFavorite: false,
-  },
-];
-
-const mockPeople: PersonData[] = [
-  {
-    id: '1',
-    name: 'Jane Cooper',
-    bio: 'Book lover, coffee addict. Always looking for the next great story.',
-    avatarUrl: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face',
-  },
-  {
-    id: '2',
-    name: 'Alex Morgan',
-    bio: 'Sci-fi enthusiast and aspiring writer. Will trade books for coffee.',
-    avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
-  },
-  {
-    id: '3',
-    name: 'Maria Rodriguez',
-    bio: 'Romance and mystery lover. Always happy to discuss books over tea.',
-    avatarUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face',
-  },
-];
-
-const mockCommunities: CommunityData[] = [
-  {
-    id: '1',
-    name: 'Fantasy Book Lovers',
-    description: 'For lovers of fantasy literature from classics to new releases',
-    iconUrl: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=100&h=100&fit=crop',
-  },
-  {
-    id: '2',
-    name: 'Madrid Book Club',
-    description: 'Local book enthusiasts meeting monthly in Madrid',
-    iconUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
-  },
-  {
-    id: '3',
-    name: 'Science Fiction Explorers',
-    description: 'Discussing the stars, space, and everything in between',
-    iconUrl: 'https://images.unsplash.com/photo-1446776877081-d282a0f896e2?w=100&h=100&fit=crop',
-  },
-];
+import { colors, strings, theme } from '../constants';
+import { useSearch, useCommunities } from '../hooks';
+import { useNavigation } from '../contexts/NavigationContext';
+import { logger } from '../utils/logger';
 
 export function SearchScreen() {
-  const [searchText, setSearchText] = useState('');
-  const [activeFilters, setActiveFilters] = useState<FilterType[]>(['books', 'people', 'communities']);
+  const { navigate } = useNavigation();
+  const {
+    users,
+    books,
+    communities,
+    loading,
+    error,
+    query,
+    activeFilters,
+    setQuery,
+    setActiveFilters,
+    searchAll,
+    clearResults,
+    clearError,
+  } = useSearch();
 
-  const handleBookPress = (_book: BookData) => {
+  const { joinCommunity, loading: communityLoading } = useCommunities();
+
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  // Debounced search
+  useEffect(() => {
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+
+    if (query.trim()) {
+      const timeout = setTimeout(() => {
+        searchAll(query, activeFilters);
+      }, 500); // 500ms debounce
+
+      setSearchTimeout(timeout);
+    } else {
+      clearResults();
+    }
+
+    return () => {
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+    };
+  }, [query, activeFilters]);
+
+  const handleFilterChange = (filters: FilterType[]) => {
+    // Map FilterType to SearchFilter
+    const searchFilters = filters.map(filter => {
+      switch (filter) {
+        case 'people':
+          return 'users' as const;
+        case 'books':
+          return 'books' as const;
+        case 'communities':
+          return 'communities' as const;
+        default:
+          return filter as never;
+      }
+    }).filter(Boolean);
+
+    setActiveFilters(searchFilters);
+  };
+
+  const handleUserPress = (userId: string) => {
+    logger.info('👤 Navigating to user profile:', userId);
+    navigate('profile', { userId });
+  };
+
+
+  const handleBookPress = (bookId: string) => {
+    logger.info('📚 Book pressed:', bookId);
     // TODO: Navigate to book details
+    Alert.alert('Libro', 'Funcionalidad de detalles del libro próximamente');
   };
 
-  const handleFavoritePress = (_book: BookData) => {
-    // TODO: Toggle favorite status
+  const handleAddBookToLibrary = (bookId: string) => {
+    logger.info('📚 Adding book to library:', bookId);
+    // TODO: Implement add to library
+    Alert.alert('Biblioteca', 'Funcionalidad de agregar a biblioteca próximamente');
   };
 
-  const handlePersonPress = (_person: PersonData) => {
-    // TODO: Navigate to person profile
+  const handleCommunityPress = (communityId: string) => {
+    logger.info('🏘️ Navigating to community:', communityId);
+    navigate('community-detail', { communityId });
   };
 
-  const handleCommunityPress = (_community: CommunityData) => {
-    // TODO: Navigate to community
+  const handleJoinCommunity = async (communityId: string) => {
+    try {
+      logger.info('🏘️ Joining community:', communityId);
+      
+      const success = await joinCommunity(communityId);
+      
+      if (success) {
+        Alert.alert('Éxito', 'Te has unido a la comunidad exitosamente!');
+        logger.info('✅ Successfully joined community:', communityId);
+      } else {
+        Alert.alert('Error', 'No se pudo unir a la comunidad. Intenta de nuevo.');
+      }
+    } catch (error) {
+      logger.error('❌ Error joining community:', error);
+      Alert.alert('Error', 'No se pudo unir a la comunidad. Intenta de nuevo.');
+    }
   };
 
   const handleReadersMapPress = () => {
-    // TODO: Navigate to readers map
+    logger.info('🗺️ Opening readers map');
+    Alert.alert('Mapa de Lectores', 'Funcionalidad próximamente');
   };
 
-  const shouldShowSection = (section: 'books' | 'people' | 'communities') => {
+  const shouldShowSection = (section: 'users' | 'books' | 'communities') => {
     return activeFilters.includes(section);
   };
+
+  const hasResults = users.length > 0 || books.length > 0 || communities.length > 0;
+  const showEmptyState = query.trim() && !loading && !hasResults && !error;
 
   return (
     <View style={styles.container}>
       <SearchBox
-        value={searchText}
-        onChangeText={setSearchText}
+        value={query}
+        onChangeText={setQuery}
+        placeholder={strings.search.placeholder}
       />
       
       <SearchFilters
-        activeFilters={activeFilters}
-        onFilterChange={setActiveFilters}
+        activeFilters={activeFilters.map(filter => {
+          switch (filter) {
+            case 'users':
+              return 'people' as FilterType;
+            case 'books':
+              return 'books' as FilterType;
+            case 'communities':
+              return 'communities' as FilterType;
+            default:
+              return filter as FilterType;
+          }
+        })}
+        onFilterChange={handleFilterChange}
       />
 
+      {loading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary.main} />
+          <Text style={styles.loadingText}>Buscando...</Text>
+        </View>
+      )}
+
+      {error && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
+
+      {showEmptyState && (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>
+            No se encontraron resultados para "{query}"
+          </Text>
+          <Text style={styles.emptySubtext}>
+            Intenta con otros términos de búsqueda
+          </Text>
+        </View>
+      )}
+
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {shouldShowSection('books') && (
+        {shouldShowSection('users') && users.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{strings.search.sections.people}</Text>
+            {users.map((user) => (
+              <UserSearchCard
+                key={user.id}
+                user={user}
+                onPress={() => handleUserPress(user.id)}
+              />
+            ))}
+          </View>
+        )}
+
+        {shouldShowSection('books') && books.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>{strings.search.sections.books}</Text>
               <ReadersMapButton onPress={handleReadersMapPress} />
             </View>
             
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalScrollContent}
-            >
-              {mockBooks.map((book) => (
-                <BookCard
-                  key={book.id}
-                  book={book}
-                  onPress={() => handleBookPress(book)}
-                  onFavoritePress={() => handleFavoritePress(book)}
-                />
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {shouldShowSection('people') && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{strings.search.sections.people}</Text>
-            {mockPeople.map((person) => (
-              <PersonCard
-                key={person.id}
-                person={person}
-                onPress={() => handlePersonPress(person)}
+            {books.map((book) => (
+              <BookSearchCard
+                key={book.id}
+                book={book}
+                onPress={() => handleBookPress(book.id)}
+                onAddToLibrary={() => handleAddBookToLibrary(book.id)}
               />
             ))}
           </View>
         )}
 
-        {shouldShowSection('communities') && (
+        {shouldShowSection('communities') && communities.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{strings.search.sections.communities}</Text>
-            {mockCommunities.map((community) => (
-              <CommunityCard
+            {communities.map((community) => (
+              <CommunitySearchCard
                 key={community.id}
                 community={community}
-                onPress={() => handleCommunityPress(community)}
+                onPress={() => handleCommunityPress(community.id)}
+                onJoin={() => handleJoinCommunity(community.id)}
+                joinLoading={communityLoading}
               />
             ))}
           </View>
@@ -198,7 +238,7 @@ export function SearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutral.white,
+    backgroundColor: colors.neutral.gray50,
   },
   content: {
     flex: 1,
@@ -207,16 +247,56 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 16,
+    paddingHorizontal: 16,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: colors.neutral.gray800,
+    color: theme.text.primary,
     marginBottom: 16,
     paddingHorizontal: 16,
   },
-  horizontalScrollContent: {
-    paddingHorizontal: 16,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 64,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: theme.text.secondary,
+    marginTop: 16,
+  },
+  errorContainer: {
+    padding: 32,
+    alignItems: 'center',
+  },
+  errorText: {
+    fontSize: 16,
+    color: colors.status.error,
+    textAlign: 'center',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 64,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.text.primary,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: theme.text.secondary,
+    textAlign: 'center',
   },
 });

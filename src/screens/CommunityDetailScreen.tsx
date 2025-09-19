@@ -418,6 +418,7 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
   };
 
 
+
   const renderPost = ({ item }: { item: any }) => {
     // Convert API post data to PostData interface
     const postData: PostData = {
@@ -693,11 +694,11 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
         >
           <VideoCallRoom
             readingClubId={videoCallClub.id}
-            clubName={videoCallClub.name}
-            onLeave={handleLeaveVideoCall}
+            onClose={handleLeaveVideoCall}
           />
         </Modal>
       )}
+
     </View>
   );
 };

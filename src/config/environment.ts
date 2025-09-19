@@ -8,17 +8,18 @@ export type Environment = 'development' | 'staging' | 'production';
 // Get current environment from process.env or default to development
 export const getCurrentEnvironment = (): Environment => {
   const env = process.env.NODE_ENV as Environment;
-  
+
   // Validate environment
   if (['development', 'staging', 'production'].includes(env)) {
     return env;
   }
-  
+
   // Default to development if invalid or undefined
   return 'development';
 };
 
-
+// "https://booky-be.fly.dev"
+// "http://localhost:8080"
 // Environment-specific configurations
 export const environmentConfig = {
   development: {

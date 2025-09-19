@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useCameraPermissions } from 'expo-camera';
 import { logger } from '../utils/logger';
@@ -10,14 +10,25 @@ interface SimpleCameraPermissionTestProps {
 
 export const SimpleCameraPermissionTest: React.FC<SimpleCameraPermissionTestProps> = ({ onClose }) => {
   const [permission, requestPermission] = useCameraPermissions();
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    logger.info('🧪 [PERMISSION-TEST] Component mounted');
-    logger.info('🧪 [PERMISSION-TEST] Initial permission state:', permission);
+    try {
+      logger.info('🧪 [PERMISSION-TEST] Component mounted');
+      logger.info('🧪 [PERMISSION-TEST] Initial permission state:', permission);
+    } catch (err) {
+      logger.error('🧪 [PERMISSION-TEST] Error during mount:', err);
+      setError(err instanceof Error ? err.message : String(err));
+    }
   }, []);
 
   useEffect(() => {
-    logger.info('🧪 [PERMISSION-TEST] Permission changed:', permission);
+    try {
+      logger.info('🧪 [PERMISSION-TEST] Permission changed:', permission);
+    } catch (err) {
+      logger.error('🧪 [PERMISSION-TEST] Error during permission change:', err);
+      setError(err instanceof Error ? err.message : String(err));
+    }
   }, [permission]);
 
   const handleRequestPermission = async () => {
@@ -42,6 +53,22 @@ export const SimpleCameraPermissionTest: React.FC<SimpleCameraPermissionTestProp
       );
     }
   };
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.content}>
+          <Text style={styles.title}>❌ Permission Test Error</Text>
+          <Text style={styles.info}>
+            Error: {error}
+          </Text>
+          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <Text style={styles.closeButtonText}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,8 @@ import {
   Image,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { strings, colors } from '../constants';
+import { strings, colors, theme } from '../constants';
+import { PostDto } from '../types/api';
 
 export interface PostData {
   id: string;
@@ -25,7 +26,7 @@ export interface PostData {
 }
 
 interface PostProps {
-  post: PostData;
+  post: PostDto;
   onLike?: (postId: string) => void;
   onComment?: (postId: string) => void;
   onUserPress?: (userId: string) => void;
@@ -37,7 +38,12 @@ export const Post: React.FC<PostProps> = ({
   onComment = () => {},
   onUserPress = () => {},
 }) => {
+  const [isLiked, setIsLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(0);
+
   const handleLike = () => {
+    setIsLiked(!isLiked);
+    setLikesCount(prev => isLiked ? prev - 1 : prev + 1);
     onLike(post.id);
   };
 
@@ -67,6 +73,27 @@ export const Post: React.FC<PostProps> = ({
     );
   };
 
+  const formatTimeAgo = (dateString: string) => {
+    const now = new Date();
+    const postDate = new Date(dateString);
+    const diffInMinutes = Math.floor((now.getTime() - postDate.getTime()) / (1000 * 60));
+
+    if (diffInMinutes < 1) return 'Ahora';
+    if (diffInMinutes < 60) return `${diffInMinutes}m`;
+    
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours}h`;
+    
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 7) return `${diffInDays}d`;
+    
+    return postDate.toLocaleDateString();
+  };
+
+  const getFullName = () => {
+    return `${post.user.name} ${post.user.lastname}`.trim();
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -79,12 +106,15 @@ export const Post: React.FC<PostProps> = ({
           accessibilityLabel={strings.post.userProfileAccessibility}
         >
           {getUserAvatar()}
-          <Text style={styles.userName}>{post.user.name}</Text>
+          <View style={styles.userDetails}>
+            <Text style={styles.userName}>{getFullName()}</Text>
+            <Text style={styles.timeAgo}>{formatTimeAgo(post.date_created)}</Text>
+          </View>
         </TouchableOpacity>
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.contentText}>{post.content}</Text>
+        <Text style={styles.contentText}>{post.body}</Text>
         
         {post.image && (
           <Image
@@ -108,15 +138,15 @@ export const Post: React.FC<PostProps> = ({
           accessibilityLabel={strings.post.likeAccessibility}
         >
           <MaterialIcons 
-            name={post.isLiked ? "favorite" : "favorite-border"} 
+            name={isLiked ? "favorite" : "favorite-border"} 
             size={20} 
-            color={post.isLiked ? colors.status.error : colors.neutral.gray500} 
+            color={isLiked ? colors.status.error : colors.neutral.gray500} 
           />
           <Text style={[
             styles.actionText,
-            post.isLiked && styles.actionTextActive
+            isLiked && styles.actionTextActive
           ]}>
-            {post.likes}
+            {likesCount}
           </Text>
         </TouchableOpacity>
 
@@ -133,7 +163,7 @@ export const Post: React.FC<PostProps> = ({
             size={20} 
             color={colors.neutral.gray500} 
           />
-          <Text style={styles.actionText}>{post.comments}</Text>
+          <Text style={styles.actionText}>0</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -142,11 +172,20 @@ export const Post: React.FC<PostProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.neutral.white,
+    backgroundColor: theme.background.primary,
+    marginHorizontal: 16,
+    marginVertical: 8,
+    borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral.gray200,
+    shadowColor: colors.shadow.default,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   header: {
     marginBottom: 12,
@@ -173,17 +212,26 @@ const styles = StyleSheet.create({
     borderColor: colors.primary.border,
     marginRight: 12,
   },
+  userDetails: {
+    flex: 1,
+  },
   userName: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.neutral.gray800,
+    color: theme.text.primary,
+    marginBottom: 2,
+  },
+  timeAgo: {
+    fontSize: 12,
+    color: theme.text.secondary,
+    fontWeight: '400',
   },
   content: {
     marginBottom: 16,
   },
   contentText: {
     fontSize: 16,
-    color: colors.neutral.gray800,
+    color: theme.text.primary,
     lineHeight: 24,
     marginBottom: 12,
   },
@@ -196,13 +244,17 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 8,
     gap: 24,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    backgroundColor: 'transparent',
   },
   actionText: {
     fontSize: 14,

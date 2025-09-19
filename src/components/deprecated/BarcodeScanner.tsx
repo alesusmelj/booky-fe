@@ -36,6 +36,12 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
     setScanned(true);
     
+    // Validate data before processing
+    if (!data || typeof data !== 'string') {
+      logger.warn('📱 [DEPRECATED-BARCODE] Invalid barcode data received:', data);
+      return;
+    }
+    
     // Validate if the scanned code looks like an ISBN
     const cleanedData = data.replace(/[-\s]/g, ''); // Remove hyphens and spaces
     

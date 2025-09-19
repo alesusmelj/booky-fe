@@ -20,7 +20,7 @@ import { MaterialIcons, Feather } from '@expo/vector-icons';
 import { colors } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 import { useGamification } from '../hooks/useGamification';
-import { useBooks, useBarcodeHandler } from '../hooks';
+import { useBooks, useBarcodeHandler, useUserFollow } from '../hooks';
 import { AchievementCard } from '../components/AchievementCard';
 import { UserLibraryBookCard } from '../components/BookCard';
 import { BarcodeScannerWrapper } from '../components/BarcodeScannerWrapper';
@@ -48,6 +48,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
   const [libraryFilter, setLibraryFilter] = useState<'all' | 'READING' | 'READ' | 'TO_READ' | 'WISHLIST' | 'favorites'>('all');
   const [selectedAchievement, setSelectedAchievement] = useState<any>(null);
   const [refreshing, setRefreshing] = useState(false);
+  
+  // State for other user's profile data
+  const [profileUserData, setProfileUserData] = useState<any>(null);
+  const [loadingProfileUser, setLoadingProfileUser] = useState(false);
   
   // Add Book Modal states
 
@@ -125,7 +129,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
     getBookByIsbn,
   } = useBooks();
 
-  const profileUser = user; // In a real app, you'd fetch user data by userId
+  const { isFollowing, toggleFollow, loading: followLoading, error: followError } = useUserFollow(userId!);
+
+  const profileUser = isOwnProfile ? user : profileUserData;
 
   useEffect(() => {
     if (userId) {
@@ -133,21 +139,46 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
     }
   }, [userId]);
 
+  const loadOtherUserData = useCallback(async (targetUserId: string) => {
+    if (targetUserId === user?.id) return; // Skip if it's current user
+    
+    try {
+      setLoadingProfileUser(true);
+      logger.info('👤 Loading other user data for:', targetUserId);
+      
+      const userData = await UsersService.getUserById(targetUserId);
+      setProfileUserData(userData);
+      
+      logger.info('✅ Other user data loaded successfully');
+    } catch (error) {
+      logger.error('❌ Error loading other user data:', error);
+      Alert.alert('Error', 'Failed to load user profile');
+    } finally {
+      setLoadingProfileUser(false);
+    }
+  }, [user?.id]);
+
   const loadProfileData = useCallback(async () => {
     if (!userId) return;
 
     try {
+      // Load gamification and library data
       await Promise.all([
         getUserProfile(userId),
         getUserAchievements(userId),
         getUserLibrary(userId),
         getUnnotifiedAchievements(userId),
       ]);
+      
+      // If viewing another user's profile, load their basic data
+      if (!isOwnProfile && userId) {
+        await loadOtherUserData(userId);
+      }
     } catch (error) {
       logger.error('❌ Error loading profile data:', error);
       Alert.alert('Error', 'Failed to load profile data');
     }
-  }, [userId, getUserProfile, getUserAchievements, getUserLibrary, getUnnotifiedAchievements]);
+  }, [userId, getUserProfile, getUserAchievements, getUserLibrary, getUnnotifiedAchievements, isOwnProfile, loadOtherUserData]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -486,11 +517,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
 
   const filteredBooks = getFilteredBooks();
 
-  if (!profileUser) {
+  if (!profileUser || loadingProfileUser) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.profileLoadingContainer}>
-          <Text style={styles.profileLoadingText}>Loading profile...</Text>
+          <ActivityIndicator size="large" color={colors.primary.main} />
+          <Text style={styles.profileLoadingText}>
+            {loadingProfileUser ? 'Cargando perfil...' : 'Loading profile...'}
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -529,11 +563,36 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
               </TouchableOpacity>
             ) : (
               <View style={styles.actionButtons}>
-                <TouchableOpacity style={styles.followButton}>
-                  <Text style={styles.followButtonText}>Follow</Text>
+                <TouchableOpacity 
+                  style={[
+                    styles.followButton,
+                    isFollowing && styles.followingButton,
+                    followLoading && styles.followButtonDisabled,
+                  ]}
+                  onPress={async () => {
+                    if (userId) {
+                      const success = await toggleFollow(userId);
+                      if (success) {
+                        // Refrescar la pantalla después de seguir/dejar de seguir
+                        await loadProfileData();
+                      }
+                    }
+                  }}
+                  disabled={followLoading}
+                >
+                  {followLoading ? (
+                    <ActivityIndicator size="small" color={colors.neutral.white} />
+                  ) : (
+                    <Text style={[
+                      styles.followButtonText,
+                      isFollowing && styles.followingButtonText,
+                    ]}>
+                      {isFollowing ? 'Dejar de seguir' : 'Seguir'}
+                    </Text>
+                  )}
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.messageButton}>
-                  <Text style={styles.messageButtonText}>Message</Text>
+                  <Text style={styles.messageButtonText}>Mensaje</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -1205,11 +1264,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
+    minWidth: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  followingButton: {
+    backgroundColor: colors.neutral.gray100,
+    borderWidth: 1,
+    borderColor: colors.neutral.gray300,
+  },
+  followButtonDisabled: {
+    backgroundColor: colors.neutral.gray200,
   },
   followButtonText: {
     fontSize: 14,
     fontWeight: '600',
     color: colors.neutral.white,
+  },
+  followingButtonText: {
+    color: colors.neutral.gray600,
   },
   messageButton: {
     backgroundColor: colors.neutral.gray100,

@@ -27,6 +27,10 @@
     ],
     "tags": [
         {
+            "name": "Scene Image Generation",
+            "description": "Generate 360° VR scene images from book text fragments"
+        },
+        {
             "name": "Meetings",
             "description": "LiveKit meeting management for reading clubs"
         },
@@ -103,9 +107,6 @@
                     }
                 },
                 "responses": {
-                    "400": {
-                        "description": "Invalid input data"
-                    },
                     "404": {
                         "description": "User not found"
                     },
@@ -118,6 +119,9 @@
                                 }
                             }
                         }
+                    },
+                    "400": {
+                        "description": "Invalid input data"
                     }
                 }
             }
@@ -152,11 +156,8 @@
                     "required": true
                 },
                 "responses": {
-                    "403": {
-                        "description": "Solo el moderador puede actualizar la reunión"
-                    },
-                    "401": {
-                        "description": "No autorizado"
+                    "404": {
+                        "description": "Club de lectura no encontrado"
                     },
                     "400": {
                         "description": "Datos inválidos"
@@ -171,8 +172,11 @@
                             }
                         }
                     },
-                    "404": {
-                        "description": "Club de lectura no encontrado"
+                    "401": {
+                        "description": "No autorizado"
+                    },
+                    "403": {
+                        "description": "Solo el moderador puede actualizar la reunión"
                     }
                 }
             }
@@ -197,6 +201,9 @@
                     }
                 ],
                 "responses": {
+                    "404": {
+                        "description": "Publicación no encontrada"
+                    },
                     "200": {
                         "description": "Publicación encontrada",
                         "content": {
@@ -206,9 +213,6 @@
                                 }
                             }
                         }
-                    },
-                    "404": {
-                        "description": "Publicación no encontrada"
                     }
                 }
             },
@@ -241,14 +245,8 @@
                     "required": true
                 },
                 "responses": {
-                    "401": {
-                        "description": "No autorizado"
-                    },
                     "404": {
                         "description": "Publicación no encontrada"
-                    },
-                    "400": {
-                        "description": "Datos inválidos"
                     },
                     "200": {
                         "description": "Publicación actualizada exitosamente",
@@ -259,6 +257,12 @@
                                 }
                             }
                         }
+                    },
+                    "400": {
+                        "description": "Datos inválidos"
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     }
                 }
             },
@@ -281,14 +285,14 @@
                     }
                 ],
                 "responses": {
-                    "401": {
-                        "description": "No autorizado"
-                    },
                     "404": {
                         "description": "Publicación no encontrada"
                     },
                     "204": {
                         "description": "Publicación eliminada exitosamente"
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     }
                 }
             }
@@ -370,6 +374,9 @@
                     "required": true
                 },
                 "responses": {
+                    "404": {
+                        "description": "Exchange not found"
+                    },
                     "400": {
                         "description": "Invalid request data"
                     },
@@ -385,9 +392,6 @@
                     },
                     "403": {
                         "description": "User not authorized for this action"
-                    },
-                    "404": {
-                        "description": "Exchange not found"
                     }
                 }
             }
@@ -431,8 +435,8 @@
                     "required": true
                 },
                 "responses": {
-                    "400": {
-                        "description": "Invalid request data"
+                    "404": {
+                        "description": "Exchange not found"
                     },
                     "200": {
                         "description": "Counter offer created successfully",
@@ -444,11 +448,11 @@
                             }
                         }
                     },
+                    "400": {
+                        "description": "Invalid request data"
+                    },
                     "403": {
                         "description": "User not authorized for this action"
-                    },
-                    "404": {
-                        "description": "Exchange not found"
                     }
                 }
             }
@@ -515,9 +519,6 @@
                     "required": true
                 },
                 "responses": {
-                    "404": {
-                        "description": "Book not found in user library"
-                    },
                     "200": {
                         "description": "Book status updated successfully",
                         "content": {
@@ -527,6 +528,9 @@
                                 }
                             }
                         }
+                    },
+                    "404": {
+                        "description": "Book not found in user library"
                     }
                 }
             }
@@ -551,9 +555,6 @@
                     }
                 ],
                 "responses": {
-                    "404": {
-                        "description": "Book not found in user library"
-                    },
                     "200": {
                         "description": "Favorite status toggled successfully",
                         "content": {
@@ -563,6 +564,9 @@
                                 }
                             }
                         }
+                    },
+                    "404": {
+                        "description": "Book not found in user library"
                     }
                 }
             }
@@ -666,11 +670,11 @@
                             "application/json": {}
                         }
                     },
-                    "400": {
-                        "description": "Invalid input data"
-                    },
                     "401": {
                         "description": "Not authenticated"
+                    },
+                    "400": {
+                        "description": "Invalid input data"
                     }
                 }
             }
@@ -760,9 +764,6 @@
                     "401": {
                         "description": "Invalid credentials"
                     },
-                    "400": {
-                        "description": "Invalid input data"
-                    },
                     "200": {
                         "description": "Login successful",
                         "content": {
@@ -772,6 +773,9 @@
                                 }
                             }
                         }
+                    },
+                    "400": {
+                        "description": "Invalid input data"
                     }
                 }
             }
@@ -821,11 +825,11 @@
                             }
                         }
                     },
-                    "401": {
-                        "description": "No autorizado"
-                    },
                     "400": {
                         "description": "Datos inválidos"
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     }
                 }
             }
@@ -850,9 +854,6 @@
                     }
                 ],
                 "responses": {
-                    "401": {
-                        "description": "No autorizado"
-                    },
                     "200": {
                         "description": "Salió del club exitosamente"
                     },
@@ -861,6 +862,9 @@
                     },
                     "400": {
                         "description": "Error al salir del club o usuario no es miembro"
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     }
                 }
             }
@@ -885,8 +889,8 @@
                     }
                 ],
                 "responses": {
-                    "401": {
-                        "description": "No autorizado"
+                    "400": {
+                        "description": "Error al unirse al club"
                     },
                     "200": {
                         "description": "Unido al club exitosamente"
@@ -894,8 +898,8 @@
                     "404": {
                         "description": "Club no encontrado"
                     },
-                    "400": {
-                        "description": "Error al unirse al club"
+                    "401": {
+                        "description": "No autorizado"
                     }
                 }
             }
@@ -961,6 +965,9 @@
                     "required": true
                 },
                 "responses": {
+                    "404": {
+                        "description": "Exchange not found"
+                    },
                     "400": {
                         "description": "Invalid request data or exchange cannot be rated"
                     },
@@ -973,9 +980,6 @@
                                 }
                             }
                         }
-                    },
-                    "404": {
-                        "description": "Exchange not found"
                     }
                 }
             }
@@ -1018,14 +1022,14 @@
                     }
                 ],
                 "responses": {
+                    "401": {
+                        "description": "Unauthorized (for feed type)"
+                    },
                     "200": {
                         "description": "Posts retrieved successfully",
                         "content": {
                             "application/json": {}
                         }
-                    },
-                    "401": {
-                        "description": "Unauthorized (for feed type)"
                     }
                 }
             },
@@ -1059,12 +1063,6 @@
                     }
                 },
                 "responses": {
-                    "401": {
-                        "description": "No autorizado"
-                    },
-                    "400": {
-                        "description": "Datos inválidos"
-                    },
                     "201": {
                         "description": "Publicación creada exitosamente",
                         "content": {
@@ -1074,6 +1072,12 @@
                                 }
                             }
                         }
+                    },
+                    "400": {
+                        "description": "Datos inválidos"
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     }
                 }
             }
@@ -1228,9 +1232,6 @@
                     "required": true
                 },
                 "responses": {
-                    "401": {
-                        "description": "No autorizado"
-                    },
                     "400": {
                         "description": "Datos inválidos"
                     },
@@ -1243,6 +1244,9 @@
                                 }
                             }
                         }
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     }
                 }
             }
@@ -1270,14 +1274,14 @@
                     "200": {
                         "description": "Unido a la comunidad exitosamente"
                     },
-                    "401": {
-                        "description": "No autorizado"
-                    },
                     "404": {
                         "description": "Comunidad no encontrada"
                     },
                     "400": {
                         "description": "Error al unirse a la comunidad"
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     }
                 }
             }
@@ -1311,14 +1315,14 @@
                             }
                         }
                     },
-                    "401": {
-                        "description": "No autorizado"
+                    "404": {
+                        "description": "Post no encontrado"
                     },
                     "400": {
                         "description": "Datos inválidos"
                     },
-                    "404": {
-                        "description": "Post no encontrado"
+                    "401": {
+                        "description": "No autorizado"
                     }
                 }
             }
@@ -1332,16 +1336,6 @@
                 "description": "Returns all chats where the current user is a participant",
                 "operationId": "getUserChats",
                 "responses": {
-                    "200": {
-                        "description": "Chats retrieved successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ChatDto"
-                                }
-                            }
-                        }
-                    },
                     "401": {
                         "description": "Not authenticated",
                         "content": {
@@ -1351,6 +1345,16 @@
                                     "items": {
                                         "$ref": "#/components/schemas/ChatDto"
                                     }
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "Chats retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ChatDto"
                                 }
                             }
                         }
@@ -1375,6 +1379,16 @@
                     "required": true
                 },
                 "responses": {
+                    "200": {
+                        "description": "Chat created or retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ChatDto"
+                                }
+                            }
+                        }
+                    },
                     "400": {
                         "description": "Invalid request data",
                         "content": {
@@ -1387,16 +1401,6 @@
                     },
                     "401": {
                         "description": "Not authenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ChatDto"
-                                }
-                            }
-                        }
-                    },
-                    "200": {
-                        "description": "Chat created or retrieved successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1428,16 +1432,6 @@
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "Messages retrieved successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/MessageDto"
-                                }
-                            }
-                        }
-                    },
                     "404": {
                         "description": "Chat not found or user not authorized",
                         "content": {
@@ -1460,6 +1454,16 @@
                                     "items": {
                                         "$ref": "#/components/schemas/MessageDto"
                                     }
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "Messages retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MessageDto"
                                 }
                             }
                         }
@@ -1515,8 +1519,8 @@
                             }
                         }
                     },
-                    "200": {
-                        "description": "Message sent successfully",
+                    "400": {
+                        "description": "Invalid message data or user not authorized",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1525,8 +1529,8 @@
                             }
                         }
                     },
-                    "400": {
-                        "description": "Invalid message data or user not authorized",
+                    "200": {
+                        "description": "Message sent successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1734,6 +1738,99 @@
                 }
             }
         },
+        "/api/books/{bookId}/scene-image": {
+            "post": {
+                "tags": [
+                    "Scene Image Generation"
+                ],
+                "summary": "Generate 360° scene image from book text fragment",
+                "description": "Creates a 360° equirectangular VR image based on a text fragment from the specified book. The system uses the book's metadata (title, author, genre) combined with the text fragment to generate a detailed scene description prompt via GPT, then creates the image using DALL-E.",
+                "operationId": "generateSceneImage",
+                "parameters": [
+                    {
+                        "name": "bookId",
+                        "in": "path",
+                        "description": "Book ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SceneImageRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "429": {
+                        "description": "Rate limit exceeded",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SceneImageResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request parameters",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SceneImageResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid image size format",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SceneImageResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Book not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SceneImageResponse"
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "Scene image generated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SceneImageResponse"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "OpenAI service unavailable",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SceneImageResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/users/{id}": {
             "get": {
                 "tags": [
@@ -1755,6 +1852,9 @@
                     }
                 ],
                 "responses": {
+                    "404": {
+                        "description": "User not found"
+                    },
                     "200": {
                         "description": "User found successfully",
                         "content": {
@@ -1764,9 +1864,6 @@
                                 }
                             }
                         }
-                    },
-                    "404": {
-                        "description": "User not found"
                     }
                 }
             },
@@ -2324,6 +2421,9 @@
                     }
                 ],
                 "responses": {
+                    "404": {
+                        "description": "Exchange not found"
+                    },
                     "200": {
                         "description": "Exchange found",
                         "content": {
@@ -2333,9 +2433,6 @@
                                 }
                             }
                         }
-                    },
-                    "404": {
-                        "description": "Exchange not found"
                     }
                 }
             }
@@ -2606,14 +2703,14 @@
                     }
                 ],
                 "responses": {
-                    "404": {
-                        "description": "Comentario no encontrado"
-                    },
                     "200": {
                         "description": "Comentario encontrado",
                         "content": {
                             "application/json": {}
                         }
+                    },
+                    "404": {
+                        "description": "Comentario no encontrado"
                     }
                 }
             },
@@ -2636,17 +2733,17 @@
                     }
                 ],
                 "responses": {
+                    "403": {
+                        "description": "No tienes permisos para eliminar este comentario"
+                    },
+                    "200": {
+                        "description": "Comentario eliminado exitosamente"
+                    },
                     "404": {
                         "description": "Comentario no encontrado"
                     },
                     "401": {
                         "description": "No autorizado"
-                    },
-                    "200": {
-                        "description": "Comentario eliminado exitosamente"
-                    },
-                    "403": {
-                        "description": "No tienes permisos para eliminar este comentario"
                     }
                 }
             }
@@ -2729,16 +2826,6 @@
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "Chat found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ChatDto"
-                                }
-                            }
-                        }
-                    },
                     "404": {
                         "description": "Chat not found or user not authorized",
                         "content": {
@@ -2751,6 +2838,16 @@
                     },
                     "401": {
                         "description": "Not authenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ChatDto"
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "Chat found",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2873,9 +2970,6 @@
                     }
                 ],
                 "responses": {
-                    "404": {
-                        "description": "Book not found"
-                    },
                     "200": {
                         "description": "Book found successfully",
                         "content": {
@@ -2885,6 +2979,9 @@
                                 }
                             }
                         }
+                    },
+                    "404": {
+                        "description": "Book not found"
                     }
                 }
             }
@@ -2949,6 +3046,74 @@
                 }
             }
         },
+        "/api/books/{bookId}/scene-generations": {
+            "get": {
+                "tags": [
+                    "Scene Image Generation"
+                ],
+                "summary": "Get all scene generations for a book",
+                "description": "Returns all previous scene image generations for the specified book",
+                "operationId": "getBookSceneGenerations",
+                "parameters": [
+                    {
+                        "name": "bookId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/books/{bookId}/scene-generations/count": {
+            "get": {
+                "tags": [
+                    "Scene Image Generation"
+                ],
+                "summary": "Get scene generation count for a book",
+                "description": "Returns the total number of scene generations created for the specified book",
+                "operationId": "getBookGenerationCount",
+                "parameters": [
+                    {
+                        "name": "bookId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "integer",
+                                    "format": "int64"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/reading-clubs/{clubId}": {
             "delete": {
                 "tags": [
@@ -2969,17 +3134,17 @@
                     }
                 ],
                 "responses": {
-                    "400": {
-                        "description": "Error al eliminar el club o usuario no es moderador"
-                    },
-                    "401": {
-                        "description": "No autorizado"
-                    },
                     "204": {
                         "description": "Club eliminado exitosamente"
                     },
+                    "400": {
+                        "description": "Error al eliminar el club o usuario no es moderador"
+                    },
                     "404": {
                         "description": "Club no encontrado"
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     }
                 }
             }
@@ -3084,14 +3249,14 @@
                     "200": {
                         "description": "Salió de la comunidad exitosamente"
                     },
-                    "401": {
-                        "description": "No autorizado"
-                    },
                     "404": {
                         "description": "Comunidad no encontrada"
                     },
                     "400": {
                         "description": "Error al salir de la comunidad"
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     }
                 }
             }
@@ -4165,6 +4330,64 @@
                     },
                     "moderator": {
                         "type": "boolean"
+                    }
+                }
+            },
+            "SceneImageRequest": {
+                "required": [
+                    "text"
+                ],
+                "type": "object",
+                "properties": {
+                    "text": {
+                        "maxLength": 2000,
+                        "minLength": 15,
+                        "type": "string"
+                    },
+                    "style": {
+                        "type": "string"
+                    },
+                    "seed": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "size": {
+                        "type": "string"
+                    },
+                    "return_base64": {
+                        "type": "boolean"
+                    }
+                },
+                "description": "Scene generation request"
+            },
+            "SceneImageResponse": {
+                "type": "object",
+                "properties": {
+                    "size": {
+                        "type": "string"
+                    },
+                    "style": {
+                        "type": "string"
+                    },
+                    "seed": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "book_id": {
+                        "type": "string"
+                    },
+                    "crafted_prompt": {
+                        "type": "string"
+                    },
+                    "image_url": {
+                        "type": "string"
+                    },
+                    "image_base64": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
                     }
                 }
             },

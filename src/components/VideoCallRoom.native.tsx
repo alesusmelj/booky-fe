@@ -14,6 +14,7 @@ import { logger } from '../utils/logger';
 import { LiveKitService, LiveKitToken } from '../services/liveKitService';
 import { useAuth } from '../contexts/AuthContext';
 import { getLiveKitUrl } from '../config/livekit';
+import { PanoramaViewerMeeting } from './PanoramaViewerMeeting';
 
 // For Expo managed workflow, we'll use a mock implementation
 // In production, you'd need to eject to bare workflow or use EAS Build
@@ -116,6 +117,10 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
   // Mock state for controls
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
+  const [showPanoramaViewer, setShowPanoramaViewer] = useState(false);
+
+  // URL de imagen panorámica por defecto
+  const PANORAMA_URL = 'https://res.cloudinary.com/dfsfkyyx7/image/upload/v1758152482/descarga_1_emrail.png';
 
   const toggleMute = useCallback(() => {
     setIsMuted(!isMuted);
@@ -131,6 +136,16 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
     await disconnectFromRoom();
     onClose();
   }, [disconnectFromRoom, onClose]);
+
+  const handleOpenPanoramaViewer = useCallback(() => {
+    logger.info('🌐 Opening panorama viewer from meeting');
+    setShowPanoramaViewer(true);
+  }, []);
+
+  const handleClosePanoramaViewer = useCallback(() => {
+    logger.info('🌐 Closing panorama viewer');
+    setShowPanoramaViewer(false);
+  }, []);
 
   useEffect(() => {
     connectToRoom();
@@ -250,6 +265,14 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
             </Text>
           </TouchableOpacity>
 
+          {/* 360° Viewer button */}
+          <TouchableOpacity
+            style={styles.panoramaButton}
+            onPress={handleOpenPanoramaViewer}
+          >
+            <Text style={styles.controlIcon}>🌐</Text>
+          </TouchableOpacity>
+
           {/* Leave button */}
           <TouchableOpacity style={styles.leaveButton} onPress={handleLeave}>
             <Text style={styles.leaveButtonText}>Leave</Text>
@@ -263,6 +286,14 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
           {isConnected ? '🟢 Connected' : '🔴 Disconnected'} • {participants.length} participant{participants.length !== 1 ? 's' : ''}
         </Text>
       </View>
+
+      {/* Panorama Viewer Modal */}
+      {showPanoramaViewer && (
+        <PanoramaViewerMeeting
+          imageUrl={PANORAMA_URL}
+          onClose={handleClosePanoramaViewer}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -432,6 +463,15 @@ const styles = StyleSheet.create({
   },
   controlIcon: {
     fontSize: 24,
+  },
+  panoramaButton: {
+    width: 56,
+    height: 56,
+    marginHorizontal: 8,
+    borderRadius: 28,
+    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   leaveButton: {
     backgroundColor: colors.status.error,

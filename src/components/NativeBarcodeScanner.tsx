@@ -45,6 +45,12 @@ export const NativeBarcodeScanner: React.FC<NativeBarcodeScannerProps> = ({
   const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
     setScanned(true);
     
+    // Validate data before processing
+    if (!data || typeof data !== 'string') {
+      logger.warn('📱 [BARCODE] Invalid barcode data received:', data);
+      return;
+    }
+    
     const cleanedData = data.replace(/[-\s]/g, '');
     
     if (cleanedData.length === 10 || cleanedData.length === 13) {

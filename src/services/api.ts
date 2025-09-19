@@ -49,6 +49,66 @@ export class ApiError extends Error {
   }
 }
 
+// Specific function for void API calls (follow, unfollow, join, etc.)
+export const apiVoidRequest = async (
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<void> => {
+  const url = `${API_BASE_URL}${endpoint}`;
+
+  // Don't set Content-Type for FormData, let browser/RN set it with boundary
+  const isFormData = options.body instanceof FormData;
+
+  const config: RequestInit = {
+    ...options,
+    headers: {
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+      ...options.headers,
+    },
+  };
+
+  // Add auth token if available
+  if (authToken) {
+    config.headers = {
+      ...config.headers,
+      Authorization: `Bearer ${authToken}`,
+    };
+  }
+
+  try {
+    const response = await fetch(url, config);
+
+    if (!response.ok) {
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = { message: response.statusText };
+      }
+
+      throw new ApiError(
+        errorData.message || `HTTP ${response.status}`,
+        response.status,
+        errorData
+      );
+    }
+
+    // For void responses, we don't need to parse anything
+    // Just return void if the response was successful
+    return;
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+
+    throw new ApiError(
+      error instanceof Error ? error.message : 'Network error',
+      undefined,
+      error
+    );
+  }
+};
+
 // Token management
 let authToken: string | null = null;
 
@@ -106,12 +166,37 @@ export const apiRequest = async <T = any>(
       );
     }
 
-    // Handle 204 No Content
-    if (response.status === 204) {
+    // Handle responses without content (204 No Content, 202 Accepted)
+    if (response.status === 204 || response.status === 202) {
       return undefined as T;
     }
 
-    return await response.json();
+    // Get response text first to check if there's actual content
+    const text = await response.text();
+
+    // If no content, return undefined for void responses
+    if (!text.trim()) {
+      return undefined as T;
+    }
+
+    // Try to parse as JSON if there's content
+    try {
+      return JSON.parse(text);
+    } catch (parseError) {
+      // If JSON parsing fails, check if it was expected to be JSON
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        // Expected JSON but parsing failed - this is an error
+        throw new ApiError(
+          `JSON Parse error: ${parseError instanceof Error ? parseError.message : 'Invalid JSON'}`,
+          response.status,
+          { originalText: text, contentType }
+        );
+      }
+
+      // Not expected to be JSON, return the text
+      return text as T;
+    }
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;
@@ -237,13 +322,13 @@ export const userApi = {
     apiRequest(`/users/search?q=${encodeURIComponent(query)}`),
 
   followUser: (followData: FollowUserDto): Promise<void> =>
-    apiRequest('/users/follow', {
+    apiVoidRequest('/users/follow', {
       method: 'POST',
       body: JSON.stringify(followData),
     }),
 
   unfollowUser: (followData: FollowUserDto): Promise<void> =>
-    apiRequest('/users/unfollow', {
+    apiVoidRequest('/users/unfollow', {
       method: 'POST',
       body: JSON.stringify(followData),
     }),
@@ -302,6 +387,58 @@ export const bookApi = {
 
   getBooksForExchange: (): Promise<UserBookDto[]> =>
     apiRequest('/books/exchange'),
+};
+
+// Scene Image Generation API
+export interface SceneImageRequest {
+  text: string;
+  style?: string;
+  seed?: number;
+  returnBase64?: boolean;
+  size?: string;
+}
+
+export interface SceneImageResponse {
+  bookId: string;
+  craftedPrompt: string;
+  imageUrl?: string;
+  imageBase64?: string;
+  size: string;
+  style?: string;
+  seed?: number;
+  createdAt: string;
+}
+
+export const sceneApi = {
+  generateSceneImage: (bookId: string, request: SceneImageRequest): Promise<SceneImageResponse> =>
+    apiRequest(`/api/books/${bookId}/scene-image`, {
+      method: 'POST',
+      body: JSON.stringify(request),
+    }),
+
+  getBookSceneGenerations: (bookId: string): Promise<any[]> =>
+    apiRequest(`/api/books/${bookId}/scene-generations`),
+
+  getBookGenerationCount: (bookId: string): Promise<number> =>
+    apiRequest(`/api/books/${bookId}/scene-generations/count`),
+};
+
+// Convenience function for generating scene images
+export const generateSceneImage = async (params: {
+  bookId: string;
+  text: string;
+  style?: string;
+  seed?: number;
+  returnBase64?: boolean;
+  size?: string;
+}): Promise<SceneImageResponse> => {
+  const { bookId, ...request } = params;
+  return sceneApi.generateSceneImage(bookId, {
+    style: 'photorealistic',
+    returnBase64: false,
+    size: '4096x2048',
+    ...request,
+  });
 };
 
 // Book Exchange API
@@ -430,13 +567,13 @@ export const communityApi = {
     apiRequest(`/communities/search?q=${encodeURIComponent(query)}`),
 
   joinCommunity: (communityId: string): Promise<void> =>
-    apiRequest(`/communities/${communityId}/join`, { method: 'POST' }),
+    apiVoidRequest(`/communities/${communityId}/join`, { method: 'POST' }),
 
   leaveCommunity: (communityId: string): Promise<void> =>
-    apiRequest(`/communities/${communityId}/leave`, { method: 'DELETE' }),
+    apiVoidRequest(`/communities/${communityId}/leave`, { method: 'DELETE' }),
 
   deleteCommunity: (communityId: string): Promise<void> =>
-    apiRequest(`/communities/${communityId}`, { method: 'DELETE' }),
+    apiVoidRequest(`/communities/${communityId}`, { method: 'DELETE' }),
 };
 
 // Reading Clubs API
@@ -463,13 +600,13 @@ export const readingClubApi = {
     apiRequest(`/reading-clubs/search?q=${encodeURIComponent(query)}`),
 
   joinReadingClub: (clubId: string): Promise<void> =>
-    apiRequest(`/reading-clubs/${clubId}/join`, { method: 'POST' }),
+    apiVoidRequest(`/reading-clubs/${clubId}/join`, { method: 'POST' }),
 
   leaveReadingClub: (clubId: string): Promise<void> =>
-    apiRequest(`/reading-clubs/${clubId}/leave`, { method: 'POST' }),
+    apiVoidRequest(`/reading-clubs/${clubId}/leave`, { method: 'POST' }),
 
   deleteReadingClub: (clubId: string): Promise<void> =>
-    apiRequest(`/reading-clubs/${clubId}`, { method: 'DELETE' }),
+    apiVoidRequest(`/reading-clubs/${clubId}`, { method: 'DELETE' }),
 };
 
 // Gamification API
@@ -519,6 +656,7 @@ export const api = {
   community: communityApi,
   readingClub: readingClubApi,
   gamification: gamificationApi,
+  scene: sceneApi,
 };
 
 export default api;

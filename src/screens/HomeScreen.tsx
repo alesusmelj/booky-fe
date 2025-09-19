@@ -59,8 +59,13 @@ export const HomeScreen: React.FC = () => {
   };
 
   const handleUserPress = (userId: string) => {
-    logger.info('👤 User profile pressed:', userId);
-    // TODO: Navigate to user profile
+    logger.info('👤 User profile pressed:', { userId, navigateFunction: typeof navigate });
+    try {
+      navigate('profile', { userId });
+      logger.info('✅ Navigation to profile initiated successfully');
+    } catch (error) {
+      logger.error('❌ Error navigating to profile:', error);
+    }
   };
 
   const renderPost: ListRenderItem<PostDto> = ({ item }) => (
@@ -157,7 +162,7 @@ export const HomeScreen: React.FC = () => {
       <FlatList
         data={posts}
         renderItem={renderPost}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item, index) => item.id ? `post-${item.id}` : `post-index-${index}`}
         ListHeaderComponent={renderHeader}
         ListFooterComponent={renderFooter}
         ListEmptyComponent={renderEmptyState}

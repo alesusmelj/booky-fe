@@ -295,7 +295,8 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
   const { user } = useAuth();
 
   const handleUserClick = (userId: string) => {
-    logger.info('User clicked:', userId);
+    logger.info('👤 User profile pressed from community:', userId);
+    navigate('profile', { userId });
   };
 
   const handleLike = (postId: string) => {

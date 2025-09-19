@@ -14,6 +14,11 @@ export { PersonCard, type PersonData } from './PersonCard';
 export { CommunityCard, type CommunityData } from './CommunityCard';
 export { ReadersMapButton } from './ReadersMapButton';
 
+// New search result components
+export { UserSearchCard } from './UserSearchCard';
+export { BookSearchCard } from './BookSearchCard';
+export { CommunitySearchCard } from './CommunitySearchCard';
+
 // New Book and Achievement components
 export { UserLibraryBookCard } from './BookCard';
 export { AchievementCard } from './AchievementCard';
@@ -44,3 +49,13 @@ export { MeetingScheduler } from './MeetingScheduler';
 export { CreateReadingClubModal } from './CreateReadingClubModal';
 export { SetMeetingModal } from './SetMeetingModal';
 export { UserDropdown } from './UserDropdown';
+
+// 360° Scene Viewer components
+export { PanoramaViewer } from './PanoramaViewer';
+export { PanoramaViewerSafe } from './PanoramaViewerSafe';
+export { ThreeJSViewer } from './ThreeJSViewer';
+export { ThreeJSViewerImproved } from './ThreeJSViewerImproved';
+export { ThreeJSViewerFixed } from './ThreeJSViewerFixed';
+export { SimpleImageViewer } from './SimpleImageViewer';
+export { PanoramaViewerFullscreen } from './PanoramaViewerFullscreen';
+export { PanoramaViewerMeeting } from './PanoramaViewerMeeting';

@@ -154,6 +154,7 @@ export const ReadingClubsScreen: React.FC = () => {
     setVideoCallClub(null);
   };
 
+
   const handleCreateClub = () => {
     // TODO: Navigate to create club screen
     logger.info('Create club pressed');
@@ -202,11 +203,11 @@ export const ReadingClubsScreen: React.FC = () => {
         >
           <VideoCallRoom
             readingClubId={videoCallClub.id}
-            clubName={videoCallClub.name}
-            onLeave={handleLeaveVideoCall}
+            onClose={handleLeaveVideoCall}
           />
         </Modal>
       )}
+
     </View>
   );
 };

@@ -47,7 +47,7 @@ const FallbackScanner: React.FC<BarcodeScannerWrapperProps> = ({
   const [manualISBN, setManualISBN] = useState('');
 
   const handleManualEntry = () => {
-    if (manualISBN.trim()) {
+    if (manualISBN && typeof manualISBN === 'string' && manualISBN.trim()) {
       const cleanedISBN = manualISBN.replace(/[-\s]/g, '');
       if (cleanedISBN.length === 10 || cleanedISBN.length === 13) {
         onBarcodeScanned(cleanedISBN);
@@ -134,16 +134,24 @@ const FallbackScanner: React.FC<BarcodeScannerWrapperProps> = ({
             onPress={() => {
               logger.info('🧪 [CAMERA] User requested simple permission test');
               onClose();
-              // Import and show simple permission test
+              // Import and show simple permission test with better error handling
               setTimeout(() => {
-                import('./SimpleCameraPermissionTest').then(({ SimpleCameraPermissionTest }) => {
-                  // This is a quick test - in a real app you'd handle this better
-                  logger.info('🧪 [CAMERA] SimpleCameraPermissionTest loaded successfully');
-                  alert('Check logs for permission test results. This will test if expo-camera permissions work.');
-                }).catch((error) => {
-                  logger.error('🧪 [CAMERA] Failed to load SimpleCameraPermissionTest:', error);
-                  alert('Failed to load permission test: ' + error.message);
-                });
+                try {
+                  import('./SimpleCameraPermissionTest').then(({ SimpleCameraPermissionTest }) => {
+                    // This is a quick test - in a real app you'd handle this better
+                    logger.info('🧪 [CAMERA] SimpleCameraPermissionTest loaded successfully');
+                    alert('Check logs for permission test results. This will test if expo-camera permissions work.');
+                  }).catch((error) => {
+                    logger.error('🧪 [CAMERA] Failed to load SimpleCameraPermissionTest:', error);
+                    const errorMessage = error instanceof Error ? error.message : String(error);
+                    logger.error('🧪 [CAMERA] Error details:', errorMessage);
+                    alert('Failed to load permission test: ' + errorMessage);
+                  });
+                } catch (syncError) {
+                  logger.error('🧪 [CAMERA] Synchronous error during import:', syncError);
+                  const errorMessage = syncError instanceof Error ? syncError.message : String(syncError);
+                  alert('Failed to start permission test: ' + errorMessage);
+                }
               }, 100);
             }}
           >
@@ -155,15 +163,23 @@ const FallbackScanner: React.FC<BarcodeScannerWrapperProps> = ({
             onPress={() => {
               logger.info('📱 [CAMERA] User requested iOS-specific camera test');
               onClose();
-              // Import and show iOS camera test
+              // Import and show iOS camera test with robust error handling
               setTimeout(() => {
-                import('./IOSCameraScanner').then(({ IOSCameraScanner }) => {
-                  logger.info('📱 [CAMERA] IOSCameraScanner loaded successfully');
-                  alert('Testing iOS-specific camera implementation. Check logs for detailed results.');
-                }).catch((error) => {
-                  logger.error('📱 [CAMERA] Failed to load IOSCameraScanner:', error);
-                  alert('Failed to load iOS camera test: ' + error.message);
-                });
+                try {
+                  import('./IOSCameraScanner').then(({ IOSCameraScanner }) => {
+                    logger.info('📱 [CAMERA] IOSCameraScanner loaded successfully');
+                    alert('Testing iOS-specific camera implementation. Check logs for detailed results.');
+                  }).catch((error) => {
+                    logger.error('📱 [CAMERA] Failed to load IOSCameraScanner:', error);
+                    const errorMessage = error instanceof Error ? error.message : String(error);
+                    logger.error('📱 [CAMERA] Error details:', errorMessage);
+                    alert('Failed to load iOS camera test: ' + errorMessage);
+                  });
+                } catch (syncError) {
+                  logger.error('📱 [CAMERA] Synchronous error during IOSCameraScanner import:', syncError);
+                  const errorMessage = syncError instanceof Error ? syncError.message : String(syncError);
+                  alert('Failed to start iOS camera test: ' + errorMessage);
+                }
               }, 100);
             }}
           >
@@ -188,53 +204,228 @@ const FallbackScanner: React.FC<BarcodeScannerWrapperProps> = ({
   );
 };
 
-// Dynamic import component for expo-camera scanner
-const DynamicCameraScanner: React.FC<BarcodeScannerWrapperProps> = (props) => {
-  const [CameraScannerComponent, setCameraScannerComponent] = useState<React.ComponentType<any> | null>(null);
-  const [loading, setLoading] = useState(true);
+// Safe camera scanner component that uses static imports
+const SafeCameraScanner: React.FC<BarcodeScannerWrapperProps> = (props) => {
   const [error, setError] = useState<string | null>(null);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    const loadCameraScanner = async () => {
+    const initializeScanner = async () => {
       try {
-        logger.info('📷 [CAMERA] Starting to load camera component...');
+        logger.info('📷 [CAMERA] Initializing safe camera scanner...');
         
-        // Load the real camera component now that modal system works
-        const { WorkingExpoCameraScanner } = await import('./WorkingExpoCameraScanner');
-        logger.info('📷 [CAMERA] WorkingExpoCameraScanner imported successfully');
+        // Check if expo-camera is available without dynamic import
+        const expoCameraModule = require('expo-camera');
+        if (!expoCameraModule || !expoCameraModule.CameraView || !expoCameraModule.useCameraPermissions) {
+          throw new Error('expo-camera components not available');
+        }
         
-        setCameraScannerComponent(() => WorkingExpoCameraScanner);
-        logger.info('📷 [CAMERA] WorkingExpoCameraScanner component set successfully');
+        logger.info('📷 [CAMERA] expo-camera verified successfully');
+        setIsReady(true);
       } catch (error) {
-        logger.error('📷 [CAMERA] Failed to load camera scanner:', error);
-        logger.error('📷 [CAMERA] Error details:', error instanceof Error ? error.message : String(error));
-        setError('Failed to load camera scanner');
-      } finally {
-        setLoading(false);
+        logger.error('📷 [CAMERA] Failed to initialize camera scanner:', error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.error('📷 [CAMERA] Error details:', errorMessage);
+        setError(`Camera not available: ${errorMessage}`);
       }
     };
 
-    loadCameraScanner();
+    initializeScanner();
   }, []);
 
-  if (loading) {
+  if (error) {
+    logger.warn('📷 [CAMERA] Falling back to manual entry due to error:', error);
+    return <FallbackScanner {...props} />;
+  }
+
+  if (!isReady) {
     return (
       <View style={styles.fallbackContainer}>
         <View style={styles.fallbackContent}>
-          <Text style={styles.fallbackMessage}>Loading camera...</Text>
+          <Text style={styles.fallbackMessage}>Initializing camera...</Text>
         </View>
       </View>
     );
   }
 
-  if (error || !CameraScannerComponent) {
-    logger.warn('📷 [CAMERA] Falling back to manual entry due to error:', error);
-    logger.warn('📷 [CAMERA] Component loaded:', !!CameraScannerComponent);
-    return <FallbackScanner {...props} />;
+  // Use a simple camera implementation instead of the problematic WorkingExpoCameraScanner
+  logger.info('📷 [CAMERA] Rendering safe camera scanner');
+  return <SimpleCameraScanner {...props} />;
+};
+
+// Simple camera scanner implementation to avoid import issues
+const SimpleCameraScanner: React.FC<BarcodeScannerWrapperProps> = ({
+  onBarcodeScanned,
+  onClose,
+}) => {
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [scanned, setScanned] = useState(false);
+  const [CameraView, setCameraView] = useState<any>(null);
+
+  useEffect(() => {
+    const getPermissions = async () => {
+      try {
+        logger.info('📷 [SIMPLE-CAMERA] Requesting camera permissions...');
+        const expoCameraModule = require('expo-camera');
+        const { CameraView: CameraComponent, useCameraPermissions } = expoCameraModule;
+        
+        if (!CameraComponent) {
+          throw new Error('CameraView component not available');
+        }
+        
+        // Check actual permissions
+        logger.info('📷 [SIMPLE-CAMERA] Checking camera permissions...');
+        const { status } = await expoCameraModule.Camera?.requestCameraPermissionsAsync() || 
+                           await expoCameraModule.requestCameraPermissionsAsync?.() ||
+                           { status: 'granted' }; // Fallback for testing
+        
+        logger.info('📷 [SIMPLE-CAMERA] Permission status:', status);
+        
+        if (status === 'granted') {
+          setCameraView(() => CameraComponent);
+          setHasPermission(true);
+          logger.info('📷 [SIMPLE-CAMERA] Camera ready with permissions');
+        } else {
+          setHasPermission(false);
+          logger.warn('📷 [SIMPLE-CAMERA] Camera permission denied');
+        }
+      } catch (error) {
+        logger.error('📷 [SIMPLE-CAMERA] Error getting permissions:', error);
+        setHasPermission(false);
+      }
+    };
+
+    getPermissions();
+  }, []);
+
+  const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
+    if (scanned) return;
+    
+    // Validate data before processing
+    if (!data || typeof data !== 'string') {
+      logger.warn('📷 [SIMPLE-CAMERA] Invalid barcode data received:', data);
+      return;
+    }
+    
+    setScanned(true);
+    const cleanedData = data.replace(/[-\s]/g, '');
+    
+    if (cleanedData.length === 10 || cleanedData.length === 13) {
+      logger.info('📷 [SIMPLE-CAMERA] Valid ISBN scanned:', cleanedData);
+      onBarcodeScanned(cleanedData);
+      onClose();
+    } else {
+      Alert.alert(
+        'Invalid ISBN',
+        'The scanned code does not appear to be a valid ISBN. Please try again.',
+        [
+          { text: 'Try Again', onPress: () => setScanned(false) },
+          { text: 'Cancel', onPress: onClose },
+        ]
+      );
+    }
+  };
+
+  if (hasPermission === null) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.messageContainer}>
+          <Text style={styles.messageTitle}>📷 Setting up Camera...</Text>
+          <Text style={styles.message}>Please wait while we prepare the camera scanner.</Text>
+        </View>
+      </View>
+    );
   }
 
-  logger.info('📷 [CAMERA] Rendering CameraScannerComponent successfully');
-  return <CameraScannerComponent {...props} />;
+  if (hasPermission === false) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.messageContainer}>
+          <Text style={styles.messageTitle}>📷 Camera Permission Required</Text>
+          <Text style={styles.message}>
+            Please enable camera access in your device settings to scan barcodes.
+          </Text>
+          <TouchableOpacity style={styles.button} onPress={onClose}>
+            <Text style={styles.buttonText}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // Show real camera if available, otherwise show demo
+  if (CameraView) {
+    return (
+      <View style={styles.container}>
+        <CameraView
+          style={styles.camera}
+          facing="back"
+          onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+          barcodeScannerSettings={{
+            barcodeTypes: ['qr', 'pdf417', 'aztec', 'ean13', 'ean8', 'upc_e', 'datamatrix', 'code128', 'code39', 'codabar', 'itf14', 'upc_a'],
+          }}
+        >
+          <View style={styles.overlay}>
+            <View style={styles.topOverlay} />
+            <View style={styles.middleRow}>
+              <View style={styles.sideOverlay} />
+              <View style={styles.scanArea} />
+              <View style={styles.sideOverlay} />
+            </View>
+            <View style={styles.bottomOverlay}>
+              <View style={styles.controlsContainer}>
+                <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                  <Text style={styles.closeButtonText}>✕ Close</Text>
+                </TouchableOpacity>
+                
+                {scanned && (
+                  <TouchableOpacity 
+                    style={styles.button} 
+                    onPress={() => setScanned(false)}
+                  >
+                    <Text style={styles.buttonText}>Scan Again</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              
+              <Text style={styles.instructionText}>
+                Point your camera at a barcode to scan
+              </Text>
+            </View>
+          </View>
+        </CameraView>
+      </View>
+    );
+  }
+
+  // Fallback to demo mode if camera not available
+  return (
+    <View style={styles.container}>
+      <View style={styles.messageContainer}>
+        <Text style={styles.messageTitle}>📷 Camera Scanner (Demo Mode)</Text>
+        <Text style={styles.message}>
+          Camera not available. Use the demo scan button below.
+        </Text>
+        
+        <TouchableOpacity 
+          style={styles.button} 
+          onPress={() => {
+            // Simulate a successful scan for testing
+            const testISBN = '9780451524935';
+            logger.info('📷 [SIMPLE-CAMERA] Simulating scan with test ISBN:', testISBN);
+            onBarcodeScanned(testISBN);
+            onClose();
+          }}
+        >
+          <Text style={styles.buttonText}>📚 Test Scan (Demo)</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+          <Text style={styles.closeButtonText}>Close</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
 };
 
 // Main wrapper component
@@ -283,7 +474,7 @@ export const BarcodeScannerWrapper: React.FC<BarcodeScannerWrapperProps> = (prop
   }
 
   if (scannerType === 'native') {
-    return <DynamicCameraScanner {...props} />;
+    return <SafeCameraScanner {...props} />;
   } else {
     return <FallbackScanner {...props} />;
   }
@@ -410,6 +601,90 @@ const styles = StyleSheet.create({
     color: colors.neutral.gray700,
     fontSize: 16,
     fontWeight: '500',
+  },
+
+  // Camera scanner styles
+  container: {
+    flex: 1,
+    backgroundColor: 'black',
+  },
+  camera: {
+    flex: 1,
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  topOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  middleRow: {
+    flexDirection: 'row',
+    height: 200,
+  },
+  sideOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  scanArea: {
+    width: 200,
+    height: 200,
+    borderWidth: 2,
+    borderColor: colors.primary.blue500,
+    backgroundColor: 'transparent',
+  },
+  bottomOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingBottom: 50,
+  },
+  controlsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  instructionText: {
+    color: 'white',
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  messageContainer: {
+    backgroundColor: 'white',
+    margin: 20,
+    padding: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  messageTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  message: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 20,
+    color: colors.neutral.gray600,
+  },
+  button: {
+    backgroundColor: colors.primary.blue500,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '500',
+    textAlign: 'center',
   },
 });
 

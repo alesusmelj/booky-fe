@@ -21,12 +21,18 @@ export const WorkingExpoCameraScanner: React.FC<WorkingExpoCameraScannerProps> =
 }) => {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
+  const [initError, setInitError] = useState<string | null>(null);
   const lastScannedRef = useRef<string | null>(null);
   const processingRef = useRef<boolean>(false);
 
   useEffect(() => {
-    logger.info('📷 [WORKING-CAMERA] Component initialized');
-    logger.info('📷 [WORKING-CAMERA] Permission object:', permission);
+    try {
+      logger.info('📷 [WORKING-CAMERA] Component initialized');
+      logger.info('📷 [WORKING-CAMERA] Permission object:', permission);
+    } catch (error) {
+      logger.error('📷 [WORKING-CAMERA] Error during initialization:', error);
+      setInitError(error instanceof Error ? error.message : String(error));
+    }
   }, [permission]);
 
   // Cleanup refs when component unmounts
@@ -42,6 +48,12 @@ export const WorkingExpoCameraScanner: React.FC<WorkingExpoCameraScannerProps> =
     // Multiple protection layers to prevent duplicate processing
     if (scanned || processingRef.current) {
       logger.info('📷 [WORKING-CAMERA] Ignoring duplicate scan - already processed');
+      return;
+    }
+    
+    // Validate data before processing
+    if (!data || typeof data !== 'string') {
+      logger.warn('📷 [WORKING-CAMERA] Invalid barcode data received:', data);
       return;
     }
     
@@ -121,6 +133,24 @@ export const WorkingExpoCameraScanner: React.FC<WorkingExpoCameraScannerProps> =
       );
     }
   };
+
+  // Handle initialization errors
+  if (initError) {
+    logger.error('📷 [WORKING-CAMERA] Rendering error state:', initError);
+    return (
+      <View style={styles.container}>
+        <View style={styles.messageContainer}>
+          <Text style={styles.messageTitle}>❌ Camera Error</Text>
+          <Text style={styles.message}>
+            Failed to initialize camera: {initError}
+          </Text>
+          <TouchableOpacity style={styles.button} onPress={onClose}>
+            <Text style={styles.buttonText}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   if (!permission) {
     logger.info('📷 [WORKING-CAMERA] Permission is null, loading...');

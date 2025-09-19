@@ -10,6 +10,7 @@ interface NavigationContextType {
   navigate: (screen: string, params?: Record<string, any>) => void;
   goBack: () => void;
   canGoBack: () => boolean;
+  resetToHome: () => void;
 }
 
 const NavigationContext = createContext<NavigationContextType | undefined>(undefined);
@@ -44,11 +45,16 @@ export const NavigationProvider: React.FC<NavigationProviderProps> = ({
     return navigationStack.length > 1;
   };
 
+  const resetToHome = () => {
+    setNavigationStack([{ screen: 'home' }]);
+  };
+
   const value: NavigationContextType = {
     currentScreen,
     navigate,
     goBack,
     canGoBack,
+    resetToHome,
   };
 
   return (

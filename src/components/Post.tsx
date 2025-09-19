@@ -9,6 +9,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { strings, colors, theme } from '../constants';
 import { PostDto } from '../types/api';
+import { logger } from '../utils/logger';
 
 export interface PostData {
   id: string;
@@ -52,6 +53,11 @@ export const Post: React.FC<PostProps> = ({
   };
 
   const handleUserPress = () => {
+    logger.info('🔵 Post handleUserPress called:', { 
+      userId: post.user.id, 
+      userName: post.user.name,
+      onUserPressType: typeof onUserPress 
+    });
     onUserPress(post.user.id);
   };
 

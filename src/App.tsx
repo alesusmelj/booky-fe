@@ -8,15 +8,32 @@ import CommerceScreen from './screens/CommerceScreen';
 import { strings, colors } from './constants';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NavigationProvider, useNavigation } from './contexts/NavigationContext';
+import { logger } from './utils/logger';
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState('home');
   const [authScreen, setAuthScreen] = useState<'login' | 'signup'>('login');
   const { isAuthenticated, isLoading } = useAuth();
-  const { currentScreen, goBack, canGoBack } = useNavigation();
+  const { currentScreen, goBack, canGoBack, resetToHome } = useNavigation();
 
   const handleTabPress = (tab: string) => {
+    logger.info('🔄 Tab pressed:', { 
+      tab, 
+      currentScreen: currentScreen.screen, 
+      canGoBack: canGoBack(),
+      activeTab: activeTab 
+    });
+    
     setActiveTab(tab);
+    
+    // If we're in a navigation screen (like profile), reset to main tab screens
+    if (canGoBack()) {
+      logger.info('📱 Resetting navigation to main screens...');
+      resetToHome();
+      logger.info('✅ Navigation reset completed');
+    }
+    
+    logger.info('🎯 Tab navigation completed for:', tab);
   };
 
   // Show loading screen while checking authentication
@@ -95,6 +112,28 @@ function AppContent() {
     }
   };
 
+  // Determine if we should show the navbar
+  const shouldShowNavbar = () => {
+    // Always show navbar for main tab screens
+    if (!canGoBack()) return true;
+    
+    // Show navbar for profile screens (both own and other users)
+    if (currentScreen.screen === 'profile') return true;
+    
+    // Hide navbar for other navigation screens
+    return false;
+  };
+
+  // Determine the active tab for navbar
+  const getActiveTabForNavbar = () => {
+    // If we're on a profile screen, don't highlight any specific tab
+    // Let the user navigate freely
+    if (currentScreen.screen === 'profile') return activeTab;
+    
+    // Otherwise use the current active tab
+    return activeTab;
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {canGoBack() ? (
@@ -120,9 +159,9 @@ function AppContent() {
       <View style={styles.content}>
         {renderContent()}
       </View>
-      {!canGoBack() && (
+      {shouldShowNavbar() && (
         <Navbar 
-          activeTab={activeTab} 
+          activeTab={getActiveTabForNavbar()} 
           onTabPress={handleTabPress} 
         />
       )}

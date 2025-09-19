@@ -970,77 +970,7 @@ export const SimpleImageViewer: React.FC<SimpleImageViewerProps> = ({
         <GLView style={{ flex: 1 }} onContextCreate={onContextCreate} />
       </View>
       
-      {/* Controls overlay */}
-      {imageLoaded && (
-        <View style={styles.controlsOverlay}>
-          <TouchableOpacity style={styles.controlButton} onPress={centerView}>
-            <Text style={styles.controlButtonText}>🎯</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.controlButton} onPress={zoomOut}>
-            <Text style={styles.controlButtonText}>🔍-</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.controlButton} onPress={zoomIn}>
-            <Text style={styles.controlButtonText}>🔍+</Text>
-          </TouchableOpacity>
-          
-          {useGyro && (
-            <>
-              <TouchableOpacity 
-                style={styles.controlButton} 
-                onPress={() => adjustSensitivity(-0.2)}
-              >
-                <Text style={styles.controlButtonText}>🔄-</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.controlButton} 
-                onPress={() => adjustSensitivity(0.2)}
-              >
-                <Text style={styles.controlButtonText}>🔄+</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity style={styles.controlButton} onPress={recalibrateCamera}>
-                <Text style={styles.controlButtonText}>📐</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.controlButton, loggingEnabled && styles.controlButtonActive]} 
-                onPress={toggleLogging}
-              >
-                <Text style={styles.controlButtonText}>📊</Text>
-              </TouchableOpacity>
-            </>
-          )}
-          
-          {/* Botón para probar orientaciones */}
-          <TouchableOpacity 
-            style={styles.controlButton} 
-            onPress={cycleOrientation}
-          >
-            <Text style={styles.controlButtonText}>🔄</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-      
-      {/* Status overlay */}
-      {imageLoaded && (
-        <View style={styles.statusOverlay}>
-        <Text style={[
-          styles.statusText,
-          { backgroundColor: sensorSystem.isActive && useGyro ? 'rgba(0, 122, 255, 0.8)' : 'rgba(0, 0, 0, 0.6)' }
-        ]}>
-          {useGyro ? (
-            sensorSystem.isCalibrating ? '📐 Calibrando Sistema...' : 
-            sensorSystem.isActive ? `🎥 ${sensorSystem.sensorType === 'devicemotion' ? 'DeviceMotion' : 'Gyroscope'} Profesional` : '🔄 Iniciando Sistema...'
-          ) : '👆 Control Táctil'}
-        </Text>
-        <Text style={styles.statusSubtext}>
-          Sistema 3D • Sens: {sensorSystem.sensitivity.toFixed(1)} • Yaw: {radToDeg(yawRef.current).toFixed(0)}° Pitch: {radToDeg(pitchRef.current).toFixed(0)}° • Orientación: {orientationMode} • {orientation}
-        </Text>
-        </View>
-      )}
+
     </View>
   );
 };

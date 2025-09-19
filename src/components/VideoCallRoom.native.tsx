@@ -252,18 +252,6 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
             </Text>
           </TouchableOpacity>
 
-          {/* Video button */}
-          <TouchableOpacity
-            style={[
-              styles.controlButton,
-              !isVideoEnabled && styles.controlButtonActive,
-            ]}
-            onPress={toggleVideo}
-          >
-            <Text style={styles.controlIcon}>
-              {isVideoEnabled ? '📹' : '📷'}
-            </Text>
-          </TouchableOpacity>
 
           {/* 360° Viewer button */}
           <TouchableOpacity

@@ -14,6 +14,11 @@ export { PersonCard, type PersonData } from './PersonCard';
 export { CommunityCard, type CommunityData } from './CommunityCard';
 export { ReadersMapButton } from './ReadersMapButton';
 
+// New search result components
+export { UserSearchCard } from './UserSearchCard';
+export { BookSearchCard } from './BookSearchCard';
+export { CommunitySearchCard } from './CommunitySearchCard';
+
 // New Book and Achievement components
 export { UserLibraryBookCard } from './BookCard';
 export { AchievementCard } from './AchievementCard';

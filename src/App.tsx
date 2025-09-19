@@ -3,7 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, SafeAreaView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Navbar, TopNavbar } from './components';
-import { HomeScreen, SearchScreen, LoginScreen, CommunitiesScreen, CommunityDetailScreen, ReadingClubsScreen, ProfileScreen, LibraryScreen, Scene360TestScreen, Scene360TestScreenSimple, Scene360TestScreenSafe, Scene360TestImageOptions, Scene360ProceduralTest, Scene360CustomImageTest } from './screens';
+import { HomeScreen, SearchScreen, LoginScreen, SignUpScreen, CommunitiesScreen, CommunityDetailScreen, ReadingClubsScreen, ProfileScreen, LibraryScreen, Scene360TestScreen, Scene360TestScreenSimple, Scene360TestScreenSafe, Scene360TestImageOptions, Scene360ProceduralTest, Scene360CustomImageTest } from './screens';
 import CommerceScreen from './screens/CommerceScreen';
 import { strings, colors } from './constants';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -11,6 +11,7 @@ import { NavigationProvider, useNavigation } from './contexts/NavigationContext'
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState('home');
+  const [authScreen, setAuthScreen] = useState<'login' | 'signup'>('login');
   const { isAuthenticated, isLoading } = useAuth();
   const { currentScreen, goBack, canGoBack } = useNavigation();
 
@@ -27,11 +28,19 @@ function AppContent() {
     );
   }
 
-  // Show login screen if not authenticated
+  // Show authentication screens if not authenticated
   if (!isAuthenticated) {
     return (
       <SafeAreaView style={styles.container}>
-        <LoginScreen />
+        {authScreen === 'login' ? (
+          <LoginScreen 
+            onCreateAccountPress={() => setAuthScreen('signup')}
+          />
+        ) : (
+          <SignUpScreen 
+            onBackToLoginPress={() => setAuthScreen('login')}
+          />
+        )}
         <StatusBar style="auto" />
       </SafeAreaView>
     );
@@ -45,7 +54,7 @@ function AppContent() {
       case 'reading-clubs':
         return <ReadingClubsScreen />;
       case 'profile':
-        return <ProfileScreen />;
+        return <ProfileScreen route={{ params: currentScreen.params }} />;
       case 'scene360-test':
         return <Scene360TestScreen />;
       case 'scene360-test-simple':

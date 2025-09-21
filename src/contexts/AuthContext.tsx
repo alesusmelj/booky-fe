@@ -3,6 +3,7 @@ import { UserDto, UserSignInDto, UserSignUpDto } from '../types/api';
 import { authApi } from '../services/api';
 import { authStorage, userStorage } from '../services/storage';
 import { logger } from '../utils/logger';
+import { UsersService } from '../services/usersService';
 
 // Enable mock mode for mobile testing (set to true to bypass backend)
 const ENABLE_MOCK_AUTH = false;
@@ -254,10 +255,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (!state.user?.id) return;
 
     try {
-      logger.info('🔄 Refreshing user data...');
+      logger.info('🔄 Refreshing user data for user ID:', state.user.id);
       // Get updated user data from server
-      const { UsersService } = await import('../services/usersService');
       const updatedUser = await UsersService.getUserById(state.user.id);
+      
+      logger.info('🔄 Updated user data received:', {
+        id: updatedUser.id,
+        name: updatedUser.name,
+        lastname: updatedUser.lastname,
+        hasImage: !!updatedUser.image,
+        imagePreview: updatedUser.image ? updatedUser.image.substring(0, 50) + '...' : 'No image'
+      });
       
       // Update user in state and storage
       setState(prev => ({
@@ -268,7 +276,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Also update the stored user data
       await userStorage.saveUser(updatedUser);
       
-      logger.info('✅ User data refreshed successfully');
+      logger.info('✅ User data refreshed successfully in context and storage');
     } catch (error) {
       logger.error('❌ Failed to refresh user:', error);
     }

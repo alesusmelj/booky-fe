@@ -83,33 +83,18 @@
                 ],
                 "summary": "Update user profile",
                 "description": "Updates user profile information and optionally uploads a profile image",
-                "operationId": "updateUserWithImage",
+                "operationId": "updateUser",
                 "requestBody": {
                     "content": {
-                        "multipart/form-data": {
+                        "application/json": {
                             "schema": {
-                                "required": [
-                                    "user"
-                                ],
-                                "type": "object",
-                                "properties": {
-                                    "user": {
-                                        "$ref": "#/components/schemas/UserUpdateDto"
-                                    },
-                                    "image": {
-                                        "type": "string",
-                                        "description": "Profile image file (optional)",
-                                        "format": "binary"
-                                    }
-                                }
+                                "$ref": "#/components/schemas/UserUpdateDto"
                             }
                         }
-                    }
+                    },
+                    "required": true
                 },
                 "responses": {
-                    "404": {
-                        "description": "User not found"
-                    },
                     "200": {
                         "description": "User updated successfully",
                         "content": {
@@ -122,6 +107,9 @@
                     },
                     "400": {
                         "description": "Invalid input data"
+                    },
+                    "404": {
+                        "description": "User not found"
                     }
                 }
             }
@@ -156,8 +144,8 @@
                     "required": true
                 },
                 "responses": {
-                    "404": {
-                        "description": "Club de lectura no encontrado"
+                    "403": {
+                        "description": "Solo el moderador puede actualizar la reunión"
                     },
                     "400": {
                         "description": "Datos inválidos"
@@ -175,8 +163,8 @@
                     "401": {
                         "description": "No autorizado"
                     },
-                    "403": {
-                        "description": "Solo el moderador puede actualizar la reunión"
+                    "404": {
+                        "description": "Club de lectura no encontrado"
                     }
                 }
             }
@@ -288,11 +276,11 @@
                     "404": {
                         "description": "Publicación no encontrada"
                     },
-                    "204": {
-                        "description": "Publicación eliminada exitosamente"
-                    },
                     "401": {
                         "description": "No autorizado"
+                    },
+                    "204": {
+                        "description": "Publicación eliminada exitosamente"
                     }
                 }
             }
@@ -374,9 +362,6 @@
                     "required": true
                 },
                 "responses": {
-                    "404": {
-                        "description": "Exchange not found"
-                    },
                     "400": {
                         "description": "Invalid request data"
                     },
@@ -392,6 +377,9 @@
                     },
                     "403": {
                         "description": "User not authorized for this action"
+                    },
+                    "404": {
+                        "description": "Exchange not found"
                     }
                 }
             }
@@ -435,8 +423,11 @@
                     "required": true
                 },
                 "responses": {
-                    "404": {
-                        "description": "Exchange not found"
+                    "400": {
+                        "description": "Invalid request data"
+                    },
+                    "403": {
+                        "description": "User not authorized for this action"
                     },
                     "200": {
                         "description": "Counter offer created successfully",
@@ -448,11 +439,8 @@
                             }
                         }
                     },
-                    "400": {
-                        "description": "Invalid request data"
-                    },
-                    "403": {
-                        "description": "User not authorized for this action"
+                    "404": {
+                        "description": "Exchange not found"
                     }
                 }
             }
@@ -601,9 +589,6 @@
                     "required": true
                 },
                 "responses": {
-                    "404": {
-                        "description": "Book not found in user library"
-                    },
                     "200": {
                         "description": "Exchange preference updated successfully",
                         "content": {
@@ -613,6 +598,9 @@
                                 }
                             }
                         }
+                    },
+                    "404": {
+                        "description": "Book not found in user library"
                     }
                 }
             }
@@ -670,11 +658,11 @@
                             "application/json": {}
                         }
                     },
-                    "401": {
-                        "description": "Not authenticated"
-                    },
                     "400": {
                         "description": "Invalid input data"
+                    },
+                    "401": {
+                        "description": "Not authenticated"
                     }
                 }
             }
@@ -764,6 +752,9 @@
                     "401": {
                         "description": "Invalid credentials"
                     },
+                    "400": {
+                        "description": "Invalid input data"
+                    },
                     "200": {
                         "description": "Login successful",
                         "content": {
@@ -773,9 +764,6 @@
                                 }
                             }
                         }
-                    },
-                    "400": {
-                        "description": "Invalid input data"
                     }
                 }
             }
@@ -857,11 +845,11 @@
                     "200": {
                         "description": "Salió del club exitosamente"
                     },
-                    "404": {
-                        "description": "Club no encontrado"
-                    },
                     "400": {
                         "description": "Error al salir del club o usuario no es miembro"
+                    },
+                    "404": {
+                        "description": "Club no encontrado"
                     },
                     "401": {
                         "description": "No autorizado"
@@ -889,9 +877,6 @@
                     }
                 ],
                 "responses": {
-                    "400": {
-                        "description": "Error al unirse al club"
-                    },
                     "200": {
                         "description": "Unido al club exitosamente"
                     },
@@ -900,6 +885,9 @@
                     },
                     "401": {
                         "description": "No autorizado"
+                    },
+                    "400": {
+                        "description": "Error al unirse al club"
                     }
                 }
             }
@@ -965,12 +953,6 @@
                     "required": true
                 },
                 "responses": {
-                    "404": {
-                        "description": "Exchange not found"
-                    },
-                    "400": {
-                        "description": "Invalid request data or exchange cannot be rated"
-                    },
                     "201": {
                         "description": "Rating created successfully",
                         "content": {
@@ -980,6 +962,12 @@
                                 }
                             }
                         }
+                    },
+                    "400": {
+                        "description": "Invalid request data or exchange cannot be rated"
+                    },
+                    "404": {
+                        "description": "Exchange not found"
                     }
                 }
             }
@@ -1022,14 +1010,14 @@
                     }
                 ],
                 "responses": {
-                    "401": {
-                        "description": "Unauthorized (for feed type)"
-                    },
                     "200": {
                         "description": "Posts retrieved successfully",
                         "content": {
                             "application/json": {}
                         }
+                    },
+                    "401": {
+                        "description": "Unauthorized (for feed type)"
                     }
                 }
             },
@@ -1038,29 +1026,17 @@
                     "Posts"
                 ],
                 "summary": "Crear nueva publicación",
-                "description": "Crea una nueva publicación con texto e imagen opcional",
+                "description": "Crea una nueva publicación con texto e imagen opcional en base64",
                 "operationId": "createPost",
                 "requestBody": {
                     "content": {
-                        "multipart/form-data": {
+                        "application/json": {
                             "schema": {
-                                "required": [
-                                    "post"
-                                ],
-                                "type": "object",
-                                "properties": {
-                                    "post": {
-                                        "$ref": "#/components/schemas/CreatePostDto"
-                                    },
-                                    "image": {
-                                        "type": "string",
-                                        "description": "Imagen opcional de la publicación",
-                                        "format": "binary"
-                                    }
-                                }
+                                "$ref": "#/components/schemas/CreatePostDto"
                             }
                         }
-                    }
+                    },
+                    "required": true
                 },
                 "responses": {
                     "201": {
@@ -1181,6 +1157,9 @@
                     "400": {
                         "description": "Invalid request data"
                     },
+                    "409": {
+                        "description": "Cannot create exchange with yourself"
+                    },
                     "201": {
                         "description": "Exchange created successfully",
                         "content": {
@@ -1190,9 +1169,6 @@
                                 }
                             }
                         }
-                    },
-                    "409": {
-                        "description": "Cannot create exchange with yourself"
                     }
                 }
             }
@@ -1232,9 +1208,6 @@
                     "required": true
                 },
                 "responses": {
-                    "400": {
-                        "description": "Datos inválidos"
-                    },
                     "201": {
                         "description": "Comunidad creada exitosamente",
                         "content": {
@@ -1244,6 +1217,9 @@
                                 }
                             }
                         }
+                    },
+                    "400": {
+                        "description": "Datos inválidos"
                     },
                     "401": {
                         "description": "No autorizado"
@@ -1277,11 +1253,11 @@
                     "404": {
                         "description": "Comunidad no encontrada"
                     },
-                    "400": {
-                        "description": "Error al unirse a la comunidad"
-                    },
                     "401": {
                         "description": "No autorizado"
+                    },
+                    "400": {
+                        "description": "Error al unirse a la comunidad"
                     }
                 }
             }
@@ -1305,6 +1281,9 @@
                     "required": true
                 },
                 "responses": {
+                    "400": {
+                        "description": "Datos inválidos"
+                    },
                     "201": {
                         "description": "Comentario creado exitosamente",
                         "content": {
@@ -1315,14 +1294,11 @@
                             }
                         }
                     },
-                    "404": {
-                        "description": "Post no encontrado"
-                    },
-                    "400": {
-                        "description": "Datos inválidos"
-                    },
                     "401": {
                         "description": "No autorizado"
+                    },
+                    "404": {
+                        "description": "Post no encontrado"
                     }
                 }
             }
@@ -1336,6 +1312,16 @@
                 "description": "Returns all chats where the current user is a participant",
                 "operationId": "getUserChats",
                 "responses": {
+                    "200": {
+                        "description": "Chats retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ChatDto"
+                                }
+                            }
+                        }
+                    },
                     "401": {
                         "description": "Not authenticated",
                         "content": {
@@ -1345,16 +1331,6 @@
                                     "items": {
                                         "$ref": "#/components/schemas/ChatDto"
                                     }
-                                }
-                            }
-                        }
-                    },
-                    "200": {
-                        "description": "Chats retrieved successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ChatDto"
                                 }
                             }
                         }
@@ -1432,6 +1408,16 @@
                     }
                 ],
                 "responses": {
+                    "200": {
+                        "description": "Messages retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MessageDto"
+                                }
+                            }
+                        }
+                    },
                     "404": {
                         "description": "Chat not found or user not authorized",
                         "content": {
@@ -1454,16 +1440,6 @@
                                     "items": {
                                         "$ref": "#/components/schemas/MessageDto"
                                     }
-                                }
-                            }
-                        }
-                    },
-                    "200": {
-                        "description": "Messages retrieved successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/MessageDto"
                                 }
                             }
                         }
@@ -1509,6 +1485,16 @@
                             }
                         }
                     },
+                    "200": {
+                        "description": "Message sent successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MessageDto"
+                                }
+                            }
+                        }
+                    },
                     "401": {
                         "description": "Not authenticated",
                         "content": {
@@ -1521,16 +1507,6 @@
                     },
                     "400": {
                         "description": "Invalid message data or user not authorized",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/MessageDto"
-                                }
-                            }
-                        }
-                    },
-                    "200": {
-                        "description": "Message sent successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2006,6 +1982,9 @@
                     }
                 ],
                 "responses": {
+                    "404": {
+                        "description": "Club no encontrado"
+                    },
                     "200": {
                         "description": "Club encontrado exitosamente",
                         "content": {
@@ -2015,9 +1994,6 @@
                                 }
                             }
                         }
-                    },
-                    "404": {
-                        "description": "Club no encontrado"
                     }
                 }
             }
@@ -2421,9 +2397,6 @@
                     }
                 ],
                 "responses": {
-                    "404": {
-                        "description": "Exchange not found"
-                    },
                     "200": {
                         "description": "Exchange found",
                         "content": {
@@ -2433,6 +2406,9 @@
                                 }
                             }
                         }
+                    },
+                    "404": {
+                        "description": "Exchange not found"
                     }
                 }
             }
@@ -2703,14 +2679,14 @@
                     }
                 ],
                 "responses": {
+                    "404": {
+                        "description": "Comentario no encontrado"
+                    },
                     "200": {
                         "description": "Comentario encontrado",
                         "content": {
                             "application/json": {}
                         }
-                    },
-                    "404": {
-                        "description": "Comentario no encontrado"
                     }
                 }
             },
@@ -2733,14 +2709,14 @@
                     }
                 ],
                 "responses": {
-                    "403": {
-                        "description": "No tienes permisos para eliminar este comentario"
+                    "404": {
+                        "description": "Comentario no encontrado"
                     },
                     "200": {
                         "description": "Comentario eliminado exitosamente"
                     },
-                    "404": {
-                        "description": "Comentario no encontrado"
+                    "403": {
+                        "description": "No tienes permisos para eliminar este comentario"
                     },
                     "401": {
                         "description": "No autorizado"
@@ -2836,8 +2812,8 @@
                             }
                         }
                     },
-                    "401": {
-                        "description": "Not authenticated",
+                    "200": {
+                        "description": "Chat found",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2846,8 +2822,8 @@
                             }
                         }
                     },
-                    "200": {
-                        "description": "Chat found",
+                    "401": {
+                        "description": "Not authenticated",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -3134,11 +3110,11 @@
                     }
                 ],
                 "responses": {
-                    "204": {
-                        "description": "Club eliminado exitosamente"
-                    },
                     "400": {
                         "description": "Error al eliminar el club o usuario no es moderador"
+                    },
+                    "204": {
+                        "description": "Club eliminado exitosamente"
                     },
                     "404": {
                         "description": "Club no encontrado"
@@ -3303,9 +3279,14 @@
                     },
                     "address": {
                         "$ref": "#/components/schemas/AddressDto"
+                    },
+                    "image": {
+                        "type": "string",
+                        "description": "Profile image encoded in base64",
+                        "example": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD..."
                     }
                 },
-                "description": "User update data"
+                "description": "User update data with optional base64 image"
             },
             "UserDto": {
                 "type": "object",
@@ -3530,9 +3511,14 @@
                     },
                     "community_id": {
                         "type": "string"
+                    },
+                    "image": {
+                        "type": "string",
+                        "description": "Post image encoded in base64",
+                        "example": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD..."
                     }
                 },
-                "description": "Datos de la publicación"
+                "description": "Datos de la publicación con imagen opcional en base64"
             },
             "PostDto": {
                 "type": "object",
@@ -3845,6 +3831,11 @@
                         "type": "string",
                         "description": "User's password",
                         "example": "SecurePassword123!"
+                    },
+                    "image": {
+                        "type": "string",
+                        "description": "Profile image encoded in base64",
+                        "example": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD..."
                     }
                 },
                 "description": "User registration data"
@@ -4238,6 +4229,9 @@
                     "content": {
                         "type": "string"
                     },
+                    "image": {
+                        "type": "string"
+                    },
                     "date_sent": {
                         "type": "string",
                         "format": "date-time"
@@ -4254,6 +4248,9 @@
                 "type": "object",
                 "properties": {
                     "content": {
+                        "type": "string"
+                    },
+                    "image": {
                         "type": "string"
                     }
                 }

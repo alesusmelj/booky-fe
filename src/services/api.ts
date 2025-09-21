@@ -35,6 +35,7 @@ import {
 
 // Configuration
 import { API_BASE_URL } from '../config/api';
+import { fileToBase64, uriToBase64 } from '../utils';
 
 
 // Error class for API errors
@@ -301,18 +302,23 @@ export const userApi = {
   getUser: (id: string): Promise<UserDto> =>
     apiRequest(`/users/${id}`),
 
-  updateUser: (userData: UserUpdateDto, image?: File): Promise<UserDto> => {
-    const formData = new FormData();
+  updateUser: async (userData: UserUpdateDto, image?: File): Promise<UserDto> => {
+    const requestBody: any = { ...userData };
 
-    // Add user data with explicit Content-Type for JSON
-    const userBlob = new Blob([JSON.stringify(userData)], { type: 'application/json' });
-    formData.append('user', userBlob);
-
+    // Convert image to base64 if provided
     if (image) {
-      formData.append('image', image);
+      try {
+        const base64Image = await fileToBase64(image);
+        requestBody.image = base64Image;
+      } catch (error) {
+        throw new Error('Failed to process image');
+      }
     }
 
-    return apiFormDataRequest('/users', formData, { method: 'PUT' });
+    return apiRequest('/users', {
+      method: 'PUT',
+      body: JSON.stringify(requestBody),
+    });
   },
 
   deleteUser: (id: string): Promise<void> =>
@@ -499,17 +505,23 @@ export const postApi = {
     return apiRequest(`/posts${queryString ? `?${queryString}` : ''}`);
   },
 
-  createPost: (postData: CreatePostDto, image?: File): Promise<PostDto> => {
-    const formData = new FormData();
+  createPost: async (postData: CreatePostDto, image?: File): Promise<PostDto> => {
+    const requestBody: any = { ...postData };
 
-    // Add post data with explicit Content-Type for JSON
-    const postBlob = new Blob([JSON.stringify(postData)], { type: 'application/json' });
-    formData.append('post', postBlob);
-
+    // Convert image to base64 if provided
     if (image) {
-      formData.append('image', image);
+      try {
+        const base64Image = await fileToBase64(image);
+        requestBody.image = base64Image;
+      } catch (error) {
+        throw new Error('Failed to process image');
+      }
     }
-    return apiFormDataRequest('/posts', formData);
+
+    return apiRequest('/posts', {
+      method: 'POST',
+      body: JSON.stringify(requestBody),
+    });
   },
 
   getPostById: (postId: string): Promise<PostDto> =>

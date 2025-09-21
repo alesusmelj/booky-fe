@@ -1,6 +1,7 @@
 import { logger } from '../utils/logger';
 import { API_BASE_URL } from '../config/api';
 import { getAuthToken, apiRequest } from './api';
+import { uriToBase64 } from '../utils';
 
 export interface AddressDto {
   id?: string;
@@ -28,20 +29,21 @@ export interface UserUpdateDto {
   lastname?: string;
   description?: string;
   address?: AddressDto;
+  image?: string; // Base64 encoded image
 }
 
 export class UsersService {
 
   /**
    * Update user profile with optional image
-   * Specifically designed for Spring Boot @RequestPart endpoint
+   * Uses JSON body with base64 encoded image
    */
   static async updateUserProfile(userData: UserUpdateDto, imageUri?: string): Promise<UserDto> {
     try {
       logger.info('👤 Updating user profile:', { userData, hasImage: !!imageUri });
 
       // Clean user object (remove undefined fields)
-      const userObject: Partial<UserUpdateDto> = {
+      const userObject: UserUpdateDto = {
         id: userData.id,
         name: userData.name,
         lastname: userData.lastname,
@@ -52,60 +54,40 @@ export class UsersService {
         if (userObject[key] === undefined) delete userObject[key];
       });
 
-      logger.info('📋 USER OBJECT:', userObject);
-
-      // Create FormData for multipart request
-      const formData = new FormData();
-
-      // Add user part with proper Content-Type
-      try {
-        // Try File constructor first (best for web environments)
-        const userFile = new File([JSON.stringify(userObject)], 'user.json', {
-          type: 'application/json'
-        });
-        formData.append('user', userFile);
-        logger.info('✅ User part added as File with application/json');
-      } catch (fileError) {
+      // Convert image to base64 if provided
+      if (imageUri) {
         try {
-          // Fallback to Blob (web environments)
-          const userBlob = new Blob([JSON.stringify(userObject)], {
-            type: 'application/json'
+          logger.info('📸 Converting profile image to base64...', {
+            imageUri: imageUri.substring(0, 50) + '...'
           });
-          formData.append('user', userBlob, 'user.json');
-          logger.info('✅ User part added as Blob with application/json');
-        } catch (blobError) {
-          // Final fallback: plain string (may not work with Spring Boot)
-          logger.warn('⚠️ File/Blob not available, using string fallback');
-          formData.append('user', JSON.stringify(userObject));
+
+          const base64Image = await uriToBase64(imageUri);
+          userObject.image = base64Image;
+
+          logger.info('✅ Profile image converted to base64 successfully', {
+            base64Length: base64Image.length,
+            base64Preview: base64Image.substring(0, 50) + '...'
+          });
+        } catch (error) {
+          logger.error('❌ Error converting profile image to base64:', error);
+          logger.error('❌ Error details:', {
+            message: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined,
+            imageUri: imageUri
+          });
+          throw new Error('Failed to process image');
         }
       }
 
-      // Add image if provided
-      if (imageUri) {
-        const filename = imageUri.split('/').pop() || 'profile.jpg';
-        const ext = (filename.split('.').pop() || 'jpg').toLowerCase();
-        const mime =
-          ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
-            : ext === 'png' ? 'image/png'
-              : ext === 'webp' ? 'image/webp'
-                : 'image/jpeg';
+      logger.info('📋 USER OBJECT:', { ...userObject, image: userObject.image ? '[base64 data]' : undefined });
 
-        logger.info('📋 IMAGE FILE:', { filename, type: mime, uri: imageUri });
-
-        // React Native FormData format for files
-        formData.append('image', {
-          uri: imageUri,
-          name: filename,
-          type: mime,
-        } as any);
-
-        logger.info('✅ Image part added to FormData');
-      }
-
-      // Use apiRequest with FormData (it now detects FormData automatically)
+      // Use apiRequest with JSON body
       const result = await apiRequest('/users', {
         method: 'PUT',
-        body: formData,
+        body: JSON.stringify(userObject),
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
 
       logger.info('✅ User profile updated successfully:', result);

@@ -11,3 +11,5 @@ export { useBarcodeHandler } from './useBarcodeHandler';
 export { useSearch } from './useSearch';
 export { useFollow } from './useFollow';
 export { useUserFollow } from './useUserFollow';
+export { useChats } from './useChats';
+export { useMessages } from './useMessages';

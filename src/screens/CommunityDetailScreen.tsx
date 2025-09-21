@@ -15,10 +15,11 @@ import {
 } from 'react-native';
 import { colors } from '../constants';
 import { logger } from '../utils/logger';
-import { CreateReadingClubModal, SetMeetingModal, Post, PostData, CreatePost, VideoCallRoom } from '../components';
+import { CreateReadingClubModal, SetMeetingModal, Post, CreatePost, VideoCallRoom } from '../components';
 import { useCommunity, usePosts, useReadingClubs } from '../hooks';
 import { CommunityDto } from '../types/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigation } from '../contexts/NavigationContext';
 
 // Mock data - should be moved to a service later
 const users = [
@@ -270,6 +271,7 @@ interface CommunityDetailScreenProps {
 }
 
 export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ communityId }) => {
+  const { navigate } = useNavigation();
   const [activeTab, setActiveTab] = useState<'posts' | 'reading-clubs'>('posts');
   const [showCreateClubModal, setShowCreateClubModal] = useState(false);
   const [showSetMeetingModal, setShowSetMeetingModal] = useState(false);
@@ -355,22 +357,36 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
   };
 
 
-  const handleCreatePost = async (content: string, images?: File[]) => {
+  const handleCreatePost = async (content: string, images?: string[]) => {
     if (content.trim() && communityId) {
       try {
+        logger.info('📝 Creating new community post:', { content, communityId, hasImages: !!images?.length });
+        
         // Handle the first image if provided (backend supports single image for now)
-        const imageFile = images && images.length > 0 ? images[0] : null;
+        const imageUri = images && images.length > 0 ? images[0] : null;
         
         const success = await createPost({
           body: content,
           community_id: communityId,
-        }, imageFile);
+        }, imageUri);
         
         if (success) {
-          logger.info('Post created successfully');
+          logger.info('✅ Community post created successfully');
+          Alert.alert('¡Éxito!', 'Tu post ha sido publicado en la comunidad');
+        } else {
+          Alert.alert('Error', 'No se pudo crear el post. Intenta de nuevo.');
         }
       } catch (error) {
-        logger.error('Error creating post:', error);
+        logger.error('❌ Error creating community post:', error);
+        Alert.alert('Error', 'No se pudo crear el post. Intenta de nuevo.');
+      }
+    } else {
+      if (!content.trim()) {
+        Alert.alert('Error', 'El post no puede estar vacío');
+      }
+      if (!communityId) {
+        logger.error('❌ No communityId provided for post creation');
+        Alert.alert('Error', 'Error interno: ID de comunidad no encontrado');
       }
     }
   };
@@ -505,6 +521,21 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
       data.push({ type: 'createPost' });
       
       // Posts
+      logger.info('📄 [CommunityDetail] Preparing posts for render:', { 
+        postsCount: posts.length,
+        communityId,
+        firstPostPreview: posts[0] ? {
+          id: posts[0].id,
+          hasUser: !!posts[0].user,
+          hasBody: !!posts[0].body,
+          userInfo: posts[0].user ? {
+            id: posts[0].user.id,
+            name: posts[0].user.name,
+            lastname: posts[0].user.lastname
+          } : 'No user'
+        } : 'No posts'
+      });
+      
       posts.forEach(post => {
         data.push({ type: 'post', data: post });
       });
@@ -591,23 +622,22 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
         );
       
       case 'post': {
-        const postData: PostData = {
-          id: item.data.id,
-          user: {
-            id: item.data.user_id || item.data.author?.id || 'unknown',
-            name: item.data.author?.name || item.data.author?.username || 'Usuario',
-            image: item.data.author?.image || undefined,
-          },
-          content: item.data.body || item.data.content || '',
-          image: item.data.image || undefined,
-          createdAt: item.data.created_at || item.data.date_created || new Date().toISOString(),
-          likes: item.data.likes_count || item.data.likes || 0,
-          comments: item.data.comments_count || item.data.comments || 0,
-          isLiked: item.data.is_liked || false,
-        };
+        // Pass the PostDto directly to the Post component
+        logger.info('📄 [CommunityDetail] Rendering post:', {
+          postId: item.data.id,
+          hasUser: !!item.data.user,
+          hasBody: !!item.data.body,
+          bodyPreview: item.data.body ? item.data.body.substring(0, 50) + '...' : 'No body',
+          userInfo: item.data.user ? {
+            id: item.data.user.id,
+            name: item.data.user.name,
+            lastname: item.data.user.lastname
+          } : 'No user data'
+        });
+        
         return (
           <Post
-            post={postData}
+            post={item.data}
             onLike={handleLike}
             onComment={handleComment}
             onUserPress={handleUserClick}

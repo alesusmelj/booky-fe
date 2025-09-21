@@ -1,18 +1,23 @@
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { OfferCard } from './OfferCard';
 import { OrderCard } from './OrderCard';
 import CreateExchangeModal from './CreateExchangeModal';
 import { strings, colors, theme } from '../constants';
 import { useExchanges } from '../hooks';
+import { useChats } from '../hooks/useChats';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigation } from '../contexts/NavigationContext';
 import { getExchangeStatusInSpanish } from '../utils';
+import { logger } from '../utils/logger';
 import { useState } from 'react';
 
 // Component uses real API data via useExchanges hook
 
 export function TradeBooksView() {
   const { user } = useAuth();
+  const { navigate } = useNavigation();
+  const { createOrGetChat } = useChats();
   const { 
     receivedOffers, 
     activeOrders, 
@@ -70,6 +75,34 @@ export function TradeBooksView() {
     // This would typically open a modal for creating a counter offer
     // For now, we'll just show an alert
     alert(`Counter offer functionality for exchange ${exchangeId} will be implemented soon`);
+  };
+
+  const handleChat = async (exchangeId: string, otherUserId: string) => {
+    if (!user?.id || !otherUserId) {
+      Alert.alert('Error', 'No se pudo iniciar el chat');
+      return;
+    }
+
+    try {
+      logger.info('💬 [TradeBooksView] Starting chat for exchange:', { exchangeId, otherUserId });
+      const chat = await createOrGetChat(otherUserId);
+      
+      if (chat) {
+        logger.info('💬 [TradeBooksView] Chat created/retrieved, navigating to chat detail:', { 
+          chatId: chat.id,
+          otherUser: chat.other_user.name 
+        });
+        navigate('ChatDetail', { 
+          chatId: chat.id, 
+          otherUser: chat.other_user 
+        });
+      } else {
+        Alert.alert('Error', 'No se pudo iniciar el chat');
+      }
+    } catch (error) {
+      logger.error('❌ [TradeBooksView] Error starting chat:', error);
+      Alert.alert('Error', 'No se pudo iniciar el chat');
+    }
   };
 
   if (loading && receivedOffers.length === 0 && activeOrders.length === 0) {
@@ -140,6 +173,10 @@ export function TradeBooksView() {
               }}
               onAccept={() => handleAcceptOffer(exchange.id)}
               onReject={() => handleRejectOffer(exchange.id)}
+              onChat={() => handleChat(exchange.id, exchange.requester?.id || '')}
+              onCancel={() => handleCancelOrder(exchange.id)}
+              onComplete={() => handleCompleteOrder(exchange.id)}
+              onCounterOffer={() => handleCounterOffer(exchange.id)}
             />
           ))
         ) : (
@@ -185,6 +222,7 @@ export function TradeBooksView() {
                   onCancel={() => handleCancelOrder(exchange.id)}
                   onComplete={() => handleCompleteOrder(exchange.id)}
                   onCounterOffer={() => handleCounterOffer(exchange.id)}
+                  onChat={() => handleChat(exchange.id, exchange.requester?.id || '')}
             />
           ))
         ) : (

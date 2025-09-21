@@ -19,8 +19,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons, Feather } from '@expo/vector-icons';
 import { colors } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigation } from '../contexts/NavigationContext';
 import { useGamification } from '../hooks/useGamification';
-import { useBooks, useBarcodeHandler, useUserFollow } from '../hooks';
+import { useBooks, useBarcodeHandler, useUserFollow, useChats } from '../hooks';
 import { AchievementCard } from '../components/AchievementCard';
 import { UserLibraryBookCard } from '../components/BookCard';
 import { BarcodeScannerWrapper } from '../components/BarcodeScannerWrapper';
@@ -41,6 +42,8 @@ interface ProfileScreenProps {
 
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
   const { user, refreshUser } = useAuth();
+  const { navigate } = useNavigation();
+  const { createOrGetChat } = useChats();
   const userId = route?.params?.userId || user?.id;
   const isOwnProfile = !route?.params?.userId || route.params.userId === user?.id;
 
@@ -52,6 +55,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
   // State for other user's profile data
   const [profileUserData, setProfileUserData] = useState<any>(null);
   const [loadingProfileUser, setLoadingProfileUser] = useState(false);
+  
+  // State to force image refresh
+  const [imageRefreshKey, setImageRefreshKey] = useState(0);
   
   // Add Book Modal states
 
@@ -133,6 +139,19 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
 
   const profileUser = isOwnProfile ? user : profileUserData;
 
+  // Log when profileUser changes to debug image updates
+  useEffect(() => {
+    if (profileUser) {
+      logger.info('🔄 [PROFILE] profileUser updated:', {
+        id: profileUser.id,
+        name: profileUser.name,
+        hasImage: !!profileUser.image,
+        imagePreview: profileUser.image ? profileUser.image.substring(0, 50) + '...' : 'No image',
+        isOwnProfile
+      });
+    }
+  }, [profileUser?.image, profileUser?.name, isOwnProfile]);
+
   useEffect(() => {
     if (userId) {
       loadProfileData();
@@ -199,6 +218,31 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
 
     const achievementIds = unnotifiedAchievements.map(a => a.id);
     await markAchievementsAsNotified(userId, achievementIds);
+  };
+
+  const handleStartChat = async () => {
+    if (!userId || isOwnProfile) return;
+
+    try {
+      logger.info('💬 [ProfileScreen] Starting chat with user:', { userId });
+      const chat = await createOrGetChat(userId);
+      
+      if (chat) {
+        logger.info('💬 [ProfileScreen] Chat created/retrieved, navigating to chat detail:', { 
+          chatId: chat.id,
+          otherUser: chat.other_user.name 
+        });
+        navigate('ChatDetail', { 
+          chatId: chat.id, 
+          otherUser: chat.other_user 
+        });
+      } else {
+        Alert.alert('Error', 'No se pudo iniciar el chat');
+      }
+    } catch (error) {
+      logger.error('❌ [ProfileScreen] Error starting chat:', error);
+      Alert.alert('Error', 'No se pudo iniciar el chat');
+    }
   };
 
   const getFilteredBooks = () => {
@@ -387,10 +431,30 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
       
       // Refresh profile data to get updated information
       logger.info('🔄 [PROFILE] Refreshing profile data...');
+      logger.info('🔄 [PROFILE] Current user before refresh:', {
+        id: user?.id,
+        name: user?.name,
+        hasImage: !!user?.image,
+        imagePreview: user?.image ? user.image.substring(0, 50) + '...' : 'No image'
+      });
+      
       await Promise.all([
         loadProfileData(), // Refresh gamification and library data
         refreshUser(),     // Refresh user basic info (name, lastname, description, image)
       ]);
+      
+      logger.info('🔄 [PROFILE] Current user after refresh:', {
+        id: user?.id,
+        name: user?.name,
+        hasImage: !!user?.image,
+        imagePreview: user?.image ? user.image.substring(0, 50) + '...' : 'No image'
+      });
+      
+      // Force a small delay to ensure state updates have propagated
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Force image refresh by updating the key
+      setImageRefreshKey(prev => prev + 1);
       
       Alert.alert('Success', 'Profile updated successfully!');
       logger.info('✅ Profile updated successfully');
@@ -543,6 +607,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
           <View style={styles.headerContent}>
             <View style={styles.profileInfo}>
               <Image
+                key={`profile-image-${profileUser.id}-${imageRefreshKey}`}
                 source={{ uri: profileUser.image || 'https://via.placeholder.com/120' }}
                 style={styles.avatar}
               />
@@ -591,7 +656,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                     </Text>
                   )}
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.messageButton}>
+                <TouchableOpacity 
+                  style={styles.messageButton}
+                  onPress={handleStartChat}
+                  activeOpacity={0.7}
+                >
+                  <MaterialIcons name="chat-bubble-outline" size={16} color={colors.neutral.gray800} />
                   <Text style={styles.messageButtonText}>Mensaje</Text>
                 </TouchableOpacity>
               </View>
@@ -1020,6 +1090,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
               <View style={styles.imageSection}>
                 <TouchableOpacity style={styles.imageContainer} onPress={handleImagePicker}>
                   <Image
+                    key={`modal-image-${profileUser?.id}-${imageRefreshKey}-${selectedImageUri ? 'selected' : 'original'}`}
                     source={{ 
                       uri: selectedImageUri || profileUser?.image || 'https://via.placeholder.com/120' 
                     }}
@@ -1289,6 +1360,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   messageButtonText: {
     fontSize: 14,

@@ -7,6 +7,8 @@ export { ReadingClubsScreen } from './ReadingClubsScreen';
 export { CommunityDetailScreen } from './CommunityDetailScreen';
 export { ProfileScreen } from './ProfileScreen';
 export { LibraryScreen } from './LibraryScreen';
+export { ChatsScreen } from './ChatsScreen';
+export { ChatDetailScreen } from './ChatDetailScreen';
 export { Scene360Screen } from './Scene360Screen';
 export { Scene360TestScreen } from './Scene360TestScreen';
 export { Scene360TestScreenSimple } from './Scene360TestScreenSimple';

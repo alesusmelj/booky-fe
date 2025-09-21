@@ -210,7 +210,7 @@ export const useFeed = (options: UseFeedOptions = {}) => {
     const createPost = useCallback(async (postData: {
         body: string;
         community_id?: string;
-    }, image?: File | null): Promise<boolean> => {
+    }, image?: File | string | null): Promise<boolean> => {
         try {
             logger.info('📝 Creating new post:', postData);
 
@@ -246,6 +246,9 @@ export const useFeed = (options: UseFeedOptions = {}) => {
             } else {
                 // Real API call
                 const response = await PostsService.createPost(postData, image);
+
+                logger.info('📝 Adding post to state:', response.data);
+                logger.info('📝 Post user in response:', response.data?.user);
 
                 setState(prev => ({
                     ...prev,

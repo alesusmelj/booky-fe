@@ -49,6 +49,7 @@ export interface UserUpdateDto {
   lastname?: string;
   description?: string;
   address?: AddressDto;
+  image?: string; // Base64 encoded image
 }
 
 export interface UserSignUpDto {
@@ -195,6 +196,7 @@ export interface PostDto {
 export interface CreatePostDto {
   body: string;
   community_id?: string;
+  image?: string; // Base64 encoded image
 }
 
 // Comment Types
@@ -236,6 +238,46 @@ export interface CreateReadingClubDto {
   description?: string;
   community_id: string;
   book_id: string;
+}
+
+// Chat Types - Updated to match current backend
+export interface ChatDto {
+  id: string;
+  user1_id: string;
+  user2_id: string;
+  date_created: string;
+  date_updated: string;
+  user1: UserPreviewDto;
+  user2: UserPreviewDto;
+  messages: MessageDto[];
+  last_message?: MessageDto;
+  unread_count?: number;
+}
+
+// Extended chat type for frontend with computed properties
+export interface ChatWithMetadata extends ChatDto {
+  other_user: UserPreviewDto;
+  last_message_date?: string;
+}
+
+export interface MessageDto {
+  id: string;
+  chat_id: string;
+  sender_id: string;
+  content: string;
+  image?: string;
+  date_sent: string;
+  read: boolean;
+  sender: UserPreviewDto;
+}
+
+export interface CreateChatRequestDto {
+  other_user_id: string;
+}
+
+export interface SendMessageRequestDto {
+  content: string;
+  image?: string;
 }
 
 // Gamification Types

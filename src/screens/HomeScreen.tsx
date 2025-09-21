@@ -31,10 +31,17 @@ export const HomeScreen: React.FC = () => {
     clearError 
   } = useFeed({ enableMockData: false });
 
-  const handleCreatePost = async (content: string, _images?: File[]) => {
+  const handleCreatePost = async (content: string, images?: string[]) => {
     try {
       logger.info('📝 Creating new post:', content);
-      const success = await createPost({ body: content });
+      logger.info('📝 Images provided:', images);
+      
+      // Get the first image URI if provided (backend supports single image for now)
+      const imageUri = images && images.length > 0 ? images[0] : null;
+      
+      const success = await createPost({ 
+        body: content 
+      }, imageUri);
       
       if (success) {
         logger.info('✅ Post created successfully');

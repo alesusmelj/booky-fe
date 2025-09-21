@@ -1,5 +1,7 @@
 import { authStorage } from './storage';
 import { API_BASE_URL } from '../config/api';
+import { logger } from '../utils/logger';
+import { uriToBase64, fileToBase64 } from '../utils';
 
 const getAuthToken = async (): Promise<string | null> => {
   return await authStorage.getToken();
@@ -14,7 +16,7 @@ const apiRequest = async <T = any>(
 
   // Don't set Content-Type for FormData, let browser set it with boundary
   const isFormData = options.body instanceof FormData;
-  
+
   const config: RequestInit = {
     ...options,
     headers: {
@@ -26,7 +28,7 @@ const apiRequest = async <T = any>(
 
   try {
     const response = await fetch(url, config);
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -34,7 +36,7 @@ const apiRequest = async <T = any>(
     const data = await response.json();
     return { data };
   } catch (error) {
-    console.error('API request failed:', error);
+    logger.error('API request failed:', error);
     throw error;
   }
 };
@@ -49,7 +51,7 @@ export class PostsService {
     communityId?: string;
   }): Promise<{ data: any[] }> {
     const searchParams = new URLSearchParams();
-    
+
     if (params?.type) {
       searchParams.append('type', params.type);
     }
@@ -62,7 +64,7 @@ export class PostsService {
 
     const queryString = searchParams.toString();
     const endpoint = `/posts${queryString ? `?${queryString}` : ''}`;
-    
+
     return await apiRequest(endpoint);
   }
 
@@ -75,30 +77,68 @@ export class PostsService {
 
   /**
    * Create a new post
+   * Uses JSON body with base64 encoded image
    */
   static async createPost(postData: {
     body: string;
     community_id?: string;
-  }, image?: File | null): Promise<{ data: any }> {
-    const formData = new FormData();
-    
-    // Add the post data as JSON string with proper content type
-    const postBlob = new Blob([JSON.stringify(postData)], { 
-      type: 'application/json' 
-    });
-    formData.append('post', postBlob);
-    
-    // Add image if provided
+  }, image?: File | string | null): Promise<{ data: any }> {
+    const requestBody: any = {
+      body: postData.body,
+      community_id: postData.community_id,
+    };
+
+    // Convert image to base64 if provided
     if (image) {
-      formData.append('image', image, image.name);
+      try {
+        let base64Image: string;
+
+        logger.info('📸 Converting image to base64...', {
+          imageType: typeof image,
+          isString: typeof image === 'string',
+          imagePreview: typeof image === 'string' ? image.substring(0, 50) + '...' : 'File object'
+        });
+
+        if (typeof image === 'string') {
+          // It's a URI, convert using uriToBase64
+          base64Image = await uriToBase64(image);
+          logger.info('✅ URI converted to base64 successfully');
+        } else {
+          // It's a File object, convert using fileToBase64
+          base64Image = await fileToBase64(image);
+          logger.info('✅ File converted to base64 successfully');
+        }
+
+        requestBody.image = base64Image;
+        logger.info('✅ Image added to request body', {
+          base64Length: base64Image.length,
+          base64Preview: base64Image.substring(0, 50) + '...'
+        });
+      } catch (error) {
+        logger.error('❌ Error converting image to base64:', error);
+        logger.error('❌ Error details:', {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+          imageType: typeof image,
+          imageValue: typeof image === 'string' ? image : 'File object'
+        });
+        throw new Error('Failed to process image');
+      }
     }
 
-    return await apiRequest('/posts', {
+    const response = await apiRequest('/posts', {
       method: 'POST',
-      body: formData,
-      // Don't set Content-Type header, let the browser set it with boundary
-      headers: {},
+      body: JSON.stringify(requestBody),
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
+
+    logger.info('📝 Post creation response:', response);
+    logger.info('📝 Post data structure:', response.data);
+    logger.info('📝 Post user data:', response.data?.user);
+
+    return response;
   }
 
   /**

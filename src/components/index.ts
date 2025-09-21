@@ -3,6 +3,7 @@ export { Navbar } from './Navbar';
 export { TopNavbar } from './TopNavbar';
 export { CreatePost } from './CreatePost';
 export { Post, PostData } from './Post';
+export { ImageViewer } from './ImageViewer';
 export type { PostData as PostDataType } from './Post';
 
 // Search components

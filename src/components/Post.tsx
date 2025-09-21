@@ -10,6 +10,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { strings, colors, theme } from '../constants';
 import { PostDto } from '../types/api';
 import { logger } from '../utils/logger';
+import { ImageViewer } from './ImageViewer';
 
 export interface PostData {
   id: string;
@@ -41,6 +42,7 @@ export const Post: React.FC<PostProps> = ({
 }) => {
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
+  const [showImageViewer, setShowImageViewer] = useState(false);
 
   const handleLike = () => {
     setIsLiked(!isLiked);
@@ -53,6 +55,11 @@ export const Post: React.FC<PostProps> = ({
   };
 
   const handleUserPress = () => {
+    if (!post.user) {
+      logger.warn('⚠️ Post user is undefined, cannot handle user press');
+      return;
+    }
+    
     logger.info('🔵 Post handleUserPress called:', { 
       userId: post.user.id, 
       userName: post.user.name,
@@ -62,7 +69,7 @@ export const Post: React.FC<PostProps> = ({
   };
 
   const getUserAvatar = () => {
-    if (post.user.image) {
+    if (post.user?.image) {
       return (
         <Image 
           source={{ uri: post.user.image }} 
@@ -97,7 +104,10 @@ export const Post: React.FC<PostProps> = ({
   };
 
   const getFullName = () => {
-    return `${post.user.name} ${post.user.lastname}`.trim();
+    if (!post.user) {
+      return 'Unknown User';
+    }
+    return `${post.user.name || ''} ${post.user.lastname || ''}`.trim() || 'Unknown User';
   };
 
   return (
@@ -123,14 +133,19 @@ export const Post: React.FC<PostProps> = ({
         <Text style={styles.contentText}>{post.body}</Text>
         
         {post.image && (
-          <Image
-            source={{ uri: post.image }}
-            style={styles.postImage}
-            resizeMode="cover"
-            testID="post-image"
-            accessible={true}
-            accessibilityLabel={strings.post.postImageAccessibility}
-          />
+          <TouchableOpacity
+            onPress={() => setShowImageViewer(true)}
+            activeOpacity={0.9}
+          >
+            <Image
+              source={{ uri: post.image }}
+              style={styles.postImage}
+              resizeMode="cover"
+              testID="post-image"
+              accessible={true}
+              accessibilityLabel={strings.post.postImageAccessibility}
+            />
+          </TouchableOpacity>
         )}
       </View>
 
@@ -172,6 +187,15 @@ export const Post: React.FC<PostProps> = ({
           <Text style={styles.actionText}>0</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Image Viewer Modal */}
+      {post.image && (
+        <ImageViewer
+          visible={showImageViewer}
+          imageUri={post.image}
+          onClose={() => setShowImageViewer(false)}
+        />
+      )}
     </View>
   );
 };

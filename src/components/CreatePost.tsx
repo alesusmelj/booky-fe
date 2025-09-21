@@ -9,12 +9,13 @@ import {
   Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../contexts/AuthContext';
 import { strings, colors } from '../constants';
 import { logger } from '../utils/logger';
 
 interface CreatePostProps {
-  onPost?: (content: string, images?: File[]) => void;
+  onPost?: (content: string, images?: string[]) => void; // Changed to string[] for image URIs
   maxLength?: number;
   disabled?: boolean;
   showCharacterCount?: boolean;
@@ -28,7 +29,7 @@ export const CreatePost: React.FC<CreatePostProps> = ({
 }) => {
   const { user } = useAuth();
   const [postContent, setPostContent] = useState('');
-  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
 
   const isPostDisabled = disabled || (postContent.trim().length === 0 && selectedImages.length === 0);
 
@@ -46,20 +47,36 @@ export const CreatePost: React.FC<CreatePostProps> = ({
     }
   };
 
-  const handleAddImage = () => {
-    // Create a hidden file input element
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.multiple = false; // For now, only single image
-    input.onchange = (event: any) => {
-      const file = event.target.files[0];
-      if (file) {
-        setSelectedImages([file]); // Replace any existing image
-        logger.info('Image selected:', file.name);
+  const handleAddImage = async () => {
+    try {
+      // Request permissions
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        Alert.alert(
+          'Permisos requeridos',
+          'Necesitamos permisos para acceder a tu galería de fotos.',
+          [{ text: 'OK' }]
+        );
+        return;
       }
-    };
-    input.click();
+
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false, // Allow any aspect ratio
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const imageUri = result.assets[0].uri;
+        setSelectedImages([imageUri]); // Replace any existing image
+        logger.info('Image selected:', imageUri);
+      }
+    } catch (error) {
+      logger.error('Error selecting image:', error);
+      Alert.alert('Error', 'No se pudo seleccionar la imagen. Inténtalo de nuevo.');
+    }
   };
 
   const removeImage = (index: number) => {
@@ -110,7 +127,7 @@ export const CreatePost: React.FC<CreatePostProps> = ({
               {selectedImages.map((image, index) => (
                 <View key={index} style={styles.selectedImageContainer}>
                   <Image 
-                    source={{ uri: URL.createObjectURL(image) }} 
+                    source={{ uri: image }} 
                     style={styles.selectedImagePreview}
                   />
                   <TouchableOpacity 

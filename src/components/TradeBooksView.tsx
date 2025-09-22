@@ -3,6 +3,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { OfferCard } from './OfferCard';
 import { OrderCard } from './OrderCard';
 import CreateExchangeModal from './CreateExchangeModal';
+import { CreateRatingModal } from './CreateRatingModal';
 import { strings, colors, theme } from '../constants';
 import { useExchanges } from '../hooks';
 import { useChats } from '../hooks/useChats';
@@ -10,7 +11,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '../contexts/NavigationContext';
 import { getExchangeStatusInSpanish } from '../utils';
 import { logger } from '../utils/logger';
-import { useState } from 'react';
+import React, { useState } from 'react';
 
 // Component uses real API data via useExchanges hook
 
@@ -27,7 +28,27 @@ export function TradeBooksView() {
     loadExchanges 
   } = useExchanges();
 
+  // Log exchanges being rendered
+  React.useEffect(() => {
+    logger.info('🎨 [TradeBooksView] Rendering exchanges:', {
+      received_offers_count: receivedOffers.length,
+      active_orders_count: activeOrders.length,
+      received_offers: receivedOffers.map(ex => ({
+        id: ex.id,
+        status: ex.status,
+        requester: ex.requester ? `${ex.requester.name} ${ex.requester.lastname}` : 'Unknown'
+      })),
+      active_orders: activeOrders.map(ex => ({
+        id: ex.id,
+        status: ex.status,
+        owner: ex.owner ? `${ex.owner.name} ${ex.owner.lastname}` : 'Unknown'
+      }))
+    });
+  }, [receivedOffers, activeOrders]);
+
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [selectedExchange, setSelectedExchange] = useState<any>(null);
 
   const handleNewExchange = () => {
     setShowCreateModal(true);
@@ -75,6 +96,16 @@ export function TradeBooksView() {
     // This would typically open a modal for creating a counter offer
     // For now, we'll just show an alert
     alert(`Counter offer functionality for exchange ${exchangeId} will be implemented soon`);
+  };
+
+  const handleRate = (exchange: any) => {
+    setSelectedExchange(exchange);
+    setShowRatingModal(true);
+  };
+
+  const handleRatingSuccess = () => {
+    // Refresh exchanges after rating
+    loadExchanges();
   };
 
   const handleChat = async (exchangeId: string, otherUserId: string) => {
@@ -171,6 +202,8 @@ export function TradeBooksView() {
                   author: ub?.book?.author || 'Autor no disponible',
                   image: ub?.book?.image || '/default-book.jpg',
                 })),
+                canRate: exchange.can_rate,
+                hasUserRated: !!exchange.owner_rate, // Current user is owner, so check owner_rate
               }}
               onAccept={() => handleAcceptOffer(exchange.id)}
               onReject={() => handleRejectOffer(exchange.id)}
@@ -178,6 +211,7 @@ export function TradeBooksView() {
               onCancel={() => handleCancelOrder(exchange.id)}
               onComplete={() => handleCompleteOrder(exchange.id)}
               onCounterOffer={() => handleCounterOffer(exchange.id)}
+              onRate={() => handleRate(exchange)}
             />
           ))
         ) : (
@@ -218,6 +252,8 @@ export function TradeBooksView() {
                   author: ub?.book?.author || 'Autor no disponible',
                   image: ub?.book?.image || '/default-book.jpg',
                 })),
+                canRate: exchange.can_rate,
+                hasUserRated: !!exchange.requester_rate, // Current user is requester, so check requester_rate
               }}
                   onAccept={() => handleAcceptOffer(exchange.id)}
                   onReject={() => handleRejectOffer(exchange.id)}
@@ -225,6 +261,7 @@ export function TradeBooksView() {
                   onComplete={() => handleCompleteOrder(exchange.id)}
                   onCounterOffer={() => handleCounterOffer(exchange.id)}
                   onChat={() => handleChat(exchange.id, exchange.requester?.id == user?.id ? exchange.owner?.id : exchange.requester?.id)}
+                  onRate={() => handleRate(exchange)}
                   />
           ))
         ) : (
@@ -239,6 +276,23 @@ export function TradeBooksView() {
         currentUserId={user?.id || ''}
         onSuccess={handleExchangeCreated}
       />
+
+      {selectedExchange && (
+        <CreateRatingModal
+          isVisible={showRatingModal}
+          onClose={() => {
+            setShowRatingModal(false);
+            setSelectedExchange(null);
+          }}
+          exchangeId={selectedExchange.id}
+          otherUserName={
+            selectedExchange.requester?.id === user?.id 
+              ? `${selectedExchange.owner?.name} ${selectedExchange.owner?.lastname}`.trim()
+              : `${selectedExchange.requester?.name} ${selectedExchange.requester?.lastname}`.trim()
+          }
+          onSuccess={handleRatingSuccess}
+        />
+      )}
     </>
   );
 }

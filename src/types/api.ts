@@ -147,6 +147,10 @@ export interface BookExchangeDto {
   requester_books: UserBookDto[];
   requester: UserPreviewDto;
   owner: UserPreviewDto;
+  requester_rate?: UserRateDto;
+  owner_rate?: UserRateDto;
+  can_rate?: boolean;
+  chat_id?: string;
 }
 
 export interface CreateBookExchangeDto {
@@ -163,6 +167,25 @@ export interface UpdateExchangeStatusDto {
 export interface CounterOfferDto {
   owner_book_ids: string[];
   requester_book_ids: string[];
+}
+
+export interface UserRateDto {
+  id: string;
+  user_id: string;
+  exchange_id: string;
+  rating: number;
+  comment?: string;
+  date_created: string;
+}
+
+export interface CreateUserRateDto {
+  rating: number;
+  comment?: string;
+}
+
+export interface UserRatingStatsDto {
+  average_rating: number;
+  total_ratings: number;
 }
 
 // Community Types

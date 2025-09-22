@@ -26,6 +26,8 @@ interface Order {
   requester: User;
   requestedBooks: Book[];
   offeredBooks: Book[];
+  canRate?: boolean;
+  hasUserRated?: boolean;
 }
 
 interface OrderCardProps {
@@ -38,6 +40,7 @@ interface OrderCardProps {
   onAccept?: () => void;
   onReject?: () => void;
   onCounterOffer?: () => void;
+  onRate?: () => void;
 }
 
 export function OrderCard({ 
@@ -49,7 +52,8 @@ export function OrderCard({
   onChat,
   onAccept,
   onReject,
-  onCounterOffer 
+  onCounterOffer,
+  onRate
 }: OrderCardProps) {
   const handleChat = () => {
     onChat?.();
@@ -73,6 +77,10 @@ export function OrderCard({
 
   const handleCounterOffer = () => {
     onCounterOffer?.();
+  };
+
+  const handleRate = () => {
+    onRate?.();
   };
 
   // Determine user role and what buttons to show
@@ -125,7 +133,7 @@ export function OrderCard({
       );
     }
 
-    // If status is ACCEPTED (either requester or owner) - show Complete
+    // If status is ACCEPTED (either requester or owner) - show Chat and Complete
     if (status === 'Aceptado') {
       return (
         <>
@@ -146,6 +154,38 @@ export function OrderCard({
             <MaterialIcons name="check" size={14} color={colors.neutral.white} />
             <Text style={styles.completeText}>Completar</Text>
           </TouchableOpacity>
+        </>
+      );
+    }
+
+    // If status is COMPLETED - show Chat and Rate/Rated (no cancel)
+    if (status === 'Completado') {
+      return (
+        <>
+          <TouchableOpacity
+            style={styles.chatButton}
+            onPress={handleChat}
+            testID="chat-button"
+          >
+            <MaterialIcons name="chat" size={14} color={colors.neutral.white} />
+            <Text style={styles.chatText}>Chat</Text>
+          </TouchableOpacity>
+
+          {order.hasUserRated ? (
+            <View style={styles.ratedButton} testID="rated-indicator">
+              <MaterialIcons name="star" size={14} color={colors.neutral.white} />
+              <Text style={styles.ratedText}>Calificado</Text>
+            </View>
+          ) : order.canRate !== false ? (
+            <TouchableOpacity
+              style={styles.rateButton}
+              onPress={handleRate}
+              testID="rate-button"
+            >
+              <MaterialIcons name="star" size={14} color={colors.neutral.white} />
+              <Text style={styles.rateText}>Calificar</Text>
+            </TouchableOpacity>
+          ) : null}
         </>
       );
     }
@@ -520,6 +560,36 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   completeText: {
+    color: colors.neutral.white,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  rateButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.status.warning,
+    paddingVertical: 8,
+    borderRadius: 6,
+    gap: 3,
+  },
+  ratedButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.neutral.gray500,
+    paddingVertical: 8,
+    borderRadius: 6,
+    gap: 3,
+  },
+  rateText: {
+    color: colors.neutral.white,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  ratedText: {
     color: colors.neutral.white,
     fontSize: 12,
     fontWeight: '500',

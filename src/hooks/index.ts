@@ -14,3 +14,4 @@ export { useUserFollow } from './useUserFollow';
 export { useLocationSearch } from './useLocationSearch';
 export { useChats } from './useChats';
 export { useMessages } from './useMessages';
+export { useRating } from './useRating';

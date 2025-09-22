@@ -13,8 +13,10 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { bookApi, userApi, exchangeApi } from '../services/api';
-import { BookDto, UserDto, UserBookDto, CreateBookExchangeDto } from '../types/api';
+import { BookDto, UserDto, UserBookDto, CreateBookExchangeDto, UserRatingStatsDto } from '../types/api';
+import { useRating } from '../hooks';
 import { colors, theme } from '../constants';
+import { logger } from '../utils/logger';
 
 interface CreateExchangeModalProps {
   isVisible: boolean;
@@ -34,6 +36,8 @@ interface Step2State {
   users: UserDto[];
   selectedUser: UserDto | null;
   isSearching: boolean;
+  userRatings: Record<string, UserRatingStatsDto>;
+  loadingRatings: Record<string, boolean>;
 }
 
 interface Step3State {
@@ -50,6 +54,8 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
 }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isCreating, setIsCreating] = useState(false);
+  
+  const { getUserRatingStats } = useRating();
 
   // Step 1 state
   const [step1, setStep1] = useState<Step1State>({
@@ -64,6 +70,8 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
     users: [],
     selectedUser: null,
     isSearching: false,
+    userRatings: {},
+    loadingRatings: {},
   });
 
   // Step 3 state
@@ -87,6 +95,8 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
         users: [],
         selectedUser: null,
         isSearching: false,
+        userRatings: {},
+        loadingRatings: {},
       });
       setStep3({
         myBooks: [],
@@ -109,7 +119,7 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
       const books = await bookApi.searchBooks(query);
       setStep1(prev => ({ ...prev, searchResults: books, isSearching: false }));
     } catch (error) {
-      console.error('Error searching books:', error);
+      logger.error('Error searching books:', error);
       setStep1(prev => ({ ...prev, searchResults: [], isSearching: false }));
     }
   };
@@ -123,6 +133,31 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
     }));
   };
 
+  // Load user rating stats
+  const loadUserRatingStats = async (userId: string) => {
+    setStep2(prev => ({
+      ...prev,
+      loadingRatings: { ...prev.loadingRatings, [userId]: true }
+    }));
+
+    try {
+      const stats = await getUserRatingStats(userId);
+      if (stats) {
+        setStep2(prev => ({
+          ...prev,
+          userRatings: { ...prev.userRatings, [userId]: stats },
+          loadingRatings: { ...prev.loadingRatings, [userId]: false }
+        }));
+      }
+    } catch (error) {
+      logger.error('Error loading user rating stats:', error);
+      setStep2(prev => ({
+        ...prev,
+        loadingRatings: { ...prev.loadingRatings, [userId]: false }
+      }));
+    }
+  };
+
   // Step 2: Search users by books
   const searchUsersByBooks = async () => {
     if (step1.selectedBooks.length === 0) return;
@@ -132,8 +167,24 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
       const bookIds = step1.selectedBooks.map(book => book.id);
       const users = await userApi.searchUsersByBooks({ book_ids: bookIds });
       setStep2(prev => ({ ...prev, users, isSearching: false }));
+      
+      // Load rating stats for each user
+      users.forEach(user => {
+        logger.info('👤 [CreateExchangeModal] User found:', {
+          id: user.id,
+          name: `${user.name} ${user.lastname}`,
+          username: user.username,
+          hasAddress: !!user.address,
+          address: user.address ? {
+            city: user.address.city,
+            state: user.address.state,
+            country: user.address.country
+          } : null
+        });
+        loadUserRatingStats(user.id);
+      });
     } catch (error) {
-      console.error('Error searching users:', error);
+      logger.error('Error searching users:', error);
       setStep2(prev => ({ ...prev, users: [], isSearching: false }));
     }
   };
@@ -149,7 +200,7 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
       const books = await bookApi.getUserLibrary(currentUserId, { wantsToExchange: true });
       setStep3(prev => ({ ...prev, myBooks: books, isLoading: false }));
     } catch (error) {
-      console.error('Error loading user library:', error);
+      logger.error('Error loading user library:', error);
       setStep3(prev => ({ ...prev, myBooks: [], isLoading: false }));
     }
   };
@@ -232,7 +283,7 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
         Alert.alert('Éxito', 'Intercambio creado exitosamente');
       }, 100);
     } catch (error) {
-      console.error('Error creating exchange:', error);
+      logger.error('Error creating exchange:', error);
       Alert.alert('Error', 'No se pudo crear el intercambio');
     } finally {
       setIsCreating(false);
@@ -401,13 +452,34 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
                   </Text>
                 </View>
                 <View style={styles.userDetails}>
-                  <Text style={styles.userName}>{user.name} {user.lastname}</Text>
+                  <View style={styles.userNameRow}>
+                    <Text style={styles.userName}>{user.name} {user.lastname}</Text>
+                    {step2.userRatings[user.id] && (
+                      <View style={styles.userRatingContainer}>
+                        <MaterialIcons name="star" size={14} color={colors.status.warning} />
+                        <Text style={styles.userRatingText}>
+                          {step2.userRatings[user.id].average_rating.toFixed(1)}
+                        </Text>
+                        <Text style={styles.userRatingCount}>
+                          ({step2.userRatings[user.id].total_ratings})
+                        </Text>
+                      </View>
+                    )}
+                    {step2.loadingRatings[user.id] && (
+                      <ActivityIndicator size="small" color={colors.primary.main} />
+                    )}
+                  </View>
                   <Text style={styles.userUsername}>@{user.username}</Text>
-                  {user.address && (
+                  <View style={styles.userAddressContainer}>
+                    <MaterialIcons name="location-on" size={14} color={colors.neutral.gray500} />
                     <Text style={styles.userLocation}>
-                      {user.address.city && `${user.address.city}, `}{user.address.state}, {user.address.country}
+                      {user.address ? (
+                        `${user.address.city ? `${user.address.city}, ` : ''}${user.address.state}, ${user.address.country}`
+                      ) : (
+                        'Ubicación no especificada'
+                      )}
                     </Text>
-                  )}
+                  </View>
                 </View>
               </View>
               {step2.selectedUser?.id === user.id && (
@@ -600,7 +672,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary.main,
   },
   stepCircleInactive: {
-    backgroundColor: colors.neutral.light,
+    backgroundColor: colors.neutral.gray200,
   },
   stepNumber: {
     fontSize: 14,
@@ -610,11 +682,11 @@ const styles = StyleSheet.create({
     color: colors.neutral.white,
   },
   stepNumberInactive: {
-    color: colors.neutral.gray,
+    color: colors.neutral.gray500,
   },
   stepLabel: {
     fontSize: 12,
-    color: colors.neutral.gray,
+    color: colors.neutral.gray500,
     textAlign: 'center',
   },
   content: {
@@ -668,12 +740,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: colors.neutral.light,
+    borderColor: colors.neutral.gray200,
     position: 'relative',
   },
   bookCardSelected: {
     borderColor: colors.primary.main,
-    backgroundColor: colors.primary.light,
+    backgroundColor: colors.primary.main,
   },
   bookImage: {
     width: '100%',
@@ -746,11 +818,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: colors.neutral.light,
+    borderColor: colors.neutral.gray200,
   },
   userCardSelected: {
     borderColor: colors.primary.main,
-    backgroundColor: colors.primary.light,
+    backgroundColor: colors.primary.main,
   },
   userInfo: {
     flexDirection: 'row',
@@ -787,7 +859,42 @@ const styles = StyleSheet.create({
   },
   userLocation: {
     fontSize: 12,
-    color: theme.text.secondary,
+    color: colors.neutral.gray600,
+    flex: 1,
+    marginLeft: 4,
+    lineHeight: 16,
+  },
+  userNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
+  userRatingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.neutral.gray100,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginLeft: 8,
+  },
+  userRatingText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.neutral.gray800,
+    marginLeft: 2,
+  },
+  userRatingCount: {
+    fontSize: 10,
+    color: colors.neutral.gray600,
+    marginLeft: 2,
+  },
+  userAddressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    paddingTop: 2,
   },
   navigationButtons: {
     flexDirection: 'row',
@@ -795,7 +902,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: colors.neutral.light,
+    borderTopColor: colors.neutral.gray200,
   },
   backButton: {
     flexDirection: 'row',
@@ -835,7 +942,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   createButtonDisabled: {
-    backgroundColor: colors.neutral.gray,
+    backgroundColor: colors.neutral.gray500,
   },
   createButtonText: {
     fontSize: 16,

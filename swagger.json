@@ -147,6 +147,12 @@
                     "400": {
                         "description": "Datos inválidos"
                     },
+                    "404": {
+                        "description": "Club de lectura no encontrado"
+                    },
+                    "403": {
+                        "description": "Solo el moderador puede actualizar la reunión"
+                    },
                     "200": {
                         "description": "Información de reunión actualizada exitosamente",
                         "content": {
@@ -159,12 +165,6 @@
                     },
                     "401": {
                         "description": "No autorizado"
-                    },
-                    "403": {
-                        "description": "Solo el moderador puede actualizar la reunión"
-                    },
-                    "404": {
-                        "description": "Club de lectura no encontrado"
                     }
                 }
             }
@@ -189,6 +189,9 @@
                     }
                 ],
                 "responses": {
+                    "404": {
+                        "description": "Publicación no encontrada"
+                    },
                     "200": {
                         "description": "Publicación encontrada",
                         "content": {
@@ -198,9 +201,6 @@
                                 }
                             }
                         }
-                    },
-                    "404": {
-                        "description": "Publicación no encontrada"
                     }
                 }
             },
@@ -236,9 +236,6 @@
                     "400": {
                         "description": "Datos inválidos"
                     },
-                    "401": {
-                        "description": "No autorizado"
-                    },
                     "200": {
                         "description": "Publicación actualizada exitosamente",
                         "content": {
@@ -248,6 +245,9 @@
                                 }
                             }
                         }
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     },
                     "404": {
                         "description": "Publicación no encontrada"
@@ -365,12 +365,6 @@
                     "403": {
                         "description": "User not authorized for this action"
                     },
-                    "404": {
-                        "description": "Exchange not found"
-                    },
-                    "400": {
-                        "description": "Invalid request data"
-                    },
                     "200": {
                         "description": "Status updated successfully",
                         "content": {
@@ -380,6 +374,12 @@
                                 }
                             }
                         }
+                    },
+                    "404": {
+                        "description": "Exchange not found"
+                    },
+                    "400": {
+                        "description": "Invalid request data"
                     }
                 }
             }
@@ -426,12 +426,6 @@
                     "403": {
                         "description": "User not authorized for this action"
                     },
-                    "404": {
-                        "description": "Exchange not found"
-                    },
-                    "400": {
-                        "description": "Invalid request data"
-                    },
                     "200": {
                         "description": "Counter offer created successfully",
                         "content": {
@@ -441,6 +435,12 @@
                                 }
                             }
                         }
+                    },
+                    "404": {
+                        "description": "Exchange not found"
+                    },
+                    "400": {
+                        "description": "Invalid request data"
                     }
                 }
             }
@@ -507,6 +507,9 @@
                     "required": true
                 },
                 "responses": {
+                    "404": {
+                        "description": "Book not found in user library"
+                    },
                     "200": {
                         "description": "Book status updated successfully",
                         "content": {
@@ -516,9 +519,6 @@
                                 }
                             }
                         }
-                    },
-                    "404": {
-                        "description": "Book not found in user library"
                     }
                 }
             }
@@ -686,14 +686,14 @@
                     "401": {
                         "description": "Not authenticated"
                     },
-                    "400": {
-                        "description": "Invalid input data"
-                    },
                     "200": {
                         "description": "Users found successfully",
                         "content": {
                             "application/json": {}
                         }
+                    },
+                    "400": {
+                        "description": "Invalid input data"
                     }
                 }
             }
@@ -780,6 +780,12 @@
                     "required": true
                 },
                 "responses": {
+                    "401": {
+                        "description": "Invalid credentials"
+                    },
+                    "400": {
+                        "description": "Invalid input data"
+                    },
                     "200": {
                         "description": "Login successful",
                         "content": {
@@ -789,12 +795,6 @@
                                 }
                             }
                         }
-                    },
-                    "400": {
-                        "description": "Invalid input data"
-                    },
-                    "401": {
-                        "description": "Invalid credentials"
                     }
                 }
             }
@@ -837,9 +837,6 @@
                     "400": {
                         "description": "Datos inválidos"
                     },
-                    "401": {
-                        "description": "No autorizado"
-                    },
                     "201": {
                         "description": "Club creado exitosamente",
                         "content": {
@@ -849,6 +846,9 @@
                                 }
                             }
                         }
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     }
                 }
             }
@@ -873,14 +873,14 @@
                     }
                 ],
                 "responses": {
+                    "400": {
+                        "description": "Error al salir del club o usuario no es miembro"
+                    },
                     "404": {
                         "description": "Club no encontrado"
                     },
                     "200": {
                         "description": "Salió del club exitosamente"
-                    },
-                    "400": {
-                        "description": "Error al salir del club o usuario no es miembro"
                     },
                     "401": {
                         "description": "No autorizado"
@@ -914,11 +914,11 @@
                     "200": {
                         "description": "Unido al club exitosamente"
                     },
-                    "401": {
-                        "description": "No autorizado"
-                    },
                     "400": {
                         "description": "Error al unirse al club"
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     }
                 }
             }
@@ -987,6 +987,9 @@
                     "400": {
                         "description": "Invalid request data or exchange cannot be rated"
                     },
+                    "404": {
+                        "description": "Exchange not found"
+                    },
                     "201": {
                         "description": "Rating created successfully",
                         "content": {
@@ -996,9 +999,6 @@
                                 }
                             }
                         }
-                    },
-                    "404": {
-                        "description": "Exchange not found"
                     }
                 }
             }
@@ -1242,9 +1242,6 @@
                     "400": {
                         "description": "Datos inválidos"
                     },
-                    "401": {
-                        "description": "No autorizado"
-                    },
                     "201": {
                         "description": "Comunidad creada exitosamente",
                         "content": {
@@ -1254,6 +1251,9 @@
                                 }
                             }
                         }
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     }
                 }
             }
@@ -1439,16 +1439,6 @@
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "Messages retrieved successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/MessageDto"
-                                }
-                            }
-                        }
-                    },
                     "404": {
                         "description": "Chat not found or user not authorized",
                         "content": {
@@ -1471,6 +1461,16 @@
                                     "items": {
                                         "$ref": "#/components/schemas/MessageDto"
                                     }
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "Messages retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MessageDto"
                                 }
                             }
                         }
@@ -1506,16 +1506,6 @@
                     "required": true
                 },
                 "responses": {
-                    "200": {
-                        "description": "Message sent successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/MessageDto"
-                                }
-                            }
-                        }
-                    },
                     "404": {
                         "description": "Chat not found",
                         "content": {
@@ -1538,6 +1528,16 @@
                     },
                     "400": {
                         "description": "Invalid message data or user not authorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MessageDto"
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "Message sent successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1568,6 +1568,12 @@
                     "required": true
                 },
                 "responses": {
+                    "404": {
+                        "description": "Book not found"
+                    },
+                    "409": {
+                        "description": "Book already in library"
+                    },
                     "200": {
                         "description": "Book added successfully",
                         "content": {
@@ -1577,12 +1583,6 @@
                                 }
                             }
                         }
-                    },
-                    "404": {
-                        "description": "Book not found"
-                    },
-                    "409": {
-                        "description": "Book already in library"
                     },
                     "400": {
                         "description": "Invalid request data"
@@ -1859,6 +1859,9 @@
                     }
                 ],
                 "responses": {
+                    "404": {
+                        "description": "User not found"
+                    },
                     "200": {
                         "description": "User found successfully",
                         "content": {
@@ -1868,9 +1871,6 @@
                                 }
                             }
                         }
-                    },
-                    "404": {
-                        "description": "User not found"
                     }
                 }
             },
@@ -1981,14 +1981,14 @@
                     }
                 ],
                 "responses": {
-                    "400": {
-                        "description": "Invalid search term"
-                    },
                     "200": {
                         "description": "Users found successfully",
                         "content": {
                             "application/json": {}
                         }
+                    },
+                    "400": {
+                        "description": "Invalid search term"
                     }
                 }
             }
@@ -2428,6 +2428,9 @@
                     }
                 ],
                 "responses": {
+                    "404": {
+                        "description": "Exchange not found"
+                    },
                     "200": {
                         "description": "Exchange found",
                         "content": {
@@ -2437,9 +2440,6 @@
                                 }
                             }
                         }
-                    },
-                    "404": {
-                        "description": "Exchange not found"
                     }
                 }
             }
@@ -2710,14 +2710,14 @@
                     }
                 ],
                 "responses": {
-                    "404": {
-                        "description": "Comentario no encontrado"
-                    },
                     "200": {
                         "description": "Comentario encontrado",
                         "content": {
                             "application/json": {}
                         }
+                    },
+                    "404": {
+                        "description": "Comentario no encontrado"
                     }
                 }
             },
@@ -2743,14 +2743,14 @@
                     "200": {
                         "description": "Comentario eliminado exitosamente"
                     },
-                    "401": {
-                        "description": "No autorizado"
-                    },
                     "403": {
                         "description": "No tienes permisos para eliminar este comentario"
                     },
                     "404": {
                         "description": "Comentario no encontrado"
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     }
                 }
             }
@@ -2977,9 +2977,6 @@
                     }
                 ],
                 "responses": {
-                    "404": {
-                        "description": "Book not found"
-                    },
                     "200": {
                         "description": "Book found successfully",
                         "content": {
@@ -2989,6 +2986,9 @@
                                 }
                             }
                         }
+                    },
+                    "404": {
+                        "description": "Book not found"
                     }
                 }
             }
@@ -3147,11 +3147,11 @@
                     "204": {
                         "description": "Club eliminado exitosamente"
                     },
-                    "401": {
-                        "description": "No autorizado"
-                    },
                     "400": {
                         "description": "Error al eliminar el club o usuario no es moderador"
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     }
                 }
             }

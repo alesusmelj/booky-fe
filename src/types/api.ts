@@ -33,6 +33,7 @@ export interface UserDto {
   description?: string;
   image?: string;
   address?: AddressDto;
+  user_rate?: UserRatingStatsDto;
   date_created: string;
 }
 

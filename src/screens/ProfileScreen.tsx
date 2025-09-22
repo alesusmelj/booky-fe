@@ -27,6 +27,9 @@ import { UserLibraryBookCard } from '../components/BookCard';
 import { BarcodeScannerWrapper } from '../components/BarcodeScannerWrapper';
 import { AddBookToLibraryDto, UpdateStatusDto, BooksService } from '../services/booksService';
 import { UsersService, UserUpdateDto } from '../services/usersService';
+import { AddressDto } from '../types/api';
+import MapView, { Marker, Region } from 'react-native-maps';
+import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { logger } from '../utils/logger';
 
@@ -114,7 +117,23 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
     description: '',
   });
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
+  const [selectedAddress, setSelectedAddress] = useState<AddressDto | null>(null);
+  const [showAddressPicker, setShowAddressPicker] = useState(false);
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  
+  // Map states
+  const [mapRegion, setMapRegion] = useState<Region>({
+    latitude: -34.6037,
+    longitude: -58.3816,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  });
+  const [markerCoordinate, setMarkerCoordinate] = useState({
+    latitude: -34.6037,
+    longitude: -58.3816,
+  });
+  const [addressSearchQuery, setAddressSearchQuery] = useState('');
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
 
   const {
     profile,
@@ -151,6 +170,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
       });
     }
   }, [profileUser?.image, profileUser?.name, isOwnProfile]);
+
+  // Debug address picker state
+  useEffect(() => {
+    logger.info('📍 [ProfileScreen] showAddressPicker state changed:', showAddressPicker);
+  }, [showAddressPicker]);
 
   useEffect(() => {
     if (userId) {
@@ -328,6 +352,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
         description: profileUser.description || '',
       });
       setSelectedImageUri(null);
+      setSelectedAddress(profileUser.address || null);
       setShowEditProfileModal(true);
     }
   };
@@ -391,6 +416,127 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
     }
   };
 
+  const handleAddressSelect = (address: AddressDto) => {
+    setSelectedAddress(address);
+    logger.info('📍 [PROFILE] Address selected:', address);
+  };
+
+  const handleRemoveAddress = () => {
+    setSelectedAddress(null);
+    logger.info('📍 [PROFILE] Address removed');
+  };
+
+  // Map functions
+  const getCurrentLocation = async () => {
+    try {
+      setIsLoadingLocation(true);
+      logger.info('📍 [ProfileScreen] Getting current location...');
+
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Location permission is required.');
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+
+      const newRegion = {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      };
+
+      setMapRegion(newRegion);
+      setMarkerCoordinate({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+
+      // Get address from coordinates
+      await getAddressFromCoordinates(location.coords.latitude, location.coords.longitude);
+    } catch (error) {
+      logger.error('📍 [ProfileScreen] Error getting current location:', error);
+      Alert.alert('Error', 'Failed to get current location. Please try again.');
+    } finally {
+      setIsLoadingLocation(false);
+    }
+  };
+
+  const searchLocation = async () => {
+    if (!addressSearchQuery.trim()) {
+      Alert.alert('Error', 'Please enter a location to search.');
+      return;
+    }
+
+    try {
+      setIsLoadingLocation(true);
+      logger.info('📍 [ProfileScreen] Searching for:', addressSearchQuery);
+
+      const geocode = await Location.geocodeAsync(addressSearchQuery);
+      
+      if (geocode.length > 0) {
+        const result = geocode[0];
+        const newRegion = {
+          latitude: result.latitude,
+          longitude: result.longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        };
+
+        setMapRegion(newRegion);
+        setMarkerCoordinate({
+          latitude: result.latitude,
+          longitude: result.longitude,
+        });
+
+        // Get detailed address
+        await getAddressFromCoordinates(result.latitude, result.longitude);
+      } else {
+        Alert.alert('No Results', 'No locations found for your search.');
+      }
+    } catch (error) {
+      logger.error('📍 [ProfileScreen] Error searching location:', error);
+      Alert.alert('Error', 'Failed to search location. Please try again.');
+    } finally {
+      setIsLoadingLocation(false);
+    }
+  };
+
+  const getAddressFromCoordinates = async (latitude: number, longitude: number) => {
+    try {
+      const reverseGeocode = await Location.reverseGeocodeAsync({
+        latitude,
+        longitude,
+      });
+
+      if (reverseGeocode.length > 0) {
+        const address = reverseGeocode[0];
+        const addressDto: AddressDto = {
+          id: `selected-${Date.now()}`,
+          state: address.region || address.subregion || 'Unknown State',
+          city: address.city || address.district || address.subregion || 'Unknown City',
+          country: address.country || 'Unknown Country',
+          latitude,
+          longitude,
+        };
+
+        setSelectedAddress(addressDto);
+        logger.info('📍 [ProfileScreen] Address found:', addressDto);
+      }
+    } catch (error) {
+      logger.error('📍 [ProfileScreen] Error getting address:', error);
+    }
+  };
+
+  const onMapPress = (event: any) => {
+    const coordinate = event.nativeEvent.coordinate;
+    setMarkerCoordinate(coordinate);
+    getAddressFromCoordinates(coordinate.latitude, coordinate.longitude);
+  };
+
   const handleSaveProfile = async () => {
     logger.info('🔄 [PROFILE] handleSaveProfile called');
     logger.info('🔄 [PROFILE] profileUser:', profileUser);
@@ -411,6 +557,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
         name: editFormData.name.trim(),
         lastname: editFormData.lastname.trim(),
         description: editFormData.description.trim() || undefined,
+        address: selectedAddress || undefined,
       };
 
       logger.info('🔄 [PROFILE] Update data prepared:', updateData);
@@ -423,6 +570,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
       // Close modal and reset form state
       setShowEditProfileModal(false);
       setSelectedImageUri(null);
+      setSelectedAddress(null);
       setEditFormData({
         name: '',
         lastname: '',
@@ -619,6 +767,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                 {profileUser.description && (
                   <Text style={styles.bio}>{profileUser.description}</Text>
                 )}
+                {profileUser.address && (
+                  <View style={styles.locationContainer}>
+                    <MaterialIcons name="location-on" size={16} color={colors.neutral.gray500} />
+                    <Text style={styles.locationText}>
+                      {profileUser.address.city && `${profileUser.address.city}, `}{profileUser.address.state}, {profileUser.address.country}
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
 
@@ -636,7 +792,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                   ]}
                   onPress={async () => {
                     if (userId) {
-                      const success = await toggleFollow(userId);
+                      const success = await toggleFollow();
                       if (success) {
                         // Refrescar la pantalla después de seguir/dejar de seguir
                         await loadProfileData();
@@ -1140,6 +1296,85 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                 </Text>
               </View>
 
+              {/* Address Section with Map */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Address</Text>
+                
+                {/* Search Bar */}
+                <View style={styles.searchContainer}>
+                  <View style={styles.searchInputContainer}>
+                    <MaterialIcons name="search" size={20} color={colors.neutral.gray400} />
+                    <TextInput
+                      style={styles.searchInput}
+                      placeholder="Search for an address..."
+                      placeholderTextColor={colors.neutral.gray400}
+                      value={addressSearchQuery}
+                      onChangeText={setAddressSearchQuery}
+                      onSubmitEditing={searchLocation}
+                      editable={!isLoadingLocation}
+                    />
+                    {isLoadingLocation && (
+                      <ActivityIndicator size="small" color={colors.primary.main} />
+                    )}
+                  </View>
+                  <TouchableOpacity
+                    style={styles.currentLocationButton}
+                    onPress={getCurrentLocation}
+                    disabled={isLoadingLocation}
+                  >
+                    <MaterialIcons name="my-location" size={20} color={colors.primary.main} />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Map */}
+                <View style={styles.mapContainer}>
+                  <MapView
+                    style={styles.map}
+                    region={mapRegion}
+                    onPress={onMapPress}
+                    showsUserLocation={true}
+                    showsMyLocationButton={false}
+                    toolbarEnabled={false}
+                  >
+                    <Marker
+                      coordinate={markerCoordinate}
+                      title="Selected Location"
+                      description={selectedAddress ? `${selectedAddress.city}, ${selectedAddress.state}, ${selectedAddress.country}` : 'Tap to select'}
+                    />
+                  </MapView>
+                </View>
+
+                {/* Selected Address Info */}
+                {selectedAddress ? (
+                  <View style={styles.selectedAddressInfo}>
+                    <MaterialIcons name="location-on" size={20} color={colors.primary.main} />
+                    <View style={styles.addressTextContainer}>
+                      <Text style={styles.addressCity}>{selectedAddress.city}</Text>
+                      <Text style={styles.addressState}>{selectedAddress.state}, {selectedAddress.country}</Text>
+                      <Text style={styles.addressCoords}>
+                        {selectedAddress.latitude.toFixed(4)}, {selectedAddress.longitude.toFixed(4)}
+                      </Text>
+                    </View>
+                    <TouchableOpacity 
+                      style={styles.removeAddressButton}
+                      onPress={handleRemoveAddress}
+                    >
+                      <MaterialIcons name="close" size={16} color={colors.status.error} />
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={styles.noAddressSelected}>
+                    <Text style={styles.noAddressText}>
+                      📍 Tap on the map to select your location
+                    </Text>
+                  </View>
+                )}
+
+                <Text style={styles.inputHelp}>
+                  Search for your address or tap on the map to select your location
+                </Text>
+              </View>
+
               <View style={styles.modalActions}>
                 <TouchableOpacity
                   style={styles.cancelButton}
@@ -1188,6 +1423,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
           onClose={handleCloseBarcodeScanner}
         />
       </Modal>
+
+
     </SafeAreaView>
   );
 };
@@ -1928,6 +2165,155 @@ const styles = StyleSheet.create({
     height: 40,
     backgroundColor: colors.neutral.gray200,
     marginHorizontal: 8,
+  },
+  // Address styles
+  addressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.neutral.gray50,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.neutral.gray200,
+  },
+  addressInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  addressText: {
+    marginLeft: 8,
+    flex: 1,
+  },
+  addressMainText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.neutral.gray800,
+  },
+  addressSubText: {
+    fontSize: 12,
+    color: colors.neutral.gray500,
+    marginTop: 2,
+  },
+  addressActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  editAddressButton: {
+    padding: 8,
+    marginRight: 4,
+  },
+  removeAddressButton: {
+    padding: 8,
+  },
+  addAddressButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.neutral.white,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.primary.main,
+    borderStyle: 'dashed',
+  },
+  addAddressText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: colors.primary.main,
+    fontWeight: '500',
+  },
+  // Map styles
+  searchContainer: {
+    flexDirection: 'row',
+    marginBottom: 12,
+    gap: 8,
+  },
+  searchInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.neutral.gray100,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: colors.neutral.gray800,
+  },
+  currentLocationButton: {
+    backgroundColor: colors.neutral.gray100,
+    borderRadius: 8,
+    padding: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mapContainer: {
+    height: 200,
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  map: {
+    flex: 1,
+  },
+  selectedAddressInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.neutral.gray50,
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+    gap: 12,
+  },
+  addressTextContainer: {
+    flex: 1,
+  },
+  addressCity: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.neutral.gray800,
+  },
+  addressState: {
+    fontSize: 14,
+    color: colors.neutral.gray600,
+    marginTop: 2,
+  },
+  addressCountry: {
+    fontSize: 14,
+    color: colors.neutral.gray600,
+    marginTop: 2,
+  },
+  addressCoords: {
+    fontSize: 12,
+    color: colors.neutral.gray500,
+    marginTop: 2,
+  },
+  noAddressSelected: {
+    backgroundColor: colors.neutral.gray50,
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  noAddressText: {
+    fontSize: 14,
+    color: colors.neutral.gray500,
+    textAlign: 'center',
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  locationText: {
+    marginLeft: 4,
+    fontSize: 14,
+    color: colors.neutral.gray600,
   },
 });
 

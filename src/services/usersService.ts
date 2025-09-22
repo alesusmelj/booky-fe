@@ -6,6 +6,7 @@ import { uriToBase64 } from '../utils';
 export interface AddressDto {
   id?: string;
   state?: string;
+  city?: string;
   country?: string;
   longitude?: number;
   latitude?: number;
@@ -48,6 +49,7 @@ export class UsersService {
         name: userData.name,
         lastname: userData.lastname,
         description: userData.description,
+        address: userData.address,
       };
       Object.keys(userObject).forEach((k) => {
         const key = k as keyof typeof userObject;

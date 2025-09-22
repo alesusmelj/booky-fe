@@ -18,7 +18,7 @@ import { logger } from '../utils/logger';
 
 export const ChatsScreen: React.FC = () => {
   const { navigate } = useNavigation();
-  const { chats, loading, error, refreshing, refresh } = useChats();
+  const { chats, loading, error, refreshing, refresh } = useChats(true); // Enable polling for ChatsScreen
 
   const formatLastMessageTime = (dateString: string) => {
     const date = new Date(dateString);

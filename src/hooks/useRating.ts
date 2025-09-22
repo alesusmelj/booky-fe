@@ -50,6 +50,22 @@ export function useRating() {
         }
     }, []);
 
+    const getUserRatingStats = useCallback(async (userId: string): Promise<UserRatingStatsDto | undefined> => {
+        setLoading(true);
+        setError(null);
+        try {
+            const stats = await RatingService.getUserRatingStats(userId);
+            return stats;
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Failed to fetch user rating stats.';
+            logger.error('❌ Error fetching user rating stats:', err);
+            setError(errorMessage);
+            return undefined;
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
     const clearError = useCallback(() => {
         setError(null);
     }, []);
@@ -60,6 +76,7 @@ export function useRating() {
         createRating,
         canRate,
         getUserRatings,
+        getUserRatingStats,
         clearError,
     };
 }

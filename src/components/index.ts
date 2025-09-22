@@ -39,6 +39,7 @@ export { OrderCard } from './OrderCard';
 export { LibraryBookCard } from './LibraryBookCard';
 export { default as CreateExchangeModal } from './CreateExchangeModal';
 export { default as BookImage } from './BookImage';
+export { UserAvatar } from './UserAvatar';
 
 // Community components
 export { ActiveReadingClub } from './ActiveReadingClub';

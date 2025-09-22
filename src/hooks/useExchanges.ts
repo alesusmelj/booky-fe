@@ -27,17 +27,14 @@ export function useExchanges() {
             setExchanges(validExchanges);
 
             // Separate exchanges into different categories
-            // Received offers: I'm the owner and someone wants my books (PENDING)
+            // Received offers: I'm the owner and someone wants my books (all statuses)
             const offers = validExchanges.filter(exchange =>
-                exchange.owner_id === user.id && exchange.status === 'PENDING'
+                exchange.owner_id === user.id
             );
 
-            // Active orders: All exchanges that are active (ACCEPTED, COUNTERED) OR my pending requests
+            // Active orders: All exchanges where I'm the requester (all statuses)
             const orders = validExchanges.filter(exchange =>
-                // Accepted/Countered exchanges (regardless of role)
-                exchange.status === 'ACCEPTED' || exchange.status === 'COUNTERED' ||
-                // My pending requests (I'm the requester and it's pending)
-                (exchange.requester_id === user.id && exchange.status === 'PENDING')
+                exchange.requester_id === user.id
             );
 
             setReceivedOffers(offers);

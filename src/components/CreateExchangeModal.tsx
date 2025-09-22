@@ -13,8 +13,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { bookApi, userApi, exchangeApi } from '../services/api';
-import { BookDto, UserDto, UserBookDto, CreateBookExchangeDto, UserRatingStatsDto } from '../types/api';
-import { useRating } from '../hooks';
+import { BookDto, UserDto, UserBookDto, CreateBookExchangeDto } from '../types/api';
 import { colors, theme } from '../constants';
 import { logger } from '../utils/logger';
 
@@ -36,8 +35,6 @@ interface Step2State {
   users: UserDto[];
   selectedUser: UserDto | null;
   isSearching: boolean;
-  userRatings: Record<string, UserRatingStatsDto>;
-  loadingRatings: Record<string, boolean>;
 }
 
 interface Step3State {
@@ -54,8 +51,6 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
 }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isCreating, setIsCreating] = useState(false);
-  
-  const { getUserRatingStats } = useRating();
 
   // Step 1 state
   const [step1, setStep1] = useState<Step1State>({
@@ -70,8 +65,6 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
     users: [],
     selectedUser: null,
     isSearching: false,
-    userRatings: {},
-    loadingRatings: {},
   });
 
   // Step 3 state
@@ -95,8 +88,6 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
         users: [],
         selectedUser: null,
         isSearching: false,
-        userRatings: {},
-        loadingRatings: {},
       });
       setStep3({
         myBooks: [],
@@ -133,30 +124,6 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
     }));
   };
 
-  // Load user rating stats
-  const loadUserRatingStats = async (userId: string) => {
-    setStep2(prev => ({
-      ...prev,
-      loadingRatings: { ...prev.loadingRatings, [userId]: true }
-    }));
-
-    try {
-      const stats = await getUserRatingStats(userId);
-      if (stats) {
-        setStep2(prev => ({
-          ...prev,
-          userRatings: { ...prev.userRatings, [userId]: stats },
-          loadingRatings: { ...prev.loadingRatings, [userId]: false }
-        }));
-      }
-    } catch (error) {
-      logger.error('Error loading user rating stats:', error);
-      setStep2(prev => ({
-        ...prev,
-        loadingRatings: { ...prev.loadingRatings, [userId]: false }
-      }));
-    }
-  };
 
   // Step 2: Search users by books
   const searchUsersByBooks = async () => {
@@ -168,21 +135,23 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
       const users = await userApi.searchUsersByBooks({ book_ids: bookIds });
       setStep2(prev => ({ ...prev, users, isSearching: false }));
       
-      // Load rating stats for each user
-      users.forEach(user => {
-        logger.info('👤 [CreateExchangeModal] User found:', {
-          id: user.id,
-          name: `${user.name} ${user.lastname}`,
-          username: user.username,
-          hasAddress: !!user.address,
-          address: user.address ? {
-            city: user.address.city,
-            state: user.address.state,
-            country: user.address.country
-          } : null
-        });
-        loadUserRatingStats(user.id);
-      });
+      // Log users found with their complete information
+      logger.info('👤 [CreateExchangeModal] Users found:', users.map(user => ({
+        id: user.id,
+        name: `${user.name} ${user.lastname}`,
+        username: user.username,
+        hasAddress: !!user.address,
+        address: user.address ? {
+          city: user.address.city,
+          state: user.address.state,
+          country: user.address.country
+        } : null,
+        hasUserRate: !!user.user_rate,
+        userRate: user.user_rate ? {
+          average_rating: user.user_rate.average_rating,
+          total_ratings: user.user_rate.total_ratings
+        } : null
+      })));
     } catch (error) {
       logger.error('Error searching users:', error);
       setStep2(prev => ({ ...prev, users: [], isSearching: false }));
@@ -454,19 +423,16 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
                 <View style={styles.userDetails}>
                   <View style={styles.userNameRow}>
                     <Text style={styles.userName}>{user.name} {user.lastname}</Text>
-                    {step2.userRatings[user.id] && (
+                    {user.user_rate && (
                       <View style={styles.userRatingContainer}>
                         <MaterialIcons name="star" size={14} color={colors.status.warning} />
                         <Text style={styles.userRatingText}>
-                          {step2.userRatings[user.id].average_rating.toFixed(1)}
+                          {user.user_rate.average_rating.toFixed(1)}
                         </Text>
                         <Text style={styles.userRatingCount}>
-                          ({step2.userRatings[user.id].total_ratings})
+                          ({user.user_rate.total_ratings})
                         </Text>
                       </View>
-                    )}
-                    {step2.loadingRatings[user.id] && (
-                      <ActivityIndicator size="small" color={colors.primary.main} />
                     )}
                   </View>
                   <Text style={styles.userUsername}>@{user.username}</Text>

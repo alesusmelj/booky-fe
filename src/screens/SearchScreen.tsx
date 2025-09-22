@@ -14,7 +14,8 @@ import {
   UserSearchCard,
   BookSearchCard,
   CommunitySearchCard,
-  ReadersMapButton 
+  ReadersMapButton,
+  ReadersMapScreen
 } from '../components';
 import { colors, strings, theme } from '../constants';
 import { useSearch, useCommunities } from '../hooks';
@@ -41,6 +42,7 @@ export function SearchScreen() {
   const { joinCommunity, loading: communityLoading } = useCommunities();
 
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [showReadersMap, setShowReadersMap] = useState(false);
 
   // Debounced search
   useEffect(() => {
@@ -126,7 +128,13 @@ export function SearchScreen() {
 
   const handleReadersMapPress = () => {
     logger.info('🗺️ Opening readers map');
-    Alert.alert('Mapa de Lectores', 'Funcionalidad próximamente');
+    console.log('🗺️ [SearchScreen] Opening readers map, current state:', showReadersMap);
+    setShowReadersMap(true);
+  };
+
+  const handleCloseReadersMap = () => {
+    logger.info('🗺️ Closing readers map');
+    setShowReadersMap(false);
   };
 
   const shouldShowSection = (section: 'users' | 'books' | 'communities') => {
@@ -159,6 +167,11 @@ export function SearchScreen() {
         })}
         onFilterChange={handleFilterChange}
       />
+
+      {/* Readers Map Button - Always visible */}
+      <View style={styles.readersMapSection}>
+        <ReadersMapButton onPress={handleReadersMapPress} />
+      </View>
 
       {loading && (
         <View style={styles.loadingContainer}>
@@ -200,10 +213,7 @@ export function SearchScreen() {
 
         {shouldShowSection('books') && books.length > 0 && (
           <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>{strings.search.sections.books}</Text>
-              <ReadersMapButton onPress={handleReadersMapPress} />
-            </View>
+            <Text style={styles.sectionTitle}>{strings.search.sections.books}</Text>
             
             {books.map((book) => (
               <BookSearchCard
@@ -231,6 +241,12 @@ export function SearchScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Readers Map Modal */}
+      <ReadersMapScreen
+        visible={showReadersMap}
+        onClose={handleCloseReadersMap}
+      />
     </View>
   );
 }
@@ -298,5 +314,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.text.secondary,
     textAlign: 'center',
+  },
+  readersMapSection: {
+    paddingVertical: 16,
   },
 });

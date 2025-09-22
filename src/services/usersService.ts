@@ -33,6 +33,13 @@ export interface UserUpdateDto {
   image?: string; // Base64 encoded image
 }
 
+export interface SearchUsersByLocationDto {
+  bottom_left_latitude: number;
+  bottom_left_longitude: number;
+  top_right_latitude: number;
+  top_right_longitude: number;
+}
+
 export class UsersService {
 
   /**
@@ -115,6 +122,30 @@ export class UsersService {
       return response.data || response;
     } catch (error) {
       logger.error('❌ Error getting user:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Search users by geographic location
+   */
+  static async searchUsersByLocation(searchData: SearchUsersByLocationDto): Promise<UserDto[]> {
+    try {
+      logger.info('🗺️ Searching users by location:', searchData);
+
+      const response = await apiRequest('/users/search-by-location', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(searchData),
+      });
+
+      const users = response.data || response;
+      logger.info('✅ Users found by location:', users.length);
+      return users;
+    } catch (error) {
+      logger.error('❌ Error searching users by location:', error);
       throw error;
     }
   }

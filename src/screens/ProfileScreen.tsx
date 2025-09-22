@@ -21,7 +21,7 @@ import { colors } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '../contexts/NavigationContext';
 import { useGamification } from '../hooks/useGamification';
-import { useBooks, useBarcodeHandler, useUserFollow, useChats } from '../hooks';
+import { useBooks, useBarcodeHandler, useUserFollow, useChats, useRating } from '../hooks';
 import { AchievementCard } from '../components/AchievementCard';
 import { UserLibraryBookCard } from '../components/BookCard';
 import { BarcodeScannerWrapper } from '../components/BarcodeScannerWrapper';
@@ -50,7 +50,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
   const userId = route?.params?.userId || user?.id;
   const isOwnProfile = !route?.params?.userId || route.params.userId === user?.id;
 
-  const [activeTab, setActiveTab] = useState<'library' | 'activity' | 'achievements'>('library');
+  const [activeTab, setActiveTab] = useState<'library' | 'reviews' | 'achievements'>('library');
+  const [userReviews, setUserReviews] = useState<any[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
   const [libraryFilter, setLibraryFilter] = useState<'all' | 'READING' | 'READ' | 'TO_READ' | 'WISHLIST' | 'favorites'>('all');
   const [selectedAchievement, setSelectedAchievement] = useState<any>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -146,6 +148,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
     markAchievementsAsNotified,
   } = useGamification();
 
+  const { getUserRatings } = useRating();
+
   const {
     userBooks,
     loading: booksLoading,
@@ -181,6 +185,37 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
       loadProfileData();
     }
   }, [userId]);
+
+  const loadUserReviews = useCallback(async () => {
+    if (!userId) return;
+    
+    setReviewsLoading(true);
+    try {
+      const reviews = await getUserRatings(userId);
+      setUserReviews(reviews);
+      logger.info('✅ [ProfileScreen] User reviews loaded:', {
+        userId,
+        reviewsCount: reviews.length,
+        reviews: reviews.map(r => ({
+          id: r.id,
+          rating: r.rating,
+          comment: r.comment,
+          date: r.date_created
+        }))
+      });
+    } catch (error) {
+      logger.error('❌ [ProfileScreen] Error loading user reviews:', error);
+      setUserReviews([]);
+    } finally {
+      setReviewsLoading(false);
+    }
+  }, [userId, getUserRatings]);
+
+  useEffect(() => {
+    if (activeTab === 'reviews' && userId) {
+      loadUserReviews();
+    }
+  }, [activeTab, loadUserReviews]);
 
   const loadOtherUserData = useCallback(async (targetUserId: string) => {
     if (targetUserId === user?.id) return; // Skip if it's current user
@@ -912,7 +947,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
           <View style={styles.tabsContainer}>
             {[
               { id: 'library' as const, label: 'Library' },
-              { id: 'activity' as const, label: 'Activity' },
+              { id: 'reviews' as const, label: 'Reviews' },
               { id: 'achievements' as const, label: 'Achievements' },
             ].map((tab) => (
               <TouchableOpacity
@@ -1013,33 +1048,61 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
               </View>
             )}
 
-            {activeTab === 'activity' && (
-              <View style={styles.activityContainer}>
-                <View style={styles.activityItem}>
-                  <View style={styles.activityIcon}>
-                    <MaterialIcons name="library-books" size={20} color={colors.primary.main} />
+            {activeTab === 'reviews' && (
+              <View style={styles.reviewsContainer}>
+                {reviewsLoading ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={colors.primary.main} />
+                    <Text style={styles.loadingText}>Cargando reseñas...</Text>
                   </View>
-                  <View style={styles.activityContent}>
-                    <Text style={styles.activityText}>
-                      <Text style={styles.activityUser}>{profileUser.name}</Text> finished reading{' '}
-                      <Text style={styles.activityBook}>The Alchemist</Text>
+                ) : userReviews.length === 0 ? (
+                  <View style={styles.emptyState}>
+                    <MaterialIcons name="rate-review" size={48} color={colors.neutral.gray400} style={styles.emptyStateIcon} />
+                    <Text style={styles.emptyStateTitle}>
+                      {isOwnProfile ? 'No has dejado reseñas' : `${profileUser.name} no ha dejado reseñas`}
                     </Text>
-                    <Text style={styles.activityTime}>Yesterday</Text>
-                  </View>
-                </View>
-
-                <View style={styles.activityItem}>
-                  <View style={styles.activityIcon}>
-                    <MaterialIcons name="emoji-events" size={20} color={colors.status.warning} />
-                  </View>
-                  <View style={styles.activityContent}>
-                    <Text style={styles.activityText}>
-                      <Text style={styles.activityUser}>{profileUser.name}</Text> earned the{' '}
-                      <Text style={styles.activityAchievement}>Bookworm</Text> badge
+                    <Text style={styles.emptyStateText}>
+                      {isOwnProfile 
+                        ? 'Las reseñas aparecerán aquí después de completar intercambios de libros.'
+                        : 'Las reseñas de intercambios aparecerán aquí cuando estén disponibles.'
+                      }
                     </Text>
-                    <Text style={styles.activityTime}>3 days ago</Text>
                   </View>
-                </View>
+                ) : (
+                  <View style={styles.reviewsList}>
+                    {userReviews.map((review) => (
+                      <View key={review.id} style={styles.reviewItem}>
+                        <View style={styles.reviewHeader}>
+                          <View style={styles.reviewRating}>
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <MaterialIcons
+                                key={star}
+                                name="star"
+                                size={16}
+                                color={star <= review.rating ? colors.status.warning : colors.neutral.gray300}
+                              />
+                            ))}
+                            <Text style={styles.reviewRatingText}>({review.rating}/5)</Text>
+                          </View>
+                          <Text style={styles.reviewDate}>
+                            {new Date(review.date_created).toLocaleDateString('es-ES', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
+                          </Text>
+                        </View>
+                        {review.comment && (
+                          <Text style={styles.reviewComment}>{review.comment}</Text>
+                        )}
+                        <View style={styles.reviewFooter}>
+                          <MaterialIcons name="swap-horiz" size={16} color={colors.neutral.gray600} />
+                          <Text style={styles.reviewExchangeText}>Intercambio de libros</Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )}
               </View>
             )}
 
@@ -1691,48 +1754,68 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
-  activityContainer: {
-    gap: 16,
-  },
-  activityItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  activityIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primary.light,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  activityIconText: {
-    fontSize: 20,
-  },
-  activityContent: {
+  reviewsContainer: {
     flex: 1,
   },
-  activityText: {
+  loadingContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: colors.neutral.gray600,
+    marginTop: 12,
+  },
+  reviewsList: {
+    gap: 16,
+  },
+  reviewItem: {
+    backgroundColor: colors.neutral.white,
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: colors.shadow.default,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  reviewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  reviewRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  reviewRatingText: {
+    fontSize: 12,
+    color: colors.neutral.gray600,
+    marginLeft: 4,
+    fontWeight: '500',
+  },
+  reviewDate: {
+    fontSize: 12,
+    color: colors.neutral.gray500,
+  },
+  reviewComment: {
     fontSize: 14,
     color: colors.neutral.gray800,
     lineHeight: 20,
+    marginBottom: 12,
   },
-  activityUser: {
-    fontWeight: '600',
+  reviewFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.neutral.gray100,
   },
-  activityBook: {
-    fontWeight: '600',
-    color: colors.primary.main,
-  },
-  activityAchievement: {
-    fontWeight: '600',
-    color: colors.status.warning,
-  },
-  activityTime: {
+  reviewExchangeText: {
     fontSize: 12,
-    color: colors.neutral.gray500,
-    marginTop: 4,
+    color: colors.neutral.gray600,
+    marginLeft: 4,
   },
   modalOverlay: {
     flex: 1,
@@ -1868,19 +1951,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.green[600] || '#2E7D32',
     fontWeight: '500',
-  },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    padding: 8,
-    backgroundColor: colors.neutral.gray50,
-    borderRadius: 6,
-  },
-  loadingText: {
-    marginLeft: 8,
-    fontSize: 12,
-    color: colors.neutral.gray600,
   },
   bookPreview: {
     marginTop: 12,

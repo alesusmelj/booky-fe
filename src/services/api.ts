@@ -130,6 +130,14 @@ export const apiRequest = async <T = any>(
 ): Promise<T> => {
   const url = `${API_BASE_URL}${endpoint}`;
 
+  console.log('🌐 [API Request]', {
+    method: options.method || 'GET',
+    url,
+    API_BASE_URL,
+    endpoint,
+    hasBody: !!options.body
+  });
+
   // Don't set Content-Type for FormData, let browser/RN set it with boundary
   const isFormData = options.body instanceof FormData;
 

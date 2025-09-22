@@ -2,6 +2,8 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { strings, colors, theme } from '../constants';
 import BookImage from './BookImage';
+import { getExchangeStatusColor } from '../utils/exchangeUtils';
+import { UserAvatar } from './UserAvatar';
 
 interface Book {
   title: string;
@@ -29,6 +31,7 @@ interface Order {
 interface OrderCardProps {
   order: Order;
   currentUserId: string;
+  currentUserImage?: string | null;
   onComplete?: () => void;
   onCancel?: () => void;
   onChat?: () => void;
@@ -40,6 +43,7 @@ interface OrderCardProps {
 export function OrderCard({ 
   order, 
   currentUserId,
+  currentUserImage,
   onComplete, 
   onCancel, 
   onChat,
@@ -176,7 +180,7 @@ export function OrderCard({
           <MaterialIcons name="sync" size={16} color={colors.primary.main} />
           <Text style={styles.exchangeNumber}>{order.exchangeNumber}</Text>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: colors.status.success }]}>
+        <View style={[styles.statusBadge, { backgroundColor: getExchangeStatusColor(order.status as any) }]}>
           <Text style={styles.statusText}>{order.status}</Text>
         </View>
       </View>
@@ -184,9 +188,13 @@ export function OrderCard({
       <Text style={styles.date}>{order.date}</Text>
 
       <View style={styles.userSection}>
-        <View style={[styles.avatar, { backgroundColor: colors.status.success }]}>
-          <Text style={styles.avatarText}>U</Text>
-        </View>
+        <UserAvatar 
+          imageUrl={currentUserImage}
+          name={strings.commerce.labels.you}
+          size="medium"
+          backgroundColor={colors.status.success}
+          style={styles.avatarSpacing}
+        />
         <View style={styles.userInfo}>
           <Text style={styles.userName}>{strings.commerce.labels.you}</Text>
           <Text style={styles.userRole}>{strings.commerce.labels.applicant}</Text>
@@ -214,11 +222,13 @@ export function OrderCard({
       </View>
 
       <View style={styles.otherUserSection}>
-        <View style={styles.userAvatar}>
-          <Text style={styles.avatarText}>
-            {order.requester.name.charAt(0)}
-          </Text>
-        </View>
+        <UserAvatar 
+          imageUrl={order.requester.avatar && order.requester.avatar.startsWith('http') ? order.requester.avatar : null}
+          name={order.requester.name}
+          size="medium"
+          backgroundColor={colors.primary.main}
+          style={styles.avatarSpacing}
+        />
         <View style={styles.userInfo}>
           <Text style={styles.userName}>{order.requester.name}</Text>
           <Text style={styles.userRole}>Propietario de los libros</Text>
@@ -342,6 +352,9 @@ const styles = StyleSheet.create({
     color: colors.neutral.white,
     fontSize: 14,
     fontWeight: '700',
+  },
+  avatarSpacing: {
+    marginRight: 12,
   },
   userAvatar: {
     width: 36,

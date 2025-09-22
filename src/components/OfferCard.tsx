@@ -2,6 +2,8 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { strings, colors, theme } from '../constants';
 import BookImage from './BookImage';
+import { getExchangeStatusColor } from '../utils/exchangeUtils';
+import { UserAvatar } from './UserAvatar';
 
 interface Book {
   title: string;
@@ -29,6 +31,7 @@ interface Offer {
 interface OfferCardProps {
   offer: Offer;
   currentUserId: string;
+  currentUserImage?: string | null;
   onAccept?: () => void;
   onReject?: () => void;
   onCounterOffer?: () => void;
@@ -40,6 +43,7 @@ interface OfferCardProps {
 export function OfferCard({ 
   offer, 
   currentUserId,
+  currentUserImage,
   onAccept, 
   onReject, 
   onCounterOffer,
@@ -183,7 +187,7 @@ export function OfferCard({
           <MaterialIcons name="sync" size={16} color={colors.primary.main} />
           <Text style={styles.exchangeNumber}>{offer.exchangeNumber}</Text>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: colors.status.warning }]}>
+        <View style={[styles.statusBadge, { backgroundColor: getExchangeStatusColor(offer.status as any) }]}>
           <Text style={styles.statusText}>{offer.status}</Text>
         </View>
       </View>
@@ -191,9 +195,13 @@ export function OfferCard({
       <Text style={styles.date}>{offer.date}</Text>
 
       <View style={styles.userSection}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{offer.requester.avatar}</Text>
-        </View>
+        <UserAvatar 
+          imageUrl={offer.requester.avatar.startsWith('http') ? offer.requester.avatar : null}
+          name={offer.requester.name}
+          size="medium"
+          backgroundColor={colors.primary.main}
+          style={styles.avatarSpacing}
+        />
         <View style={styles.userInfo}>
           <Text style={styles.userName}>{offer.requester.name}</Text>
           <Text style={styles.userRole}>{offer.requester.role}</Text>
@@ -221,9 +229,13 @@ export function OfferCard({
       </View>
 
       <View style={styles.youSection}>
-        <View style={[styles.avatar, { backgroundColor: colors.status.success }]}>
-          <Text style={styles.avatarText}>U</Text>
-        </View>
+        <UserAvatar 
+          imageUrl={currentUserImage}
+          name={strings.commerce.labels.you}
+          size="medium"
+          backgroundColor={colors.status.success}
+          style={styles.avatarSpacing}
+        />
         <View style={styles.userInfo}>
           <Text style={styles.userName}>{strings.commerce.labels.you}</Text>
           <Text style={styles.userRole}>{strings.commerce.labels.owner}</Text>
@@ -341,6 +353,9 @@ const styles = StyleSheet.create({
     color: colors.neutral.white,
     fontSize: 14,
     fontWeight: '700',
+  },
+  avatarSpacing: {
+    marginRight: 12,
   },
   userInfo: {
     flex: 1,

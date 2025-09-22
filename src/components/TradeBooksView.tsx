@@ -147,6 +147,7 @@ export function TradeBooksView() {
                 <OfferCard 
                   key={exchange.id}
                   currentUserId={user?.id || ''}
+                  currentUserImage={user?.image}
                   offer={{
                 id: exchange.id,
                 exchangeNumber: `Exchange #${exchange.id.slice(-4)}`,
@@ -191,20 +192,21 @@ export function TradeBooksView() {
                 <OrderCard 
                   key={exchange.id}
                   currentUserId={user?.id || ''}
+                  currentUserImage={user?.image}
                   order={{
                 id: exchange.id,
                 exchangeNumber: `Exchange #${exchange.id.slice(-4)}`,
                 date: new Date(exchange.date_created).toLocaleDateString(),
                 status: getExchangeStatusInSpanish(exchange.status) as any,
                 requester: {
-                  id: exchange.requester?.id,
-                  name: exchange.requester 
-                    ? `${exchange.requester.name} ${exchange.requester.lastname}` 
+                  id: exchange.owner?.id,
+                  name: exchange.owner 
+                    ? `${exchange.owner.name} ${exchange.owner.lastname}` 
                     : 'Usuario no disponible',
-                  location: (exchange.requester as any)?.address 
-                    ? `${(exchange.requester as any).address.state}, ${(exchange.requester as any).address.country}`
+                  location: (exchange.owner as any)?.address 
+                    ? `${(exchange.owner as any).address.state}, ${(exchange.owner as any).address.country}`
                     : undefined,
-                  avatar: exchange.requester?.image || '/default-avatar.jpg',
+                  avatar: exchange.owner?.image || '/default-avatar.jpg',
                 },
                 requestedBooks: (exchange.owner_books || []).map(ub => ({
                   title: ub?.book?.title || 'Título no disponible',

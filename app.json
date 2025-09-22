@@ -45,7 +45,8 @@
           "cameraPermission": "The app accesses your camera to let you take photos."
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      "expo-maps"
     ]
   }
 }

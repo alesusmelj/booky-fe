@@ -173,7 +173,7 @@ export function TradeBooksView() {
               }}
               onAccept={() => handleAcceptOffer(exchange.id)}
               onReject={() => handleRejectOffer(exchange.id)}
-              onChat={() => handleChat(exchange.id, exchange.requester?.id || '')}
+              onChat={() => handleChat(exchange.id, exchange.requester?.id == user?.id ? exchange.owner?.id : exchange.requester?.id)}
               onCancel={() => handleCancelOrder(exchange.id)}
               onComplete={() => handleCompleteOrder(exchange.id)}
               onCounterOffer={() => handleCounterOffer(exchange.id)}
@@ -222,8 +222,8 @@ export function TradeBooksView() {
                   onCancel={() => handleCancelOrder(exchange.id)}
                   onComplete={() => handleCompleteOrder(exchange.id)}
                   onCounterOffer={() => handleCounterOffer(exchange.id)}
-                  onChat={() => handleChat(exchange.id, exchange.requester?.id || '')}
-            />
+                  onChat={() => handleChat(exchange.id, exchange.requester?.id == user?.id ? exchange.owner?.id : exchange.requester?.id)}
+                  />
           ))
         ) : (
           <Text style={styles.emptyText}>No active orders</Text>

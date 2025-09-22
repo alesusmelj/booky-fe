@@ -11,7 +11,7 @@ interface UseChatsState {
     refreshing: boolean;
 }
 
-export const useChats = () => {
+export const useChats = (enablePolling: boolean = false) => {
     const { user } = useAuth();
     const [state, setState] = useState<UseChatsState>({
         chats: [],
@@ -240,10 +240,11 @@ export const useChats = () => {
         fetchChats();
     }, [fetchChats]);
 
-    // Polling effect - fetch chats every 1 second without showing loading
+    // Polling effect - fetch chats every 1 second without showing loading (only if enabled)
     useEffect(() => {
-        if (!user?.id) return;
+        if (!user?.id || !enablePolling) return;
 
+        logger.info('🔄 [useChats] Starting polling (enabled)...');
         const interval = setInterval(async () => {
             try {
                 logger.info('🔄 [useChats] Polling chats...');
@@ -278,8 +279,11 @@ export const useChats = () => {
             }
         }, 1000); // Poll every 1 second
 
-        return () => clearInterval(interval);
-    }, [user?.id, transformChatData]);
+        return () => {
+            logger.info('🔄 [useChats] Stopping polling...');
+            clearInterval(interval);
+        };
+    }, [user?.id, enablePolling, transformChatData]);
 
     return {
         chats: state.chats,

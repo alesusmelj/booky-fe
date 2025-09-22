@@ -17,6 +17,7 @@ export interface PaginatedResponse<T> {
 export interface AddressDto {
   id: string;
   state: string;
+  city: string;
   country: string;
   longitude: number;
   latitude: number;

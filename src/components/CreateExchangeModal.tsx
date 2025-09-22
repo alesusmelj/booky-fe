@@ -405,7 +405,7 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
                   <Text style={styles.userUsername}>@{user.username}</Text>
                   {user.address && (
                     <Text style={styles.userLocation}>
-                      {user.address.state}, {user.address.country}
+                      {user.address.city && `${user.address.city}, `}{user.address.state}, {user.address.country}
                     </Text>
                   )}
                 </View>

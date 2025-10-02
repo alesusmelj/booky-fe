@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { PostsService } from '../services';
+import { useAuth } from '../contexts/AuthContext';
 import { logger } from '../utils/logger';
 
 interface PostsState {
@@ -10,6 +11,7 @@ interface PostsState {
 }
 
 export const usePosts = (communityId?: string) => {
+  const { user } = useAuth();
   const [state, setState] = useState<PostsState>({
     posts: [],
     loading: true,
@@ -97,8 +99,24 @@ export const usePosts = (communityId?: string) => {
 
       logger.info('✅ [usePosts] Post created successfully, adding to list');
 
+      // Ensure the post has user information
+      const newPost = {
+        ...response.data,
+        user: response.data.user || user // Use current user if backend doesn't return user info
+      };
+
+      logger.info('📝 [usePosts] Post user info after creation:', {
+        hasUserInResponse: !!response.data.user,
+        hasUserInContext: !!user,
+        finalUserInfo: newPost.user ? {
+          id: newPost.user.id,
+          name: newPost.user.name,
+          lastname: newPost.user.lastname
+        } : 'No user info'
+      });
+
       // Add the new post to the beginning of the list
-      setPosts(prev => [response.data, ...prev]);
+      setPosts(prev => [newPost, ...prev]);
 
       return true;
     } catch (error) {
@@ -109,7 +127,7 @@ export const usePosts = (communityId?: string) => {
       }));
       return false;
     }
-  }, []);
+  }, [user]);
 
   const deletePost = useCallback(async (postId: string): Promise<boolean> => {
     try {

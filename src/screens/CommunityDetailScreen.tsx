@@ -21,115 +21,6 @@ import { CommunityDto } from '../types/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '../contexts/NavigationContext';
 
-// Mock data - should be moved to a service later
-const users = [
-  {
-    id: '1',
-    name: 'Jane Cooper',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
-  },
-  {
-    id: '2',
-    name: 'Alex Morgan',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
-  },
-  {
-    id: '3',
-    name: 'Maria Rodriguez',
-    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
-  },
-];
-
-const communities = [
-  {
-    id: '1',
-    name: 'Fantasy Book Lovers',
-    members: 1243,
-    image: 'https://images.unsplash.com/photo-1618944847828-82e943c3bdb7?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=60',
-    description: 'For lovers of fantasy literature from classics to new releases'
-  },
-  {
-    id: '2',
-    name: 'Madrid Book Club',
-    members: 328,
-    image: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=60',
-    description: 'Local book enthusiasts meeting monthly in Madrid'
-  },
-  {
-    id: '3',
-    name: 'Science Fiction Explorers',
-    members: 892,
-    image: 'https://images.unsplash.com/photo-1532012197267-da84d127e765?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=60',
-    description: 'Discussing the stars, space, and everything in between'
-  },
-];
-
-const communityPosts = [
-  {
-    id: '1',
-    userId: '2',
-    content: "Just finished 'The Midnight Library' by Matt Haig and I'm completely blown away. Has anyone else read it? Would love to discuss!",
-    image: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=60',
-    likes: 24,
-    comments: 8,
-    timestamp: '2 hours ago'
-  },
-  {
-    id: '2',
-    userId: '3',
-    content: 'Looking for book recommendations in the historical fiction genre. Any suggestions?',
-    image: null,
-    likes: 7,
-    comments: 15,
-    timestamp: '5 hours ago'
-  },
-];
-
-const readingClubs = [
-  {
-    id: '1',
-    communityId: '1',
-    name: 'Fantasy Adventurers',
-    description: 'We explore epic fantasy worlds together',
-    currentBook: {
-      id: '1',
-      title: 'The Midnight Library',
-      author: 'Matt Haig',
-      cover: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=60',
-      totalChapters: 24,
-      currentChapter: 12
-    },
-    members: 28,
-    moderator: users[0],
-    nextMeeting: '2024-02-15T19:00:00',
-    meetingDay: 'Thursdays',
-    meetingTime: '19:00',
-    progress: 50,
-    joined: true
-  },
-  {
-    id: '2',
-    communityId: '1',
-    name: 'Sci-Fi Explorers',
-    description: 'For lovers of science fiction and space adventures',
-    currentBook: {
-      id: '2',
-      title: 'Project Hail Mary',
-      author: 'Andy Weir',
-      cover: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=60',
-      totalChapters: 32,
-      currentChapter: 18
-    },
-    members: 15,
-    moderator: users[1],
-    nextMeeting: '2024-02-18T20:00:00',
-    meetingDay: 'Sundays',
-    meetingTime: '20:00',
-    progress: 56,
-    joined: false
-  },
-];
-
 interface ReadingClubCardProps {
   club: any; // Real API structure
   onJoinRoom: (club: any) => void;
@@ -370,10 +261,7 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
           community_id: communityId,
         }, imageUri);
         
-        if (success) {
-          logger.info('✅ Community post created successfully');
-          Alert.alert('¡Éxito!', 'Tu post ha sido publicado en la comunidad');
-        } else {
+        if (!success) {
           Alert.alert('Error', 'No se pudo crear el post. Intenta de nuevo.');
         }
       } catch (error) {

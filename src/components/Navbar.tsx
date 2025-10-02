@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialIcons, Feather } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { strings, colors } from '../constants';
 
 interface NavbarProps {
@@ -27,6 +28,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeTab = 'home', 
   onTabPress = () => {} 
 }) => {
+  const insets = useSafeAreaInsets();
   const renderIcon = (item: NavItem, isActive: boolean) => {
     const iconColor = isActive ? colors.primary.main : colors.neutral.gray500;
     const iconSize = 24;
@@ -51,7 +53,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: insets.bottom + 12 }]}>
       {navItems.map((item) => {
         const isActive = activeTab === item.key;
         

@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { strings, theme, colors } from '../constants';
 import { UserDropdown } from './UserDropdown';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,13 +9,16 @@ import { useAuth } from '../contexts/AuthContext';
 interface TopNavbarProps {
   onNotificationPress?: () => void;
   hasNotifications?: boolean;
+  disableSafeAreaTop?: boolean;
 }
 
 export const TopNavbar: React.FC<TopNavbarProps> = ({ 
   onNotificationPress = () => {},
   hasNotifications = false,
+  disableSafeAreaTop = false,
 }) => {
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0 });
   const profileButtonRef = useRef<any>(null);
@@ -31,25 +35,14 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
     }
   };
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: disableSafeAreaTop ? 6 : insets.top + 6 }]}>
       <View style={styles.leftSection}>
         <MaterialIcons name="menu-book" size={32} color={theme.icon.primary} />
         <Text style={styles.brandText}>{strings.app.name}</Text>
       </View>
       
       <View style={styles.rightSection}>
-        <TouchableOpacity
-          style={styles.notificationButton}
-          onPress={onNotificationPress}
-          activeOpacity={0.7}
-          testID="notification-button"
-          accessible={true}
-          accessibilityLabel={strings.accessibility.notifications}
-        >
-          <MaterialIcons name="notifications-none" size={28} color={theme.icon.default} />
-          {hasNotifications && <View style={styles.notificationDot} testID="notification-dot" />}
-        </TouchableOpacity>
-        
+      
         <TouchableOpacity
           ref={profileButtonRef}
           style={styles.profileButton}
@@ -86,7 +79,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.background.primary,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    paddingTop: 6,
     borderBottomWidth: 1,
     borderBottomColor: colors.neutral.gray200,
     shadowColor: colors.shadow.default,

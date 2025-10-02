@@ -338,15 +338,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
     try {
       logger.info('📚 [PROFILE] Updating book status:', { bookId, newStatus });
       
-      const { BooksService } = await import('../services/booksService');
       // Map READ to read for backend compatibility
-      const backendStatus = newStatus === 'READ' ? 'READ' : newStatus;
-      const statusData: UpdateStatusDto = { status: backendStatus as any };
+      const statusData: UpdateStatusDto = { status: newStatus };
+      
       await BooksService.updateBookStatus(bookId, statusData);
       
       // Refresh user library
       if (userId) {
-        await getUserLibrary(userId);
+        await loadProfileData();
       }
       
       logger.info('✅ [PROFILE] Book status updated successfully');

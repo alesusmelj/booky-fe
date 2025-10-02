@@ -43,10 +43,7 @@ export const HomeScreen: React.FC = () => {
         body: content 
       }, imageUri);
       
-      if (success) {
-        logger.info('✅ Post created successfully');
-        Alert.alert('¡Éxito!', 'Tu post ha sido publicado');
-      } else {
+      if (!success) {
         Alert.alert('Error', 'No se pudo crear el post. Intenta de nuevo.');
       }
     } catch (err) {

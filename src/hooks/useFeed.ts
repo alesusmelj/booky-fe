@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { PostsService } from '../services';
 import { PostDto } from '../types/api';
+import { useAuth } from '../contexts/AuthContext';
 import { logger } from '../utils/logger';
 
 interface FeedState {
@@ -20,6 +21,7 @@ interface UseFeedOptions {
 
 export const useFeed = (options: UseFeedOptions = {}) => {
     const { pageSize = 10, enableMockData = false } = options;
+    const { user } = useAuth();
 
     const [state, setState] = useState<FeedState>({
         posts: [],
@@ -250,9 +252,25 @@ export const useFeed = (options: UseFeedOptions = {}) => {
                 logger.info('📝 Adding post to state:', response.data);
                 logger.info('📝 Post user in response:', response.data?.user);
 
+                // Ensure the post has user information
+                const newPost = {
+                    ...response.data,
+                    user: response.data.user || user // Use current user if backend doesn't return user info
+                };
+
+                logger.info('📝 [useFeed] Post user info after creation:', {
+                    hasUserInResponse: !!response.data.user,
+                    hasUserInContext: !!user,
+                    finalUserInfo: newPost.user ? {
+                        id: newPost.user.id,
+                        name: newPost.user.name,
+                        lastname: newPost.user.lastname
+                    } : 'No user info'
+                });
+
                 setState(prev => ({
                     ...prev,
-                    posts: [response.data, ...prev.posts],
+                    posts: [newPost, ...prev.posts],
                 }));
 
                 logger.info('✅ Post created successfully');
@@ -269,7 +287,7 @@ export const useFeed = (options: UseFeedOptions = {}) => {
 
             return false;
         }
-    }, [enableMockData]);
+    }, [enableMockData, user]);
 
     const clearError = useCallback(() => {
         setState(prev => ({ ...prev, error: null }));

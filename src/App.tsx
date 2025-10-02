@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, SafeAreaView, ActivityIndicator, TouchableOpacity } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Navbar, TopNavbar } from './components';
 import { HomeScreen, SearchScreen, LoginScreen, SignUpScreen, CommunitiesScreen, CommunityDetailScreen, ReadingClubsScreen, ProfileScreen, LibraryScreen, ChatsScreen, ChatDetailScreen, Scene360TestScreen, Scene360TestScreenSimple, Scene360TestScreenSafe, Scene360TestImageOptions, Scene360ProceduralTest, Scene360CustomImageTest } from './screens';
 import CommerceScreen from './screens/CommerceScreen';
@@ -15,6 +15,7 @@ function AppContent() {
   const [authScreen, setAuthScreen] = useState<'login' | 'signup'>('login');
   const { isAuthenticated, isLoading } = useAuth();
   const { currentScreen, goBack, canGoBack, resetToHome } = useNavigation();
+  const insets = useSafeAreaInsets();
 
   const handleTabPress = (tab: string) => {
     logger.info('🔄 Tab pressed:', { 
@@ -136,7 +137,7 @@ function AppContent() {
       {canGoBack() ? (
         <View style={styles.headerWithBack}>
           <TouchableOpacity 
-            style={styles.backButton}
+            style={[styles.backButton, { paddingTop: insets.top + 12 }]}
             onPress={goBack}
             activeOpacity={0.7}
           >
@@ -145,6 +146,7 @@ function AppContent() {
           <TopNavbar 
             hasNotifications={true}
             onNotificationPress={() => {}}
+            disableSafeAreaTop={true}
           />
         </View>
       ) : (

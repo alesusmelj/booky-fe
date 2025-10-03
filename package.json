@@ -34,7 +34,6 @@
     "@types/three": "^0.180.0",
     "expo": "^54.0.8",
     "expo-asset": "~12.0.8",
-    "expo-barcode-scanner": "^13.0.1",
     "expo-camera": "~17.0.7",
     "expo-file-system": "~19.0.14",
     "expo-gl": "~16.0.7",
@@ -78,6 +77,20 @@
     "prettier": "^3.3.3",
     "ts-jest": "^29.4.1",
     "typescript": "~5.9.2"
+  },
+  "overrides": {
+    "react": "19.1.0",
+    "expo-image-loader": "6.0.0"
+  },
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "exclude": [
+          "@livekit/react-native",
+          "@livekit/react-native-webrtc"
+        ]
+      }
+    }
   },
   "private": true
 }

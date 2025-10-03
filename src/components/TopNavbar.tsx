@@ -37,7 +37,11 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
   return (
     <View style={[styles.container, { paddingTop: disableSafeAreaTop ? 6 : insets.top + 6 }]}>
       <View style={styles.leftSection}>
-        <MaterialIcons name="menu-book" size={32} color={theme.icon.primary} />
+        <Image 
+          source={require('../../assets/logo.png')} 
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
         <Text style={styles.brandText}>{strings.app.name}</Text>
       </View>
       
@@ -93,6 +97,10 @@ const styles = StyleSheet.create({
   leftSection: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  logoImage: {
+    width: 32,
+    height: 32,
   },
   brandText: {
     fontSize: 24,

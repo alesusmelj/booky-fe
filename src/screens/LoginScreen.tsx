@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Image,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { strings, colors, theme } from '../constants';
@@ -88,11 +89,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
-          <MaterialIcons
-            name="menu-book"
-            size={64}
-            color={colors.primary.main}
+          <Image
+            source={require('../../assets/logo.png')}
             style={styles.logo}
+            resizeMode="contain"
           />
           <Text style={styles.appName}>{strings.app.name}</Text>
           <Text style={styles.tagline}>{strings.auth.appTagline}</Text>
@@ -236,6 +236,8 @@ const styles = StyleSheet.create({
     marginBottom: 48,
   },
   logo: {
+    width: 100,
+    height: 100,
     marginBottom: 16,
   },
   appName: {

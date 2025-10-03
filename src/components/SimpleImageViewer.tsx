@@ -130,7 +130,6 @@ const loadTextureRobustAsync = async (
 
   const timeout = new Promise<never>((_, reject) =>
     setTimeout(() => {
-      console.error(`⏰ [ROBUST] Timeout tras ${timeoutMs} ms`);
       reject(new Error(`Timeout tras ${timeoutMs} ms`));
     }, timeoutMs)
   );
@@ -241,7 +240,6 @@ const loadTextureRobustAsync = async (
   })();
 
   // Timeout real (nota: no cancela la descarga subyacente, sólo rechaza antes)
-  console.log('🏁 [ROBUST] Iniciando carrera con timeout...');
   return Promise.race([loadOp, timeout]);
 };
 

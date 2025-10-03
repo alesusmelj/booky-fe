@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Image,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { strings, colors, theme } from '../constants';
@@ -209,11 +210,10 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <MaterialIcons
-            name="menu-book"
-            size={56}
-            color={colors.primary.main}
+          <Image
+            source={require('../../assets/logo.png')}
             style={styles.logo}
+            resizeMode="contain"
           />
           <Text style={styles.appName}>{strings.app.name}</Text>
           <Text style={styles.tagline}>{strings.auth.signUpTagline}</Text>
@@ -437,6 +437,8 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   logo: {
+    width: 80,
+    height: 80,
     marginBottom: 12,
   },
   appName: {

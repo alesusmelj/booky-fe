@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import { CameraView, Camera, BarcodeScanningResult } from 'expo-camera';
 import { colors } from '../constants';
 import { logger } from '../utils/logger';
 
@@ -20,17 +21,12 @@ export const NativeBarcodeScanner: React.FC<NativeBarcodeScannerProps> = ({
 }) => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [scanned, setScanned] = useState(false);
-  const [BarCodeScanner, setBarCodeScanner] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const initializeScanner = async () => {
       try {
-        // Dynamic import to avoid module loading issues
-        const { BarCodeScanner: Scanner } = require('expo-barcode-scanner');
-        setBarCodeScanner(Scanner);
-
-        const { status } = await Scanner.requestPermissionsAsync();
+        const { status } = await Camera.requestCameraPermissionsAsync();
         setHasPermission(status === 'granted');
       } catch (error) {
         logger.error('📱 [BARCODE] Error initializing scanner:', error);
@@ -42,17 +38,19 @@ export const NativeBarcodeScanner: React.FC<NativeBarcodeScannerProps> = ({
     initializeScanner();
   }, []);
 
-  const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
+  const handleBarCodeScanned = (result: BarcodeScanningResult) => {
     setScanned(true);
-    
+
+    const data = result.data;
+
     // Validate data before processing
     if (!data || typeof data !== 'string') {
       logger.warn('📱 [BARCODE] Invalid barcode data received:', data);
       return;
     }
-    
+
     const cleanedData = data.replace(/[-\s]/g, '');
-    
+
     if (cleanedData.length === 10 || cleanedData.length === 13) {
       onBarcodeScanned(cleanedData);
       Alert.alert(
@@ -98,33 +96,14 @@ export const NativeBarcodeScanner: React.FC<NativeBarcodeScannerProps> = ({
     );
   }
 
-  if (!BarCodeScanner) {
-    return (
-      <View style={styles.errorContainer}>
-        <View style={styles.errorContent}>
-          <Text style={styles.errorTitle}>📱 Scanner Error</Text>
-          <Text style={styles.errorMessage}>
-            Barcode scanner could not be initialized.
-          </Text>
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Text style={styles.closeButtonText}>Close</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.scannerContainer}>
-      <BarCodeScanner
-        onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
+      <CameraView
+        onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
         style={styles.scanner}
-        barCodeTypes={[
-          BarCodeScanner.Constants.BarCodeType.ean13,
-          BarCodeScanner.Constants.BarCodeType.ean8,
-          BarCodeScanner.Constants.BarCodeType.code128,
-          BarCodeScanner.Constants.BarCodeType.code39,
-        ]}
+        barcodeScannerSettings={{
+          barcodeTypes: ['ean13', 'ean8', 'code128', 'code39'],
+        }}
       />
       
       {/* Overlay */}

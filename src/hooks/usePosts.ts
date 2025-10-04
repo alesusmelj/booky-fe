@@ -147,6 +147,26 @@ export const usePosts = (communityId?: string) => {
     }
   }, []);
 
+  const toggleLike = useCallback(async (postId: string): Promise<void> => {
+    try {
+      logger.info('❤️ [usePosts] Toggling like for post:', postId);
+
+      // Call the API
+      await PostsService.toggleLike(postId);
+
+      logger.info('✅ [usePosts] Like toggled successfully, refreshing posts');
+
+      // Refresh posts to get updated data
+      await fetchPosts();
+    } catch (error) {
+      logger.error('❌ [usePosts] Error toggling like:', error);
+      setState(prev => ({
+        ...prev,
+        error: error instanceof Error ? error.message : 'Failed to toggle like'
+      }));
+    }
+  }, [fetchPosts]);
+
   const clearError = useCallback(() => {
     setState(prev => ({ ...prev, error: null }));
   }, []);
@@ -165,6 +185,7 @@ export const usePosts = (communityId?: string) => {
     refresh,
     createPost,
     deletePost,
+    toggleLike,
     clearError,
   };
 };

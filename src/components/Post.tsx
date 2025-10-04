@@ -46,18 +46,30 @@ export const Post: React.FC<PostProps> = ({
   onDelete,
 }) => {
   const { user: currentUser } = useAuth();
-  const [isLiked, setIsLiked] = useState(false);
-  const [likesCount, setLikesCount] = useState(0);
+  const [isLiked, setIsLiked] = useState(post.is_liked_by_user || false);
+  const [likesCount, setLikesCount] = useState(post.likes_count || 0);
   const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
   const [showImageViewer, setShowImageViewer] = useState(false);
   const [showCommentsModal, setShowCommentsModal] = useState(false);
 
-  // Sync commentsCount with post.comments_count when it changes
+  // Sync with post data when it changes
   useEffect(() => {
     if (post.comments_count !== undefined) {
       setCommentsCount(post.comments_count);
     }
   }, [post.comments_count]);
+
+  useEffect(() => {
+    if (post.likes_count !== undefined) {
+      setLikesCount(post.likes_count);
+    }
+  }, [post.likes_count]);
+
+  useEffect(() => {
+    if (post.is_liked_by_user !== undefined) {
+      setIsLiked(post.is_liked_by_user);
+    }
+  }, [post.is_liked_by_user]);
 
   const handleLike = () => {
     setIsLiked(!isLiked);

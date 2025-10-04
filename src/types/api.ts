@@ -217,6 +217,9 @@ export interface PostDto {
   user: UserPreviewDto;
   community?: CommunityDto;
   comments_count?: number;
+  likes_count?: number;
+  is_liked_by_user?: boolean;
+  likes?: string[];
 }
 
 export interface CreatePostDto {

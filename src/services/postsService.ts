@@ -204,4 +204,14 @@ export class PostsService {
       throw error;
     }
   }
+
+  /**
+   * Toggle like on a post
+   */
+  static async toggleLike(postId: string): Promise<{ data: any }> {
+    logger.info('❤️ [PostsService] Toggling like on post:', postId);
+    return await apiRequest(`/posts/${postId}/like`, {
+      method: 'POST',
+    });
+  }
 }

@@ -41,6 +41,7 @@ interface OfferCardProps {
   onComplete?: () => void;
   onChat?: () => void;
   onRate?: () => void;
+  onUserPress?: (userId: string) => void;
 }
 
 export function OfferCard({ 
@@ -53,7 +54,8 @@ export function OfferCard({
   onCancel,
   onComplete,
   onChat,
-  onRate
+  onRate,
+  onUserPress
 }: OfferCardProps) {
   const handleCounterOffer = () => {
     onCounterOffer?.();
@@ -235,13 +237,19 @@ export function OfferCard({
       <Text style={styles.date}>{offer.date}</Text>
 
       <View style={styles.userSection}>
-        <UserAvatar 
-          imageUrl={offer.requester.avatar.startsWith('http') ? offer.requester.avatar : null}
-          name={offer.requester.name}
-          size="medium"
-          backgroundColor={colors.primary.main}
-          style={styles.avatarSpacing}
-        />
+        <TouchableOpacity
+          onPress={() => offer.requester.id && onUserPress?.(offer.requester.id)}
+          disabled={!offer.requester.id || !onUserPress}
+          activeOpacity={0.7}
+        >
+          <UserAvatar 
+            imageUrl={offer.requester.avatar.startsWith('http') ? offer.requester.avatar : null}
+            name={offer.requester.name}
+            size="medium"
+            backgroundColor={colors.primary.main}
+            style={styles.avatarSpacing}
+          />
+        </TouchableOpacity>
         <View style={styles.userInfo}>
           <Text style={styles.userName}>{offer.requester.name}</Text>
           <Text style={styles.userRole}>{offer.requester.role}</Text>

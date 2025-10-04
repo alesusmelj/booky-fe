@@ -41,6 +41,7 @@ interface OrderCardProps {
   onReject?: () => void;
   onCounterOffer?: () => void;
   onRate?: () => void;
+  onUserPress?: (userId: string) => void;
 }
 
 export function OrderCard({ 
@@ -53,7 +54,8 @@ export function OrderCard({
   onAccept,
   onReject,
   onCounterOffer,
-  onRate
+  onRate,
+  onUserPress
 }: OrderCardProps) {
   const handleChat = () => {
     onChat?.();
@@ -283,13 +285,19 @@ export function OrderCard({
       <View style={styles.divider} />
 
       <View style={styles.otherUserSection}>
-        <UserAvatar 
-          imageUrl={order.requester.avatar && order.requester.avatar.startsWith('http') ? order.requester.avatar : null}
-          name={order.requester.name}
-          size="medium"
-          backgroundColor={colors.primary.main}
-          style={styles.avatarSpacing}
-        />
+        <TouchableOpacity
+          onPress={() => order.requester.id && onUserPress?.(order.requester.id)}
+          disabled={!order.requester.id || !onUserPress}
+          activeOpacity={0.7}
+        >
+          <UserAvatar 
+            imageUrl={order.requester.avatar && order.requester.avatar.startsWith('http') ? order.requester.avatar : null}
+            name={order.requester.name}
+            size="medium"
+            backgroundColor={colors.primary.main}
+            style={styles.avatarSpacing}
+          />
+        </TouchableOpacity>
         <View style={styles.userInfo}>
           <Text style={styles.userName}>{order.requester.name}</Text>
           <Text style={styles.userRole}>Propietario del libro solicitado</Text>

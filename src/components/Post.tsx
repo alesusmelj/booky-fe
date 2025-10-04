@@ -5,12 +5,14 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
+  Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { strings, colors, theme } from '../constants';
 import { PostDto } from '../types/api';
 import { logger } from '../utils/logger';
 import { ImageViewer } from './ImageViewer';
+import { useAuth } from '../contexts/AuthContext';
 
 export interface PostData {
   id: string;
@@ -32,6 +34,7 @@ interface PostProps {
   onLike?: (postId: string) => void;
   onComment?: (postId: string) => void;
   onUserPress?: (userId: string) => void;
+  onDelete?: (postId: string) => void;
 }
 
 export const Post: React.FC<PostProps> = ({
@@ -39,7 +42,9 @@ export const Post: React.FC<PostProps> = ({
   onLike = () => {},
   onComment = () => {},
   onUserPress = () => {},
+  onDelete,
 }) => {
+  const { user: currentUser } = useAuth();
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
   const [showImageViewer, setShowImageViewer] = useState(false);
@@ -110,6 +115,30 @@ export const Post: React.FC<PostProps> = ({
     return `${post.user.name || ''} ${post.user.lastname || ''}`.trim() || 'Unknown User';
   };
 
+  const isOwnPost = currentUser?.id === post.user_id;
+
+  const handleDelete = () => {
+    Alert.alert(
+      'Eliminar publicación',
+      '¿Estás seguro de que quieres eliminar esta publicación?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: () => {
+            if (onDelete) {
+              onDelete(post.id);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -128,6 +157,17 @@ export const Post: React.FC<PostProps> = ({
           </View>
         </TouchableOpacity>
       </View>
+
+      {isOwnPost && onDelete && (
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={handleDelete}
+          activeOpacity={0.7}
+          testID="post-delete-button"
+        >
+          <MaterialIcons name="delete-outline" size={22} color={colors.neutral.gray400} />
+        </TouchableOpacity>
+      )}
 
       <View style={styles.content}>
         <Text style={styles.contentText}>{post.body}</Text>
@@ -294,5 +334,13 @@ const styles = StyleSheet.create({
   },
   actionTextActive: {
     color: colors.status.error,
+  },
+  deleteButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'transparent',
   },
 });

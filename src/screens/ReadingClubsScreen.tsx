@@ -64,17 +64,17 @@ const ReadingClubCard: React.FC<ReadingClubCardProps> = ({ club, onPress, onJoin
           </Text>
           <View style={styles.membersContainer}>
             <Text style={styles.membersText}>
-              👥 {club.members} members
+              👥 {club.members} miembros
             </Text>
           </View>
         </View>
         <View style={styles.statusBadge}>
-          <Text style={styles.statusText}>Active</Text>
+          <Text style={styles.statusText}>Activo</Text>
         </View>
       </View>
 
       <View style={styles.currentBookSection}>
-        <Text style={styles.sectionLabel}>Currently Reading</Text>
+        <Text style={styles.sectionLabel}>Leyendo Actualmente</Text>
         <View style={styles.bookInfo}>
           <Text style={styles.bookIcon}>📖</Text>
           <Text style={styles.bookTitle} numberOfLines={1}>
@@ -84,7 +84,7 @@ const ReadingClubCard: React.FC<ReadingClubCardProps> = ({ club, onPress, onJoin
       </View>
 
       <View style={styles.meetingSection}>
-        <Text style={styles.sectionLabel}>Next Meeting</Text>
+        <Text style={styles.sectionLabel}>Próxima Reunión</Text>
         <View style={styles.meetingInfo}>
           <Text style={styles.calendarIcon}>📅</Text>
           <Text style={styles.meetingDay}>
@@ -94,7 +94,7 @@ const ReadingClubCard: React.FC<ReadingClubCardProps> = ({ club, onPress, onJoin
       </View>
 
       <View style={styles.progressSection}>
-        <Text style={styles.sectionLabel}>Reading Progress</Text>
+        <Text style={styles.sectionLabel}>Progreso de Lectura</Text>
         <View style={styles.progressBar}>
           <View 
             style={[
@@ -104,7 +104,7 @@ const ReadingClubCard: React.FC<ReadingClubCardProps> = ({ club, onPress, onJoin
           />
         </View>
         <Text style={styles.progressText}>
-          {club.progress}% complete
+          {club.progress}% completado
         </Text>
       </View>
 
@@ -114,7 +114,7 @@ const ReadingClubCard: React.FC<ReadingClubCardProps> = ({ club, onPress, onJoin
           onPress={() => onJoin(club.id)}
           activeOpacity={0.8}
         >
-          <Text style={styles.joinButtonText}>Join Club</Text>
+          <Text style={styles.joinButtonText}>Unirse al Club</Text>
         </TouchableOpacity>
       ) : (
         <TouchableOpacity 
@@ -122,7 +122,7 @@ const ReadingClubCard: React.FC<ReadingClubCardProps> = ({ club, onPress, onJoin
           onPress={() => onJoinRoom(club)}
           activeOpacity={0.8}
         >
-          <Text style={styles.joinButtonText}>Join Meeting</Text>
+          <Text style={styles.joinButtonText}>Unirse a la Reunión</Text>
         </TouchableOpacity>
       )}
     </TouchableOpacity>
@@ -173,13 +173,13 @@ export const ReadingClubsScreen: React.FC = () => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Reading Clubs</Text>
+        <Text style={styles.title}>Clubes de Lectura</Text>
         <TouchableOpacity 
           style={styles.createButton}
           onPress={handleCreateClub}
           activeOpacity={0.8}
         >
-          <Text style={styles.createButtonText}>+ Create Club</Text>
+          <Text style={styles.createButtonText}>+ Crear Club</Text>
         </TouchableOpacity>
       </View>
 

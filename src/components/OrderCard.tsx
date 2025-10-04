@@ -237,11 +237,13 @@ export function OrderCard({
         />
         <View style={styles.userInfo}>
           <Text style={styles.userName}>{strings.commerce.labels.you}</Text>
-          <Text style={styles.userRole}>{strings.commerce.labels.applicant}</Text>
+          <Text style={styles.userRole}>Solicitante del intercambio</Text>
         </View>
       </View>
 
-      <Text style={styles.sectionLabel}>{strings.commerce.labels.requests}</Text>
+      <Text style={styles.sectionLabel}>
+        <Text style={{fontWeight: '700'}}>Quieres recibir:</Text>
+      </Text>
       {order.requestedBooks.map((book, index) => (
         <View key={index} style={styles.bookItem}>
           <BookImage 
@@ -257,31 +259,13 @@ export function OrderCard({
       ))}
 
       <View style={styles.exchangeIcon}>
-        <MaterialIcons name="sync" size={16} color={colors.neutral.gray400} />
-        <Text style={styles.exchangeText}>{strings.commerce.labels.exchange}</Text>
+        <MaterialIcons name="swap-horiz" size={20} color={colors.primary.main} />
+        <Text style={styles.exchangeText}>a cambio de</Text>
       </View>
 
-      <View style={styles.otherUserSection}>
-        <UserAvatar 
-          imageUrl={order.requester.avatar && order.requester.avatar.startsWith('http') ? order.requester.avatar : null}
-          name={order.requester.name}
-          size="medium"
-          backgroundColor={colors.primary.main}
-          style={styles.avatarSpacing}
-        />
-        <View style={styles.userInfo}>
-          <Text style={styles.userName}>{order.requester.name}</Text>
-          <Text style={styles.userRole}>Propietario de los libros</Text>
-          {order.requester.location && (
-            <View style={styles.locationContainer}>
-              <MaterialIcons name="location-on" size={14} color={colors.primary.main} />
-              <Text style={styles.location}>{order.requester.location}</Text>
-            </View>
-          )}
-        </View>
-      </View>
-
-      <Text style={styles.sectionLabel}>{strings.commerce.labels.offers}</Text>
+      <Text style={styles.sectionLabel}>
+        <Text style={{fontWeight: '700'}}>Ofreces dar:</Text>
+      </Text>
       {order.offeredBooks.map((book, index) => (
         <View key={index} style={styles.bookItem}>
           <BookImage 
@@ -295,6 +279,28 @@ export function OrderCard({
           </View>
         </View>
       ))}
+
+      <View style={styles.divider} />
+
+      <View style={styles.otherUserSection}>
+        <UserAvatar 
+          imageUrl={order.requester.avatar && order.requester.avatar.startsWith('http') ? order.requester.avatar : null}
+          name={order.requester.name}
+          size="medium"
+          backgroundColor={colors.primary.main}
+          style={styles.avatarSpacing}
+        />
+        <View style={styles.userInfo}>
+          <Text style={styles.userName}>{order.requester.name}</Text>
+          <Text style={styles.userRole}>Propietario del libro solicitado</Text>
+          {order.requester.location && (
+            <View style={styles.locationContainer}>
+              <MaterialIcons name="location-on" size={14} color={colors.primary.main} />
+              <Text style={styles.location}>{order.requester.location}</Text>
+            </View>
+          )}
+        </View>
+      </View>
 
       <View style={styles.actions}>
         {renderActionButtons()}
@@ -484,12 +490,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 8,
-    gap: 3,
+    marginVertical: 12,
+    gap: 6,
+    backgroundColor: colors.primary.light,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
   },
   exchangeText: {
-    fontSize: 10,
-    color: colors.neutral.gray400,
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.primary.main,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.neutral.gray200,
+    marginVertical: 12,
   },
   actions: {
     flexDirection: 'row',

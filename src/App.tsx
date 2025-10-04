@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, SafeAreaView, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, SafeAreaView, ActivityIndicator, TouchableOpacity, StatusBar as RNStatusBar, Platform } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Navbar, TopNavbar } from './components';
 import { HomeScreen, SearchScreen, LoginScreen, SignUpScreen, CommunitiesScreen, CommunityDetailScreen, ReadingClubsScreen, ProfileScreen, LibraryScreen, ChatsScreen, ChatDetailScreen, Scene360TestScreen, Scene360TestScreenSimple, Scene360TestScreenSafe, Scene360TestImageOptions, Scene360ProceduralTest, Scene360CustomImageTest } from './screens';
@@ -48,8 +48,9 @@ function AppContent() {
 
   // Show authentication screens if not authenticated
   if (!isAuthenticated) {
+    const AuthContainer = Platform.OS === 'android' ? View : SafeAreaView;
     return (
-      <SafeAreaView style={styles.container}>
+      <AuthContainer style={styles.container}>
         {authScreen === 'login' ? (
           <LoginScreen 
             onCreateAccountPress={() => setAuthScreen('signup')}
@@ -60,7 +61,7 @@ function AppContent() {
           />
         )}
         <StatusBar style="auto" />
-      </SafeAreaView>
+      </AuthContainer>
     );
   }
 
@@ -132,12 +133,23 @@ function AppContent() {
     return activeTab;
   };
 
+  // Get the correct padding for back button
+  const getBackButtonTopPadding = () => {
+    if (Platform.OS === 'android') {
+      return (RNStatusBar.currentHeight || 0) + 8;
+    }
+    return insets.top > 0 ? Math.min(insets.top, 8) : 8;
+  };
+
+  // Use View for Android, SafeAreaView for iOS
+  const ContainerComponent = Platform.OS === 'android' ? View : SafeAreaView;
+
   return (
-    <SafeAreaView style={styles.container}>
+    <ContainerComponent style={styles.container}>
       {canGoBack() ? (
         <View style={styles.headerWithBack}>
           <TouchableOpacity 
-            style={[styles.backButton, { paddingTop: insets.top + 12 }]}
+            style={[styles.backButton, { paddingTop: getBackButtonTopPadding() }]}
             onPress={goBack}
             activeOpacity={0.7}
           >
@@ -165,7 +177,7 @@ function AppContent() {
         />
       )}
       <StatusBar style="auto" />
-    </SafeAreaView>
+    </ContainerComponent>
   );
 }
 
@@ -200,7 +212,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 8,
     backgroundColor: colors.neutral.white,
     borderBottomWidth: 1,
     borderBottomColor: colors.neutral.gray200,

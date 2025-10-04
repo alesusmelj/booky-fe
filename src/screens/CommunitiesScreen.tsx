@@ -57,7 +57,7 @@ const CommunityCard: React.FC<CommunityCardProps> = ({ community, onPress, onJoi
           </Text>
           <View style={styles.membersBadge}>
             <Text style={styles.membersText}>
-              {community.member_count} members
+              {community.member_count} miembros
             </Text>
           </View>
         </View>
@@ -79,11 +79,11 @@ const CommunityCard: React.FC<CommunityCardProps> = ({ community, onPress, onJoi
               }}
               activeOpacity={0.8}
             >
-              <Text style={styles.joinButtonText}>Join</Text>
+              <Text style={styles.joinButtonText}>Unirse</Text>
             </TouchableOpacity>
           ) : (
             <View style={styles.memberBadge}>
-              <Text style={styles.memberBadgeText}>Member</Text>
+              <Text style={styles.memberBadgeText}>Miembro</Text>
             </View>
           )}
         </View>
@@ -149,7 +149,7 @@ export const CommunitiesScreen: React.FC = () => {
       console.log('✅ Join result:', success);
       
       if (!success) {
-        Alert.alert('Error', 'Failed to join the community. Please try again.');
+        Alert.alert('Error', 'No se pudo unir a la comunidad. Intenta de nuevo.');
         return;
       }
 
@@ -168,17 +168,17 @@ export const CommunitiesScreen: React.FC = () => {
         console.error('❌ Refresh failed:', refreshError);
       }
       
-      Alert.alert('Success', 'You have successfully joined the community!');
+      Alert.alert('Éxito', '¡Te has unido a la comunidad exitosamente!');
       
     } catch (error) {
       console.error('❌ Join process failed:', error);
-      Alert.alert('Error', 'Failed to join the community. Please try again.');
+      Alert.alert('Error', 'No se pudo unir a la comunidad. Intenta de nuevo.');
     }
   };
 
   const handleCreateCommunity = async () => {
     if (!newCommunityName.trim() || !newCommunityDescription.trim()) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert('Error', 'Por favor completa todos los campos');
       return;
     }
 
@@ -192,15 +192,15 @@ export const CommunitiesScreen: React.FC = () => {
       const newCommunity = await createCommunity(communityData);
       
       if (newCommunity) {
-        Alert.alert('Success', 'Community created successfully!');
+        Alert.alert('Éxito', '¡Comunidad creada exitosamente!');
         setShowCreateModal(false);
         setNewCommunityName('');
         setNewCommunityDescription('');
       } else {
-        Alert.alert('Error', 'Failed to create community. Please try again.');
+        Alert.alert('Error', 'No se pudo crear la comunidad. Intenta de nuevo.');
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to create community. Please try again.');
+      Alert.alert('Error', 'No se pudo crear la comunidad. Intenta de nuevo.');
     } finally {
       setIsCreating(false);
     }
@@ -217,12 +217,12 @@ export const CommunitiesScreen: React.FC = () => {
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <Text style={styles.emptyStateTitle}>
-        {searchQuery ? 'No communities found' : 'No communities available'}
+        {searchQuery ? 'No se encontraron comunidades' : 'No hay comunidades disponibles'}
       </Text>
       <Text style={styles.emptyStateText}>
         {searchQuery 
-          ? 'Try adjusting your search terms'
-          : 'Be the first to create a community!'
+          ? 'Intenta ajustar los términos de búsqueda'
+          : '¡Sé el primero en crear una comunidad!'
         }
       </Text>
       {!searchQuery && (
@@ -230,7 +230,7 @@ export const CommunitiesScreen: React.FC = () => {
           style={styles.createFirstButton}
           onPress={() => setShowCreateModal(true)}
         >
-          <Text style={styles.createFirstButtonText}>Create Community</Text>
+          <Text style={styles.createFirstButtonText}>Crear Comunidad</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -238,10 +238,10 @@ export const CommunitiesScreen: React.FC = () => {
 
   const renderError = () => (
     <View style={styles.errorState}>
-      <Text style={styles.errorTitle}>Something went wrong</Text>
+      <Text style={styles.errorTitle}>Algo salió mal</Text>
       <Text style={styles.errorText}>{error}</Text>
       <TouchableOpacity style={styles.retryButton} onPress={refresh}>
-        <Text style={styles.retryButtonText}>Try Again</Text>
+        <Text style={styles.retryButtonText}>Intentar de nuevo</Text>
       </TouchableOpacity>
     </View>
   );
@@ -250,7 +250,7 @@ export const CommunitiesScreen: React.FC = () => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary.main} />
-        <Text style={styles.loadingText}>Loading communities...</Text>
+        <Text style={styles.loadingText}>Cargando comunidades...</Text>
       </View>
     );
   }
@@ -263,12 +263,12 @@ export const CommunitiesScreen: React.FC = () => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Communities</Text>
+        <Text style={styles.title}>Comunidades</Text>
         <TouchableOpacity 
           style={styles.createButton}
           onPress={() => setShowCreateModal(true)}
         >
-          <Text style={styles.createButtonText}>+ Create</Text>
+          <Text style={styles.createButtonText}>+ Crear</Text>
         </TouchableOpacity>
       </View>
 
@@ -276,7 +276,7 @@ export const CommunitiesScreen: React.FC = () => {
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
-          placeholder="Search communities..."
+          placeholder="Buscar comunidades..."
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholderTextColor={colors.neutral.gray500}
@@ -316,9 +316,9 @@ export const CommunitiesScreen: React.FC = () => {
               onPress={() => setShowCreateModal(false)}
               style={styles.modalCloseButton}
             >
-              <Text style={styles.modalCloseText}>Cancel</Text>
+              <Text style={styles.modalCloseText}>Cancelar</Text>
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>Create Community</Text>
+            <Text style={styles.modalTitle}>Crear Comunidad</Text>
             <TouchableOpacity 
               onPress={handleCreateCommunity}
               style={[styles.modalSaveButton, isCreating && styles.modalSaveButtonDisabled]}
@@ -327,30 +327,30 @@ export const CommunitiesScreen: React.FC = () => {
               {isCreating ? (
                 <ActivityIndicator size="small" color={colors.neutral.white} />
               ) : (
-                <Text style={styles.modalSaveText}>Create</Text>
+                <Text style={styles.modalSaveText}>Crear</Text>
               )}
             </TouchableOpacity>
           </View>
 
           <View style={styles.modalContent}>
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Community Name</Text>
+              <Text style={styles.inputLabel}>Nombre de la Comunidad</Text>
               <TextInput
                 style={styles.modalInput}
                 value={newCommunityName}
                 onChangeText={setNewCommunityName}
-                placeholder="Enter community name"
+                placeholder="Ingresa el nombre de la comunidad"
                 maxLength={50}
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Description</Text>
+              <Text style={styles.inputLabel}>Descripción</Text>
               <TextInput
                 style={[styles.modalInput, styles.modalTextArea]}
                 value={newCommunityDescription}
                 onChangeText={setNewCommunityDescription}
-                placeholder="Describe your community"
+                placeholder="Describe tu comunidad"
                 multiline
                 numberOfLines={4}
                 maxLength={200}
@@ -375,8 +375,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
+    paddingTop: 16,
+    paddingBottom: 16,
     backgroundColor: colors.neutral.white,
     borderBottomWidth: 1,
     borderBottomColor: colors.neutral.gray200,
@@ -594,8 +594,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
+    paddingTop: 16,
+    paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.neutral.gray200,
   },

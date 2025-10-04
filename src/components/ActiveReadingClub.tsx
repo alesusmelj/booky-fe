@@ -71,7 +71,7 @@ export const ActiveReadingClub: React.FC<ActiveReadingClubProps> = ({
           />
           <View style={styles.chapterOverlay}>
             <Text style={styles.chapterText}>
-              📖 Pages {club.current_chapter || 0}/{club.book?.pages || '?'}
+              📖 Página {club.current_chapter || 0}/{club.book?.pages || '?'}
             </Text>
           </View>
         </View>
@@ -94,14 +94,14 @@ export const ActiveReadingClub: React.FC<ActiveReadingClubProps> = ({
               {club.book?.title || 'Libro no disponible'}
             </Text>
             <Text style={styles.bookAuthor}>
-              by {club.book?.author || 'Autor desconocido'}
+              por {club.book?.author || 'Autor desconocido'}
             </Text>
           </View>
 
           <View style={styles.detailsContainer}>
             <View style={styles.detailItem}>
               <Text style={styles.detailIcon}>👥</Text>
-              <Text style={styles.detailText}>{club.member_count} members</Text>
+              <Text style={styles.detailText}>{club.member_count} miembros</Text>
             </View>
           </View>
 
@@ -111,7 +111,7 @@ export const ActiveReadingClub: React.FC<ActiveReadingClubProps> = ({
               style={styles.moderatorAvatar} 
             />
             <Text style={styles.moderatorText}>
-              Moderated by {club.moderator?.name || 'Moderador'} {club.moderator?.lastname || ''}
+              Moderado por {club.moderator?.name || 'Moderador'} {club.moderator?.lastname || ''}
             </Text>
           </View>
 
@@ -121,7 +121,7 @@ export const ActiveReadingClub: React.FC<ActiveReadingClubProps> = ({
               onPress={() => onJoin(club.id)}
               activeOpacity={0.8}
             >
-              <Text style={styles.joinButtonText}>Join Reading Club</Text>
+              <Text style={styles.joinButtonText}>Unirse al Club</Text>
             </TouchableOpacity>
             
             {isUserModerator && onSetMeeting && (
@@ -130,7 +130,7 @@ export const ActiveReadingClub: React.FC<ActiveReadingClubProps> = ({
                 onPress={() => onSetMeeting(club)}
                 activeOpacity={0.8}
               >
-                <Text style={styles.setMeetingButtonText}>Set Meeting</Text>
+                <Text style={styles.setMeetingButtonText}>Programar Reunión</Text>
               </TouchableOpacity>
             )}
           </View>

@@ -93,7 +93,7 @@ const ReadingClubCard: React.FC<ReadingClubCardProps> = ({ club, onJoinRoom, onJ
 
           {/* Progress Section */}
           <View style={styles.progressSection}>
-            <Text style={styles.progressLabel}>Reading Progress</Text>
+            <Text style={styles.progressLabel}>Progreso de Lectura</Text>
             <View style={styles.progressBarContainer}>
               <View style={styles.progressBarBackground}>
                 <View 
@@ -102,20 +102,20 @@ const ReadingClubCard: React.FC<ReadingClubCardProps> = ({ club, onJoinRoom, onJ
               </View>
             </View>
             <Text style={styles.progressText}>
-              Page {club.current_chapter || 0} of {club.book?.pages || '?'}
+              Página {club.current_chapter || 0} de {club.book?.pages || '?'}
             </Text>
           </View>
 
           {/* Meeting Info Box */}
           <View style={styles.meetingInfoBox}>
-            <Text style={styles.meetingLabel}>Next Meeting</Text>
-            <Text style={styles.meetingDate}>{formattedDate} at {formattedTime}</Text>
+            <Text style={styles.meetingLabel}>Próxima Reunión</Text>
+            <Text style={styles.meetingDate}>{formattedDate} a las {formattedTime}</Text>
           </View>
 
           {/* Members Info */}
           <View style={styles.membersInfo}>
             <Text style={styles.membersIcon}>👥</Text>
-            <Text style={styles.membersText}>{club.member_count} members</Text>
+            <Text style={styles.membersText}>{club.member_count} miembros</Text>
             <Text style={styles.moderatorText}>
               {club.moderator?.name || 'Moderador'} {club.moderator?.lastname || ''}
             </Text>
@@ -131,7 +131,7 @@ const ReadingClubCard: React.FC<ReadingClubCardProps> = ({ club, onJoinRoom, onJ
             onPress={() => onJoinClub(club.id)}
             activeOpacity={0.8}
           >
-            <Text style={styles.primaryButtonText}>Join Reading Club</Text>
+            <Text style={styles.primaryButtonText}>Unirse al Club de Lectura</Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity 
@@ -139,7 +139,7 @@ const ReadingClubCard: React.FC<ReadingClubCardProps> = ({ club, onJoinRoom, onJ
             onPress={() => onJoinRoom(club)}
             activeOpacity={0.8}
           >
-            <Text style={styles.primaryButtonText}>Join Meeting</Text>
+            <Text style={styles.primaryButtonText}>Unirse a la Reunión</Text>
           </TouchableOpacity>
         )}
         
@@ -149,7 +149,7 @@ const ReadingClubCard: React.FC<ReadingClubCardProps> = ({ club, onJoinRoom, onJ
             onPress={() => onSetMeeting(club)}
             activeOpacity={0.8}
           >
-            <Text style={styles.secondaryButtonText}>Set Meeting</Text>
+            <Text style={styles.secondaryButtonText}>Programar Reunión</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -466,7 +466,7 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
                 <View style={styles.communityContent}>
                   <Text style={styles.communityTitle}>{community.name}</Text>
                   <Text style={styles.communityDescription}>{community.description}</Text>
-                  <Text style={styles.communityMembers}>👥 {community.member_count} members</Text>
+                  <Text style={styles.communityMembers}>👥 {community.member_count} miembros</Text>
                   <Text style={styles.communityAdmin}>
                     Admin: {community.admin?.name} {community.admin?.lastname}
                   </Text>
@@ -494,7 +494,7 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
               activeOpacity={0.7}
             >
               <Text style={[styles.tabText, activeTab === 'reading-clubs' && styles.activeTabText]}>
-                Reading Clubs
+                Clubes de Lectura
               </Text>
             </TouchableOpacity>
           </View>
@@ -541,13 +541,13 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
               onPress={() => setShowCreateClubModal(true)}
               activeOpacity={0.8}
             >
-              <Text style={styles.createClubButtonText}>+ Create Reading Club</Text>
+              <Text style={styles.createClubButtonText}>+ Crear Club de Lectura</Text>
             </TouchableOpacity>
           </View>
         );
       
       case 'allClubsTitle':
-        return <Text style={styles.allClubsTitle}>All Reading Clubs</Text>;
+        return <Text style={styles.allClubsTitle}>Todos los Clubes de Lectura</Text>;
       
       case 'club':
         return (
@@ -565,9 +565,9 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
         return (
           <View style={styles.emptyClubsContainer}>
             <Text style={styles.emptyClubsIcon}>📖</Text>
-            <Text style={styles.emptyClubsTitle}>No reading clubs yet</Text>
+            <Text style={styles.emptyClubsTitle}>Aún no hay clubes de lectura</Text>
             <Text style={styles.emptyClubsText}>
-              Create a reading club to start discussing books with community members.
+              Crea un club de lectura para empezar a discutir libros con los miembros de la comunidad.
             </Text>
             <TouchableOpacity 
               style={styles.createFirstClubButton}

@@ -191,7 +191,7 @@ export const CreateReadingClubModal: React.FC<CreateReadingClubModalProps> = ({
 
   const renderBookStep = () => (
     <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>Busca y Selecciona el Primer Libro</Text>
+      <Text style={styles.stepTitle}>Selecciona el Primer Libro</Text>
       
       {/* Search Input */}
       <View style={styles.searchContainer}>
@@ -283,12 +283,12 @@ export const CreateReadingClubModal: React.FC<CreateReadingClubModalProps> = ({
 
   const renderScheduleStep = () => (
     <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>Programar Primer Meeting</Text>
+      <Text style={styles.stepTitle}>Programar Primera Reunión</Text>
       
       <View style={styles.formField}>
-        <Text style={styles.formLabel}>Fecha del Primer Meeting</Text>
+        <Text style={styles.formLabel}>Fecha de la Primera Reunión</Text>
         <Text style={styles.formHelper}>
-          Selecciona cuándo será el primer meeting del club
+          Selecciona cuándo será la primera reunión del club
         </Text>
         <Calendar
           selectedDate={selectedDate}
@@ -298,7 +298,7 @@ export const CreateReadingClubModal: React.FC<CreateReadingClubModalProps> = ({
       </View>
       
       <View style={styles.formField}>
-        <Text style={styles.formLabel}>Hora del Meeting</Text>
+        <Text style={styles.formLabel}>Hora de la Reunión</Text>
         <TimePicker
           selectedTime={selectedTime}
           onTimeSelect={setSelectedTime}
@@ -319,7 +319,7 @@ export const CreateReadingClubModal: React.FC<CreateReadingClubModalProps> = ({
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Crear Reading Club</Text>
+            <Text style={styles.modalTitle}>Crear Club de Lectura</Text>
             <TouchableOpacity 
               onPress={handleClose}
               style={styles.closeButton}

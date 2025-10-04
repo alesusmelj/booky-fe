@@ -21,17 +21,37 @@ export const TimePicker: React.FC<TimePickerProps> = ({
   format24Hour = true,
   minuteInterval = 15,
 }) => {
-  const [selectedHour, setSelectedHour] = useState(selectedTime?.hour || 12);
+  // Store hour in 12-hour format for display when format24Hour is false
+  const [selectedHour, setSelectedHour] = useState(() => {
+    if (!selectedTime) return 12;
+    if (format24Hour) return selectedTime.hour;
+    // Convert 24h to 12h for display
+    if (selectedTime.hour === 0) return 12;
+    if (selectedTime.hour > 12) return selectedTime.hour - 12;
+    return selectedTime.hour;
+  });
   const [selectedMinute, setSelectedMinute] = useState(selectedTime?.minute || 0);
-  const [selectedPeriod, setSelectedPeriod] = useState<'AM' | 'PM'>('PM');
+  const [selectedPeriod, setSelectedPeriod] = useState<'AM' | 'PM'>(() => {
+    if (!selectedTime) return 'PM';
+    return selectedTime.hour >= 12 ? 'PM' : 'AM';
+  });
 
   useEffect(() => {
     if (selectedTime) {
-      setSelectedHour(selectedTime.hour);
-      setSelectedMinute(selectedTime.minute);
-      if (!format24Hour) {
+      if (format24Hour) {
+        setSelectedHour(selectedTime.hour);
+      } else {
+        // Convert 24h to 12h for display
+        if (selectedTime.hour === 0) {
+          setSelectedHour(12);
+        } else if (selectedTime.hour > 12) {
+          setSelectedHour(selectedTime.hour - 12);
+        } else {
+          setSelectedHour(selectedTime.hour);
+        }
         setSelectedPeriod(selectedTime.hour >= 12 ? 'PM' : 'AM');
       }
+      setSelectedMinute(selectedTime.minute);
     }
   }, [selectedTime, format24Hour]);
 
@@ -53,12 +73,15 @@ export const TimePicker: React.FC<TimePickerProps> = ({
 
   const handleTimeChange = (hour: number, minute: number, period?: 'AM' | 'PM') => {
     let finalHour = hour;
+    const currentPeriod = period || selectedPeriod;
     
-    if (!format24Hour && period) {
-      if (period === 'PM' && hour !== 12) {
+    if (!format24Hour) {
+      if (currentPeriod === 'PM' && hour !== 12) {
         finalHour = hour + 12;
-      } else if (period === 'AM' && hour === 12) {
+      } else if (currentPeriod === 'AM' && hour === 12) {
         finalHour = 0;
+      } else {
+        finalHour = hour;
       }
     }
 
@@ -153,7 +176,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
           <Text style={styles.columnLabel}>Hora</Text>
           {renderTimeColumn(
             generateHours(),
-            format24Hour ? selectedHour : (selectedHour > 12 ? selectedHour - 12 : selectedHour === 0 ? 12 : selectedHour),
+            selectedHour,
             (hour) => handleTimeChange(hour, selectedMinute, selectedPeriod),
             formatDisplayHour
           )}
@@ -193,7 +216,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
         <Text style={styles.selectedTimeText}>
           {format24Hour 
             ? `${selectedHour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}`
-            : `${(selectedHour > 12 ? selectedHour - 12 : selectedHour === 0 ? 12 : selectedHour)}:${selectedMinute.toString().padStart(2, '0')} ${selectedPeriod}`
+            : `${selectedHour}:${selectedMinute.toString().padStart(2, '0')} ${selectedPeriod}`
           }
         </Text>
       </View>

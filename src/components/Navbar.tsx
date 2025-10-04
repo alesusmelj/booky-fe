@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { MaterialIcons, Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { strings, colors } from '../constants';
@@ -29,6 +29,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onTabPress = () => {} 
 }) => {
   const insets = useSafeAreaInsets();
+  
   const renderIcon = (item: NavItem, isActive: boolean) => {
     const iconColor = isActive ? colors.primary.main : colors.neutral.gray500;
     const iconSize = 24;
@@ -52,8 +53,18 @@ export const Navbar: React.FC<NavbarProps> = ({
     }
   };
 
+  // Get the correct padding for bottom navigation bar
+  const getBottomPadding = () => {
+    if (Platform.OS === 'android') {
+      // En Android, usamos un padding mínimo para evitar superposición con la barra del sistema
+      return 4;
+    }
+    // iOS - reducir el padding del safe area
+    return insets.bottom > 0 ? Math.max(insets.bottom - 20, 4) : 4;
+  };
+
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom + 12 }]}>
+    <View style={[styles.container, { paddingBottom: getBottomPadding() }]}>
       {navItems.map((item) => {
         const isActive = activeTab === item.key;
         
@@ -82,7 +93,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     backgroundColor: colors.neutral.white,
-    paddingVertical: 12,
+    paddingVertical: 8,
     paddingHorizontal: 16,
     justifyContent: 'space-around',
     alignItems: 'center',

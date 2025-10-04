@@ -140,7 +140,7 @@ export function TradeBooksView() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary.main} />
-        <Text style={styles.loadingText}>Loading exchanges...</Text>
+        <Text style={styles.loadingText}>Cargando intercambios...</Text>
       </View>
     );
   }

@@ -187,7 +187,7 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Reading Club Meeting</Text>
+        <Text style={styles.headerTitle}>Reunión del Club de Lectura</Text>
         <TouchableOpacity onPress={handleLeave} style={styles.headerCloseButton}>
           <Text style={styles.headerCloseText}>✕</Text>
         </TouchableOpacity>

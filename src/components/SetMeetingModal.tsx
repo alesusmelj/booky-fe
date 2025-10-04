@@ -69,7 +69,7 @@ export const SetMeetingModal: React.FC<SetMeetingModalProps> = ({
           <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
             <Text style={styles.closeButtonText}>✕</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>Set Meeting for {clubName}</Text>
+          <Text style={styles.title}>Programar Reunión para {clubName}</Text>
           <View style={styles.placeholder} />
         </View>
 
@@ -80,10 +80,10 @@ export const SetMeetingModal: React.FC<SetMeetingModalProps> = ({
         >
           {/* Meeting Date */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Meeting Date</Text>
+            <Text style={styles.sectionTitle}>Fecha de la Reunión</Text>
             <View style={styles.inputContainer}>
               <Text style={styles.dateDisplay}>
-                {selectedDate ? selectedDate.toLocaleDateString('es-ES') : 'DD/MM/YYYY'}
+                {selectedDate ? selectedDate.toLocaleDateString('es-ES') : 'DD/MM/AAAA'}
               </Text>
             </View>
             <Calendar
@@ -95,7 +95,7 @@ export const SetMeetingModal: React.FC<SetMeetingModalProps> = ({
 
           {/* Meeting Time */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Meeting Time</Text>
+            <Text style={styles.sectionTitle}>Hora de la Reunión</Text>
             <View style={styles.inputContainer}>
               <Text style={styles.timeDisplay}>
                 {selectedTime 
@@ -114,7 +114,7 @@ export const SetMeetingModal: React.FC<SetMeetingModalProps> = ({
 
           {/* Chapter to Discuss */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Chapter to Discuss</Text>
+            <Text style={styles.sectionTitle}>Desde página</Text>
             <TextInput
               style={styles.chapterInput}
               value={chapter}
@@ -132,7 +132,7 @@ export const SetMeetingModal: React.FC<SetMeetingModalProps> = ({
             onPress={handleClose}
             activeOpacity={0.8}
           >
-            <Text style={styles.cancelButtonText}>Cancel</Text>
+            <Text style={styles.cancelButtonText}>Cancelar</Text>
           </TouchableOpacity>
           
           <TouchableOpacity
@@ -142,7 +142,7 @@ export const SetMeetingModal: React.FC<SetMeetingModalProps> = ({
             activeOpacity={0.8}
           >
             <Text style={[styles.setMeetingButtonText, !isValid && styles.setMeetingButtonTextDisabled]}>
-              Set Meeting
+              Programar
             </Text>
           </TouchableOpacity>
         </View>

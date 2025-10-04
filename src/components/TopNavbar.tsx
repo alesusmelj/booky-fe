@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, StatusBar, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { strings, theme, colors } from '../constants';
@@ -34,8 +34,21 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
       });
     }
   };
+
+  // Get the correct padding for Android status bar
+  const getTopPadding = () => {
+    if (disableSafeAreaTop) return 6;
+    
+    if (Platform.OS === 'android') {
+      return (StatusBar.currentHeight || 0) + 6;
+    }
+    
+    // iOS - limit the notch padding
+    return insets.top > 0 ? Math.min(insets.top, 8) : 6;
+  };
+
   return (
-    <View style={[styles.container, { paddingTop: disableSafeAreaTop ? 6 : insets.top + 6 }]}>
+    <View style={[styles.container, { paddingTop: getTopPadding() }]}>
       <View style={styles.leftSection}>
         <Image 
           source={require('../../assets/logo.png')} 

@@ -171,7 +171,7 @@ export const MeetingScheduler: React.FC<MeetingSchedulerProps> = ({
       
       <View style={styles.detailsContainer}>
         <View style={styles.chapterSection}>
-          <Text style={styles.sectionLabel}>Capítulo a discutir</Text>
+          <Text style={styles.sectionLabel}>Desde página</Text>
           <View style={styles.chapterSelector}>
             <TouchableOpacity
               style={styles.chapterButton}

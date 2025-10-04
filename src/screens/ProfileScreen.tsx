@@ -25,6 +25,7 @@ import { useBooks, useBarcodeHandler, useUserFollow, useChats, useRating } from 
 import { AchievementCard } from '../components/AchievementCard';
 import { UserLibraryBookCard } from '../components/BookCard';
 import { BarcodeScannerWrapper } from '../components/BarcodeScannerWrapper';
+import { UserAvatar } from '../components/UserAvatar';
 import { AddBookToLibraryDto, UpdateStatusDto, BooksService } from '../services/booksService';
 import { UsersService, UserUpdateDto } from '../services/usersService';
 import { AddressDto } from '../types/api';
@@ -753,12 +754,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
   };
 
   const libraryFilters = [
-    { id: 'all' as const, label: 'All Books', count: userBooks?.length || 0, icon: 'library-books', iconFamily: 'MaterialIcons' as const },
-    { id: 'READING' as const, label: 'Reading', count: userBooks?.filter(b => b.status === 'READING').length || 0, icon: 'book-open', iconFamily: 'Feather' as const },
-    { id: 'favorites' as const, label: 'Favorites', count: userBooks?.filter(b => b.favorite).length || 0, icon: 'favorite', iconFamily: 'MaterialIcons' as const },
-    { id: 'READ' as const, label: 'Read', count: userBooks?.filter(b => b.status === 'READ').length || 0 },
-    { id: 'TO_READ' as const, label: 'To Read', count: userBooks?.filter(b => b.status === 'TO_READ').length || 0, icon: 'bookmark', iconFamily: 'Feather' as const },
-    { id: 'WISHLIST' as const, label: 'Wishlist', count: userBooks?.filter(b => b.status === 'WISHLIST').length || 0, icon: 'star', iconFamily: 'Feather' as const },
+    { id: 'all' as const, label: 'Todos los Libros', count: userBooks?.length || 0, icon: 'library-books', iconFamily: 'MaterialIcons' as const },
+    { id: 'READING' as const, label: 'Leyendo', count: userBooks?.filter(b => b.status === 'READING').length || 0, icon: 'book-open', iconFamily: 'Feather' as const },
+    { id: 'favorites' as const, label: 'Favoritos', count: userBooks?.filter(b => b.favorite).length || 0, icon: 'favorite', iconFamily: 'MaterialIcons' as const },
+    { id: 'READ' as const, label: 'Leídos', count: userBooks?.filter(b => b.status === 'READ').length || 0 },
+    { id: 'TO_READ' as const, label: 'Por Leer', count: userBooks?.filter(b => b.status === 'TO_READ').length || 0, icon: 'bookmark', iconFamily: 'Feather' as const },
+    { id: 'WISHLIST' as const, label: 'Lista de Deseos', count: userBooks?.filter(b => b.status === 'WISHLIST').length || 0, icon: 'star', iconFamily: 'Feather' as const },
   ];
 
   const filteredBooks = getFilteredBooks();
@@ -788,10 +789,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
         <View style={styles.headerCard}>
           <View style={styles.headerContent}>
             <View style={styles.profileInfo}>
-              <Image
+              <UserAvatar
                 key={`profile-image-${profileUser.id}-${imageRefreshKey}`}
-                source={{ uri: profileUser.image || 'https://via.placeholder.com/120' }}
-                style={styles.avatar}
+                imageUrl={profileUser.image}
+                name={profileUser.name}
+                size="xlarge"
+                backgroundColor={colors.primary.main}
+                style={styles.avatarSpacing}
               />
               <View style={styles.userInfo}>
                 <Text style={styles.userName}>
@@ -814,7 +818,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
 
             {isOwnProfile ? (
               <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
-                <Text style={styles.editButtonText}>Edit Profile</Text>
+                <Text style={styles.editButtonText}>Editar Perfil</Text>
               </TouchableOpacity>
             ) : (
               <View style={styles.actionButtons}>
@@ -880,7 +884,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                       </View>
                     )}
                     <View style={styles.levelTextContainer}>
-                      <Text style={styles.levelTextLarge}>Level {profile.current_level}</Text>
+                      <Text style={styles.levelTextLarge}>Nivel {profile.current_level}</Text>
                       {profile.user_level && (
                         <Text style={styles.levelNameEnhanced}>{profile.user_level.name}</Text>
                       )}
@@ -888,7 +892,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                   </View>
                   <View style={styles.pointsContainer}>
                     <Text style={styles.pointsTextLarge}>{profile.total_points}</Text>
-                    <Text style={styles.pointsLabel}>points</Text>
+                    <Text style={styles.pointsLabel}>puntos</Text>
                   </View>
                 </View>
                 
@@ -909,7 +913,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                     <View style={styles.progressLabelsEnhanced}>
                       <Text style={styles.progressLabelStart}>{profile.user_level.min_points}</Text>
                       <Text style={styles.progressLabelCenter}>
-                        {profile.user_level.max_points - profile.total_points} to next level
+                        {profile.user_level.max_points - profile.total_points} para siguiente nivel
                       </Text>
                       <Text style={styles.progressLabelEnd}>{profile.user_level.max_points}</Text>
                     </View>
@@ -921,19 +925,19 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                   <View style={styles.statItemEnhanced}>
                     <MaterialIcons name="menu-book" size={20} color={colors.primary.main} />
                     <Text style={styles.statNumberEnhanced}>{profile.books_read}</Text>
-                    <Text style={styles.statLabelEnhanced}>Books Read</Text>
+                    <Text style={styles.statLabelEnhanced}>Libros Leídos</Text>
                   </View>
                   <View style={styles.statDividerEnhanced} />
                   <View style={styles.statItemEnhanced}>
                     <MaterialIcons name="swap-horiz" size={20} color={colors.status.success} />
                     <Text style={styles.statNumberEnhanced}>{profile.exchanges_completed}</Text>
-                    <Text style={styles.statLabelEnhanced}>Exchanges</Text>
+                    <Text style={styles.statLabelEnhanced}>Intercambios</Text>
                   </View>
                   <View style={styles.statDividerEnhanced} />
                   <View style={styles.statItemEnhanced}>
                     <MaterialIcons name="groups" size={20} color={colors.status.info} />
                     <Text style={styles.statNumberEnhanced}>{profile.communities_joined}</Text>
-                    <Text style={styles.statLabelEnhanced}>Communities</Text>
+                    <Text style={styles.statLabelEnhanced}>Comunidades</Text>
                   </View>
                 </View>
               </View>
@@ -945,9 +949,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
         <View style={styles.tabsCard}>
           <View style={styles.tabsContainer}>
             {[
-              { id: 'library' as const, label: 'Library' },
-              { id: 'reviews' as const, label: 'Reviews' },
-              { id: 'achievements' as const, label: 'Achievements' },
+              { id: 'library' as const, label: 'Biblioteca' },
+              { id: 'reviews' as const, label: 'Reseñas' },
+              { id: 'achievements' as const, label: 'Logros' },
             ].map((tab) => (
               <TouchableOpacity
                 key={tab.id}
@@ -967,12 +971,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                 {/* Library Header with Add Book Button */}
                 {isOwnProfile && (
                   <View style={styles.libraryHeader}>
-                    <Text style={styles.libraryHeaderTitle}>My Books</Text>
+                    <Text style={styles.libraryHeaderTitle}>Mis Libros</Text>
                     <TouchableOpacity
                       style={styles.addBookButton}
                       onPress={() => setShowAddBookModal(true)}
                     >
-                      <Text style={styles.addBookButtonText}>+ Add Book</Text>
+                      <Text style={styles.addBookButtonText}>+ Agregar Libro</Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -1036,11 +1040,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                 {filteredBooks.length === 0 && (
                   <View style={styles.emptyState}>
                     <MaterialIcons name="library-books" size={48} color={colors.neutral.gray400} />
-                    <Text style={styles.emptyStateTitle}>No books found</Text>
+                    <Text style={styles.emptyStateTitle}>No se encontraron libros</Text>
                     <Text style={styles.emptyStateText}>
                       {libraryFilter === 'WISHLIST'
-                        ? 'Add books to your wishlist to see them here.'
-                        : 'No books in this category yet.'}
+                        ? 'Agrega libros a tu lista de deseos para verlos aquí.'
+                        : 'No hay libros en esta categoría todavía.'}
                     </Text>
                   </View>
                 )}
@@ -1119,9 +1123,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                 ) : (
                   <View style={styles.emptyState}>
                     <MaterialIcons name="emoji-events" size={48} color={colors.neutral.gray400} />
-                    <Text style={styles.emptyStateTitle}>No achievements yet</Text>
+                    <Text style={styles.emptyStateTitle}>Aún no hay logros</Text>
                     <Text style={styles.emptyStateText}>
-                      Start reading and participating to earn achievements!
+                      ¡Comienza a leer y participar para ganar logros!
                     </Text>
                   </View>
                 )}
@@ -1180,12 +1184,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={styles.modalScrollContent}
             >
-              <Text style={styles.modalTitle}>Add New Book</Text>
+              <Text style={styles.modalTitle}>Agregar Nuevo Libro</Text>
             
             <TouchableOpacity style={styles.scanButton} onPress={handleScanISBN}>
               <View style={styles.scanButtonContent}>
                 <MaterialIcons name="qr-code-scanner" size={20} color={colors.neutral.gray600} />
-                <Text style={styles.scanButtonText}>Scan book ISBN</Text>
+                <Text style={styles.scanButtonText}>Escanear ISBN del libro</Text>
               </View>
             </TouchableOpacity>
             
@@ -1193,12 +1197,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
               <Text style={styles.inputLabel}>ISBN</Text>
               <TextInput
                 style={styles.textInput}
-                placeholder="Enter ISBN number"
+                placeholder="Ingresa el número ISBN"
                 value={isbn}
                 onChangeText={handleISBNChange}
               />
               <Text style={styles.inputHelp}>
-                Book title and author will be automatically fetched based on ISBN
+                El título y autor del libro se obtendrán automáticamente según el ISBN
               </Text>
               
               {/* Scanned ISBN Success Message */}
@@ -1212,7 +1216,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
               {loadingBookData && (
                 <View style={styles.loadingContainer}>
                   <ActivityIndicator size="small" color={colors.primary.main} />
-                  <Text style={styles.loadingText}>Fetching book data...</Text>
+                  <Text style={styles.loadingText}>Obteniendo datos del libro...</Text>
                 </View>
               )}
               
@@ -1221,27 +1225,27 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                 <View style={styles.bookPreview}>
                   <View style={styles.previewTitleContainer}>
                     <Feather name="book-open" size={16} color={colors.status.success} />
-                    <Text style={styles.previewTitle}>Book Found:</Text>
+                    <Text style={styles.previewTitle}>Libro Encontrado:</Text>
                   </View>
                   <Text style={styles.previewBookTitle}>{bookPreview.title}</Text>
                   {bookPreview.author && (
-                    <Text style={styles.previewAuthor}>by {bookPreview.author}</Text>
+                    <Text style={styles.previewAuthor}>por {bookPreview.author}</Text>
                   )}
                   {bookPreview.genre && (
-                    <Text style={styles.previewGenre}>Genre: {bookPreview.genre}</Text>
+                    <Text style={styles.previewGenre}>Género: {bookPreview.genre}</Text>
                   )}
                 </View>
               )}
             </View>
             
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Reading Status</Text>
+              <Text style={styles.inputLabel}>Estado de Lectura</Text>
               <View style={styles.statusButtons}>
                 {[
-                  { value: 'WISHLIST' as const, label: 'Wishlist' },
-                  { value: 'TO_READ' as const, label: 'To Read' },
-                  { value: 'READING' as const, label: 'Reading' },
-                  { value: 'READ' as const, label: 'Read' },
+                  { value: 'WISHLIST' as const, label: 'Lista de Deseos' },
+                  { value: 'TO_READ' as const, label: 'Por Leer' },
+                  { value: 'READING' as const, label: 'Leyendo' },
+                  { value: 'READ' as const, label: 'Leído' },
                 ].map((status) => (
                   <TouchableOpacity
                     key={status.value}
@@ -1269,14 +1273,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                 style={styles.cancelButton}
                 onPress={() => setShowAddBookModal(false)}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={styles.cancelButtonText}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.addBookButtonModal, (!isbn.trim() || !readingStatus) && styles.disabledButton]}
                 onPress={handleAddBook}
                 disabled={!isbn.trim() || !readingStatus}
               >
-                <Text style={styles.addBookButtonModalText}>Add Book</Text>
+                <Text style={styles.addBookButtonModalText}>Agregar Libro</Text>
               </TouchableOpacity>
             </View>
             </ScrollView>
@@ -1302,7 +1306,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={styles.modalScrollContent}
             >
-              <Text style={styles.modalTitle}>Edit Profile</Text>
+              <Text style={styles.modalTitle}>Editar Perfil</Text>
               
               {/* Profile Image Section */}
               <View style={styles.imageSection}>
@@ -1318,35 +1322,35 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                     <MaterialIcons name="camera-alt" size={24} color={colors.neutral.white} />
                   </View>
                 </TouchableOpacity>
-                <Text style={styles.imageHelp}>Tap to change profile picture</Text>
+                <Text style={styles.imageHelp}>Toca para cambiar la foto de perfil</Text>
               </View>
 
               {/* Form Fields */}
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>First Name</Text>
+                <Text style={styles.inputLabel}>Nombre</Text>
                 <TextInput
                   style={styles.textInput}
-                  placeholder="Enter your first name"
+                  placeholder="Ingresa tu nombre"
                   value={editFormData.name}
                   onChangeText={(text) => setEditFormData(prev => ({ ...prev, name: text }))}
                 />
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Last Name</Text>
+                <Text style={styles.inputLabel}>Apellido</Text>
                 <TextInput
                   style={styles.textInput}
-                  placeholder="Enter your last name"
+                  placeholder="Ingresa tu apellido"
                   value={editFormData.lastname}
                   onChangeText={(text) => setEditFormData(prev => ({ ...prev, lastname: text }))}
                 />
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Description</Text>
+                <Text style={styles.inputLabel}>Descripción</Text>
                 <TextInput
                   style={[styles.textInput, styles.textArea]}
-                  placeholder="Tell us about yourself..."
+                  placeholder="Cuéntanos sobre ti..."
                   value={editFormData.description}
                   onChangeText={(text) => setEditFormData(prev => ({ ...prev, description: text }))}
                   multiline
@@ -1354,13 +1358,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                   textAlignVertical="top"
                 />
                 <Text style={styles.inputHelp}>
-                  Share a bit about yourself, your reading preferences, or anything you'd like others to know
+                  Comparte un poco sobre ti, tus preferencias de lectura o cualquier cosa que quieras que otros sepan
                 </Text>
               </View>
 
               {/* Address Section with Map */}
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Address</Text>
+                <Text style={styles.inputLabel}>Dirección</Text>
                 
                 {/* Search Bar */}
                 <View style={styles.searchContainer}>
@@ -1368,7 +1372,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                     <MaterialIcons name="search" size={20} color={colors.neutral.gray400} />
                     <TextInput
                       style={styles.searchInput}
-                      placeholder="Search for an address..."
+                      placeholder="Buscar una dirección..."
                       placeholderTextColor={colors.neutral.gray400}
                       value={addressSearchQuery}
                       onChangeText={setAddressSearchQuery}
@@ -1400,8 +1404,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                   >
                     <Marker
                       coordinate={markerCoordinate}
-                      title="Selected Location"
-                      description={selectedAddress ? `${selectedAddress.city}, ${selectedAddress.state}, ${selectedAddress.country}` : 'Tap to select'}
+                      title="Ubicación Seleccionada"
+                      description={selectedAddress ? `${selectedAddress.city}, ${selectedAddress.state}, ${selectedAddress.country}` : 'Toca para seleccionar'}
                     />
                   </MapView>
                 </View>
@@ -1427,13 +1431,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                 ) : (
                   <View style={styles.noAddressSelected}>
                     <Text style={styles.noAddressText}>
-                      📍 Tap on the map to select your location
+                      📍 Toca en el mapa para seleccionar tu ubicación
                     </Text>
                   </View>
                 )}
 
                 <Text style={styles.inputHelp}>
-                  Search for your address or tap on the map to select your location
+                  Busca tu dirección o toca en el mapa para seleccionar tu ubicación
                 </Text>
               </View>
 
@@ -1443,7 +1447,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                   onPress={() => setShowEditProfileModal(false)}
                   disabled={isUpdatingProfile}
                 >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                  <Text style={styles.cancelButtonText}>Cancelar</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[
@@ -1463,7 +1467,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                   {isUpdatingProfile ? (
                     <ActivityIndicator size="small" color={colors.neutral.white} />
                   ) : (
-                    <Text style={styles.addBookButtonModalText}>Save Changes</Text>
+                    <Text style={styles.addBookButtonModalText}>Guardar Cambios</Text>
                   )}
                 </TouchableOpacity>
               </View>
@@ -1530,6 +1534,9 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
+    marginRight: 16,
+  },
+  avatarSpacing: {
     marginRight: 16,
   },
   userInfo: {

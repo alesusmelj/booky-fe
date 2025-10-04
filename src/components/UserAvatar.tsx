@@ -6,7 +6,7 @@ import { colors } from '../constants';
 interface UserAvatarProps {
   imageUrl?: string | null;
   name?: string;
-  size?: 'small' | 'medium' | 'large';
+  size?: 'small' | 'medium' | 'large' | 'xlarge';
   backgroundColor?: string;
   style?: any;
 }
@@ -26,6 +26,8 @@ export function UserAvatar({
         return { width: 36, height: 36, borderRadius: 18 };
       case 'large':
         return { width: 48, height: 48, borderRadius: 24 };
+      case 'xlarge':
+        return { width: 80, height: 80, borderRadius: 40 };
       default:
         return { width: 36, height: 36, borderRadius: 18 };
     }
@@ -39,6 +41,8 @@ export function UserAvatar({
         return 14;
       case 'large':
         return 18;
+      case 'xlarge':
+        return 32;
       default:
         return 14;
     }
@@ -52,6 +56,8 @@ export function UserAvatar({
         return 20;
       case 'large':
         return 24;
+      case 'xlarge':
+        return 40;
       default:
         return 20;
     }

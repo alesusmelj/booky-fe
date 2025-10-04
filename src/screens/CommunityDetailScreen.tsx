@@ -184,6 +184,7 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
     loading: postsLoading,
     error: postsError,
     createPost,
+    deletePost,
     refresh: refreshPosts,
   } = usePosts(communityId);
 
@@ -210,6 +211,13 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
 
   const handleComment = (postId: string) => {
     logger.info('Comment on post:', postId);
+  };
+
+  const handleDelete = async (postId: string) => {
+    const success = await deletePost(postId);
+    if (!success) {
+      Alert.alert('Error', 'No se pudo eliminar la publicación. Intenta de nuevo.');
+    }
   };
 
   const handleJoinRoom = (club: typeof readingClubs[0]) => {
@@ -529,6 +537,7 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
             onLike={handleLike}
             onComment={handleComment}
             onUserPress={handleUserClick}
+            onDelete={handleDelete}
           />
         );
       }

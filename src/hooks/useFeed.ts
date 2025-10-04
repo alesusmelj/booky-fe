@@ -289,6 +289,33 @@ export const useFeed = (options: UseFeedOptions = {}) => {
         }
     }, [enableMockData, user]);
 
+    const deletePost = useCallback(async (postId: string): Promise<boolean> => {
+        try {
+            logger.info('🗑️ Deleting post:', postId);
+
+            // Real API call
+            await PostsService.deletePost(postId);
+
+            setState(prev => ({
+                ...prev,
+                posts: prev.posts.filter(post => post.id !== postId),
+            }));
+
+            logger.info('✅ Post deleted successfully');
+            return true;
+        } catch (error) {
+            logger.error('❌ Error deleting post:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Failed to delete post';
+
+            setState(prev => ({
+                ...prev,
+                error: errorMessage,
+            }));
+
+            return false;
+        }
+    }, [enableMockData]);
+
     const clearError = useCallback(() => {
         setState(prev => ({ ...prev, error: null }));
     }, []);
@@ -308,6 +335,7 @@ export const useFeed = (options: UseFeedOptions = {}) => {
         refreshFeed,
         loadMorePosts,
         createPost,
+        deletePost,
         clearError,
     };
 };

@@ -28,6 +28,7 @@ export const HomeScreen: React.FC = () => {
     refreshFeed, 
     loadMorePosts, 
     createPost,
+    deletePost,
     clearError 
   } = useFeed({ enableMockData: false });
 
@@ -72,12 +73,20 @@ export const HomeScreen: React.FC = () => {
     }
   };
 
+  const handleDelete = async (postId: string) => {
+    const success = await deletePost(postId);
+    if (!success) {
+      Alert.alert('Error', 'No se pudo eliminar la publicación. Intenta de nuevo.');
+    }
+  };
+
   const renderPost: ListRenderItem<PostDto> = ({ item }) => (
     <Post
       post={item}
       onLike={handleLike}
       onComment={handleComment}
       onUserPress={handleUserPress}
+      onDelete={handleDelete}
     />
   );
 

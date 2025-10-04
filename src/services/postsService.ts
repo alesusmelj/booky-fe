@@ -33,6 +33,11 @@ const apiRequest = async <T = any>(
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
+    // For DELETE requests that return 204 No Content, don't try to parse JSON
+    if (response.status === 204 || options.method === 'DELETE') {
+      return { data: null as T };
+    }
+
     const data = await response.json();
     return { data };
   } catch (error) {
@@ -165,8 +170,39 @@ export class PostsService {
    * Delete post
    */
   static async deletePost(postId: string): Promise<void> {
-    await apiRequest(`/posts/${postId}`, {
-      method: 'DELETE',
-    });
+    const url = `${API_BASE_URL}/posts/${postId}`;
+    const token = await getAuthToken();
+
+    logger.info('🗑️ [PostsService] Deleting post:', { postId, url });
+
+    try {
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      });
+
+      logger.info('🗑️ [PostsService] Delete response:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'No error text');
+        logger.error('❌ [PostsService] Delete failed:', {
+          status: response.status,
+          errorText
+        });
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Successfully deleted - 204 No Content response has no body to parse
+      logger.info('✅ [PostsService] Post deleted successfully from API');
+    } catch (error) {
+      logger.error('❌ [PostsService] Error in deletePost service:', error);
+      throw error;
+    }
   }
 }

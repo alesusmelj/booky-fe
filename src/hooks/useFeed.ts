@@ -126,62 +126,40 @@ export const useFeed = (options: UseFeedOptions = {}) => {
 
             logger.info(`🔄 Fetching feed posts - Page: ${page}, Refresh: ${isRefresh}`);
 
-            if (enableMockData) {
-                // Simulate API delay
-                await new Promise(resolve => setTimeout(resolve, 1000));
+            // Real API call
+            const response = await PostsService.getPosts({ type: 'feed' });
+            const newPosts = response.data || [];
 
-                // Simulate pagination with mock data
-                const startIndex = (page - 1) * pageSize;
-                const endIndex = startIndex + pageSize;
-                const paginatedPosts = mockPosts.slice(startIndex, endIndex);
+            logger.info(`📄 API data - Received ${newPosts.length} posts for page ${page}`);
 
-                logger.info(`📄 Mock data - Returning ${paginatedPosts.length} posts for page ${page}`);
+            setState(prev => {
+                // Remove duplicates by creating a Map with post IDs as keys
+                const combinedPosts = isRefresh || page === 1
+                    ? newPosts
+                    : [...prev.posts, ...newPosts];
 
-                setState(prev => ({
+                // Create a Map to remove duplicates based on post ID
+                const uniquePostsMap = new Map();
+                combinedPosts.forEach(post => {
+                    if (post.id && !uniquePostsMap.has(post.id)) {
+                        uniquePostsMap.set(post.id, post);
+                    }
+                });
+
+                const uniquePosts = Array.from(uniquePostsMap.values());
+
+                logger.info(`📄 Processed posts - Combined: ${combinedPosts.length}, Unique: ${uniquePosts.length}, Duplicates removed: ${combinedPosts.length - uniquePosts.length}`);
+
+                return {
                     ...prev,
-                    posts: isRefresh || page === 1 ? paginatedPosts : [...prev.posts, ...paginatedPosts],
+                    posts: uniquePosts,
                     loading: false,
                     refreshing: false,
                     loadingMore: false,
-                    hasMore: endIndex < mockPosts.length,
+                    hasMore: newPosts.length >= pageSize, // Assume more data if we got a full page
                     page: page,
-                }));
-            } else {
-                // Real API call
-                const response = await PostsService.getPosts({ type: 'feed' });
-                const newPosts = response.data || [];
-
-                logger.info(`📄 API data - Received ${newPosts.length} posts for page ${page}`);
-
-                setState(prev => {
-                    // Remove duplicates by creating a Map with post IDs as keys
-                    const combinedPosts = isRefresh || page === 1
-                        ? newPosts
-                        : [...prev.posts, ...newPosts];
-
-                    // Create a Map to remove duplicates based on post ID
-                    const uniquePostsMap = new Map();
-                    combinedPosts.forEach(post => {
-                        if (post.id && !uniquePostsMap.has(post.id)) {
-                            uniquePostsMap.set(post.id, post);
-                        }
-                    });
-
-                    const uniquePosts = Array.from(uniquePostsMap.values());
-
-                    logger.info(`📄 Processed posts - Combined: ${combinedPosts.length}, Unique: ${uniquePosts.length}, Duplicates removed: ${combinedPosts.length - uniquePosts.length}`);
-
-                    return {
-                        ...prev,
-                        posts: uniquePosts,
-                        loading: false,
-                        refreshing: false,
-                        loadingMore: false,
-                        hasMore: newPosts.length >= pageSize, // Assume more data if we got a full page
-                        page: page,
-                    };
-                });
-            }
+                };
+            });
         } catch (error) {
             logger.error('❌ Error fetching feed posts:', error);
             const errorMessage = error instanceof Error ? error.message : 'Failed to fetch posts';

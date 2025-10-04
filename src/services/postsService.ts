@@ -182,7 +182,6 @@ export class PostsService {
           ...(token && { Authorization: `Bearer ${token}` }),
         },
       });
-
       logger.info('🗑️ [PostsService] Delete response:', {
         status: response.status,
         statusText: response.statusText,

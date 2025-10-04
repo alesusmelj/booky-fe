@@ -144,28 +144,39 @@ function AppContent() {
   // Use View for Android, SafeAreaView for iOS
   const ContainerComponent = Platform.OS === 'android' ? View : SafeAreaView;
 
+  // Determine if we should show the top header (back button + navbar)
+  const shouldShowTopHeader = () => {
+    // Hide top header for ChatDetail screen (it has its own custom header)
+    if (currentScreen.screen === 'ChatDetail') return false;
+    return true;
+  };
+
   return (
     <ContainerComponent style={styles.container}>
-      {canGoBack() ? (
-        <View style={styles.headerWithBack}>
-          <TouchableOpacity 
-            style={[styles.backButton, { paddingTop: getBackButtonTopPadding() }]}
-            onPress={goBack}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.backButtonText}>← Volver</Text>
-          </TouchableOpacity>
-          <TopNavbar 
-            hasNotifications={true}
-            onNotificationPress={() => {}}
-            disableSafeAreaTop={true}
-          />
-        </View>
-      ) : (
-        <TopNavbar 
-          hasNotifications={true}
-          onNotificationPress={() => {}}
-        />
+      {shouldShowTopHeader() && (
+        <>
+          {canGoBack() ? (
+            <View style={styles.headerWithBack}>
+              <TouchableOpacity 
+                style={[styles.backButton, { paddingTop: getBackButtonTopPadding() }]}
+                onPress={goBack}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.backButtonText}>← Volver</Text>
+              </TouchableOpacity>
+              <TopNavbar 
+                hasNotifications={true}
+                onNotificationPress={() => {}}
+                disableSafeAreaTop={true}
+              />
+            </View>
+          ) : (
+            <TopNavbar 
+              hasNotifications={true}
+              onNotificationPress={() => {}}
+            />
+          )}
+        </>
       )}
       <View style={styles.content}>
         {renderContent()}

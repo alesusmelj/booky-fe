@@ -12,14 +12,16 @@ import {
   KeyboardAvoidingView,
   Platform,
   Keyboard,
+  StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { colors } from '../constants';
 import { useMessages } from '../hooks';
 import { MessageDto, UserPreviewDto } from '../types/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigation } from '../contexts/NavigationContext';
 import { logger } from '../utils/logger';
 import { ImageViewer } from '../components/ImageViewer';
 
@@ -35,6 +37,8 @@ interface ChatDetailScreenProps {
 export const ChatDetailScreen: React.FC<ChatDetailScreenProps> = ({ route }) => {
   const { chatId, otherUser } = route.params;
   const { user: currentUser } = useAuth();
+  const { navigate, goBack } = useNavigation();
+  const insets = useSafeAreaInsets();
   const { messages, loading, error, sending, sendMessage, markAsRead } = useMessages(chatId);
   
   const [messageText, setMessageText] = useState('');
@@ -165,6 +169,17 @@ export const ChatDetailScreen: React.FC<ChatDetailScreenProps> = ({ route }) => 
     setSelectedImage(null);
   };
 
+  const handleProfilePress = () => {
+    navigate('profile', { userId: otherUser.id });
+  };
+
+  const getHeaderTopPadding = () => {
+    if (Platform.OS === 'android') {
+      return (StatusBar.currentHeight || 0) + 8;
+    }
+    return insets.top > 0 ? insets.top : 8;
+  };
+
   const renderMessage = ({ item: message }: { item: MessageDto }) => {
     const isOwnMessage = message.sender_id === currentUser?.id;
     const showAvatar = !isOwnMessage;
@@ -249,7 +264,46 @@ export const ChatDetailScreen: React.FC<ChatDetailScreenProps> = ({ route }) => 
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+      {/* Custom Header */}
+      <View style={[styles.header, { paddingTop: getHeaderTopPadding() }]}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={goBack}
+          activeOpacity={0.7}
+        >
+          <MaterialIcons name="arrow-back" size={24} color={colors.neutral.gray900} />
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.userInfo}
+          onPress={handleProfilePress}
+          activeOpacity={0.7}
+        >
+          {otherUser.image ? (
+            <Image
+              source={{ uri: otherUser.image }}
+              style={styles.headerAvatar}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.defaultHeaderAvatar}>
+              <Text style={styles.headerAvatarText}>
+                {otherUser.name.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
+          <View style={styles.userNameContainer}>
+            <Text style={styles.headerUserName} numberOfLines={1}>
+              {otherUser.name} {otherUser.lastname}
+            </Text>
+            <Text style={styles.headerUsername} numberOfLines={1}>
+              @{otherUser.username}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+
       <View style={[styles.chatContainer, { marginBottom: keyboardHeight }]}>
         <FlatList
           ref={flatListRef}
@@ -320,18 +374,72 @@ export const ChatDetailScreen: React.FC<ChatDetailScreenProps> = ({ route }) => 
         imageUri={viewerImageUri}
         onClose={() => setShowImageViewer(false)}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutral.gray50,
+    backgroundColor: colors.neutral.white,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: colors.neutral.white,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutral.gray200,
+  },
+  backButton: {
+    padding: 8,
+    marginRight: 8,
+  },
+  userInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
+  },
+  defaultHeaderAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primary.light,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  headerAvatarText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.primary.main,
+  },
+  userNameContainer: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  headerUserName: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: colors.neutral.gray900,
+  },
+  headerUsername: {
+    fontSize: 13,
+    fontWeight: '400',
+    color: colors.neutral.gray500,
+    marginTop: 2,
   },
   chatContainer: {
     flex: 1,
     paddingBottom: 80, // Space for input container
+    backgroundColor: colors.neutral.gray50,
   },
   messagesContainer: {
     flex: 1,

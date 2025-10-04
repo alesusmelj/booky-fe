@@ -212,6 +212,7 @@ export function TradeBooksView() {
               onComplete={() => handleCompleteOrder(exchange.id)}
               onCounterOffer={() => handleCounterOffer(exchange.id)}
               onRate={() => handleRate(exchange)}
+              onUserPress={(userId) => navigate('profile', { userId })}
             />
           ))
         ) : (
@@ -262,6 +263,7 @@ export function TradeBooksView() {
                   onCounterOffer={() => handleCounterOffer(exchange.id)}
                   onChat={() => handleChat(exchange.id, exchange.requester?.id == user?.id ? exchange.owner?.id : exchange.requester?.id)}
                   onRate={() => handleRate(exchange)}
+                  onUserPress={(userId) => navigate('profile', { userId })}
                   />
           ))
         ) : (

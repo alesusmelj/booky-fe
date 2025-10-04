@@ -29,6 +29,7 @@ export const HomeScreen: React.FC = () => {
     loadMorePosts, 
     createPost,
     deletePost,
+    toggleLike,
     clearError 
   } = useFeed({ enableMockData: false });
 
@@ -53,9 +54,14 @@ export const HomeScreen: React.FC = () => {
     }
   };
 
-  const handleLike = (postId: string) => {
+  const handleLike = async (postId: string) => {
     logger.info('❤️ Post liked:', postId);
-    // TODO: Implement like functionality with API
+    try {
+      await toggleLike(postId);
+    } catch (error) {
+      logger.error('❌ Error toggling like:', error);
+      Alert.alert('Error', 'No se pudo dar/quitar like. Intenta de nuevo.');
+    }
   };
 
   const handleComment = (postId: string) => {

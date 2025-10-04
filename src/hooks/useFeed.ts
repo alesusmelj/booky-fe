@@ -294,6 +294,28 @@ export const useFeed = (options: UseFeedOptions = {}) => {
         }
     }, [enableMockData]);
 
+    const toggleLike = useCallback(async (postId: string): Promise<void> => {
+        try {
+            logger.info('❤️ [useFeed] Toggling like for post:', postId);
+
+            // Call the API
+            await PostsService.toggleLike(postId);
+
+            logger.info('✅ [useFeed] Like toggled successfully, refreshing feed');
+
+            // Refresh the entire feed to get updated data
+            await fetchFeedPosts(state.page, false);
+        } catch (error) {
+            logger.error('❌ [useFeed] Error toggling like:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Failed to toggle like';
+
+            setState(prev => ({
+                ...prev,
+                error: errorMessage,
+            }));
+        }
+    }, [fetchFeedPosts, state.page]);
+
     const clearError = useCallback(() => {
         setState(prev => ({ ...prev, error: null }));
     }, []);
@@ -314,6 +336,7 @@ export const useFeed = (options: UseFeedOptions = {}) => {
         loadMorePosts,
         createPost,
         deletePost,
+        toggleLike,
         clearError,
     };
 };

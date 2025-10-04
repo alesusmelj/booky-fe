@@ -185,6 +185,7 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
     error: postsError,
     createPost,
     deletePost,
+    toggleLike,
     refresh: refreshPosts,
   } = usePosts(communityId);
 
@@ -205,8 +206,14 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
     navigate('profile', { userId });
   };
 
-  const handleLike = (postId: string) => {
-    logger.info('Post liked:', postId);
+  const handleLike = async (postId: string) => {
+    logger.info('❤️ Post liked:', postId);
+    try {
+      await toggleLike(postId);
+    } catch (error) {
+      logger.error('❌ Error toggling like:', error);
+      Alert.alert('Error', 'No se pudo dar/quitar like. Intenta de nuevo.');
+    }
   };
 
   const handleComment = (postId: string) => {
@@ -341,44 +348,6 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
     setShowVideoCall(false);
     setVideoCallClub(null);
   };
-
-
-
-  const renderPost = ({ item }: { item: any }) => {
-    // Convert API post data to PostData interface
-    const postData: PostData = {
-      id: item.id,
-      user: {
-        id: item.user_id || item.author?.id || 'unknown',
-        name: item.author?.name || item.author?.username || 'Usuario',
-        image: item.author?.image || undefined,
-      },
-      content: item.body || item.content || '',
-      image: item.image || undefined,
-      createdAt: item.created_at || item.date_created || new Date().toISOString(),
-      likes: item.likes_count || item.likes || 0,
-      comments: item.comments_count || item.comments || 0,
-      isLiked: item.is_liked || false,
-    };
-
-    return (
-      <Post
-        post={postData}
-        onLike={handleLike}
-        onComment={handleComment}
-        onUserPress={handleUserClick}
-      />
-    );
-  };
-
-  const renderClub = ({ item }: { item: any }) => (
-    <ReadingClubCard
-      club={item}
-      onJoinRoom={handleJoinRoom}
-      onJoinClub={handleJoinClub}
-      onSetMeeting={handleSetMeetingClick}
-    />
-  );
 
   // Loading state
   if (communityLoading) {

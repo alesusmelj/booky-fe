@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import { strings, colors, theme } from '../constants';
 import { PostDto } from '../types/api';
 import { logger } from '../utils/logger';
 import { ImageViewer } from './ImageViewer';
+import { CommentsModal } from './CommentsModal';
 import { useAuth } from '../contexts/AuthContext';
 
 export interface PostData {
@@ -47,7 +48,16 @@ export const Post: React.FC<PostProps> = ({
   const { user: currentUser } = useAuth();
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
+  const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
   const [showImageViewer, setShowImageViewer] = useState(false);
+  const [showCommentsModal, setShowCommentsModal] = useState(false);
+
+  // Sync commentsCount with post.comments_count when it changes
+  useEffect(() => {
+    if (post.comments_count !== undefined) {
+      setCommentsCount(post.comments_count);
+    }
+  }, [post.comments_count]);
 
   const handleLike = () => {
     setIsLiked(!isLiked);
@@ -56,6 +66,7 @@ export const Post: React.FC<PostProps> = ({
   };
 
   const handleComment = () => {
+    setShowCommentsModal(true);
     onComment(post.id);
   };
 
@@ -224,7 +235,7 @@ export const Post: React.FC<PostProps> = ({
             size={20} 
             color={colors.neutral.gray500} 
           />
-          <Text style={styles.actionText}>0</Text>
+          <Text style={styles.actionText}>{commentsCount}</Text>
         </TouchableOpacity>
       </View>
 
@@ -236,6 +247,14 @@ export const Post: React.FC<PostProps> = ({
           onClose={() => setShowImageViewer(false)}
         />
       )}
+
+      {/* Comments Modal */}
+      <CommentsModal
+        visible={showCommentsModal}
+        postId={post.id}
+        onClose={() => setShowCommentsModal(false)}
+        onCommentsCountChange={setCommentsCount}
+      />
     </View>
   );
 };

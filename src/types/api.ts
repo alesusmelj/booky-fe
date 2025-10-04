@@ -216,6 +216,7 @@ export interface PostDto {
   community_id?: string;
   user: UserPreviewDto;
   community?: CommunityDto;
+  comments_count?: number;
 }
 
 export interface CreatePostDto {

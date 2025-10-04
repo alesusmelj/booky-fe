@@ -28,6 +28,7 @@ export {
 // Export specialized services
 export { CommunitiesService } from './communitiesService';
 export { PostsService } from './postsService';
+export { CommentsService } from './commentsService';
 export { ReadingClubsService } from './readingClubsService';
 export { BooksService } from './booksService';
 export { GamificationService } from './gamificationService';

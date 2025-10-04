@@ -4,6 +4,7 @@ export { TopNavbar } from './TopNavbar';
 export { CreatePost } from './CreatePost';
 export { Post, PostData } from './Post';
 export { ImageViewer } from './ImageViewer';
+export { CommentsModal } from './CommentsModal';
 export { ReadersMapScreen } from './ReadersMapScreen';
 export type { PostData as PostDataType } from './Post';
 

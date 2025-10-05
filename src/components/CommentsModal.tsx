@@ -12,8 +12,9 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../constants';
 import { useComments } from '../hooks/useComments';
@@ -30,6 +31,7 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({ visible, postId, o
   const { user: currentUser } = useAuth();
   const { comments, loading, creating, fetchComments, createComment, deleteComment } = useComments(postId);
   const [commentText, setCommentText] = useState('');
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (visible) {
@@ -134,14 +136,16 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({ visible, postId, o
       animationType="slide"
       transparent={false}
       onRequestClose={onClose}
+      statusBarTranslucent={false}
     >
-      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+      <StatusBar barStyle="dark-content" />
+      <View style={styles.container}>
         <KeyboardAvoidingView 
-          style={styles.container}
+          style={styles.keyboardAvoidingView}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           {/* Header */}
-          <View style={styles.header}>
+          <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
             <Text style={styles.title}>Comentarios</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <MaterialIcons name="close" size={24} color={colors.neutral.gray900} />
@@ -194,28 +198,28 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({ visible, postId, o
           </TouchableOpacity>
         </View>
         </KeyboardAvoidingView>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.neutral.white,
-  },
   container: {
     flex: 1,
     backgroundColor: colors.neutral.white,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.neutral.gray200,
+    backgroundColor: colors.neutral.white,
   },
   title: {
     fontSize: 20,

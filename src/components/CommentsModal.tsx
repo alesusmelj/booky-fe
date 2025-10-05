@@ -135,7 +135,7 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({ visible, postId, o
       transparent={false}
       onRequestClose={onClose}
     >
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
         <KeyboardAvoidingView 
           style={styles.container}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}

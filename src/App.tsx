@@ -3,7 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, SafeAreaView, ActivityIndicator, TouchableOpacity, StatusBar as RNStatusBar, Platform } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Navbar, TopNavbar } from './components';
-import { HomeScreen, SearchScreen, LoginScreen, SignUpScreen, CommunitiesScreen, CommunityDetailScreen, ReadingClubsScreen, ProfileScreen, LibraryScreen, ChatsScreen, ChatDetailScreen, Scene360TestScreen, Scene360TestScreenSimple, Scene360TestScreenSafe, Scene360TestImageOptions, Scene360ProceduralTest, Scene360CustomImageTest } from './screens';
+import { HomeScreen, SearchScreen, LoginScreen, SignUpScreen, CommunitiesScreen, CommunityDetailScreen, ReadingClubsScreen, ProfileScreen, LibraryScreen, ChatsScreen, ChatDetailScreen, Scene360TestScreen, Scene360TestScreenSimple, Scene360TestScreenSafe, Scene360TestImageOptions, Scene360ProceduralTest, Scene360CustomImageTest, BookOwnersScreen } from './screens';
 import CommerceScreen from './screens/CommerceScreen';
 import { strings, colors } from './constants';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -76,6 +76,8 @@ function AppContent() {
         return <ProfileScreen route={{ params: currentScreen.params }} />;
       case 'ChatDetail':
         return <ChatDetailScreen route={{ params: currentScreen.params }} />;
+      case 'book-owners':
+        return <BookOwnersScreen bookId={currentScreen.params?.bookId} bookTitle={currentScreen.params?.bookTitle} />;
       case 'scene360-test':
         return <Scene360TestScreen />;
       case 'scene360-test-simple':

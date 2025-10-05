@@ -10,3 +10,4 @@ export { LibraryScreen } from './LibraryScreen';
 export { ChatsScreen } from './ChatsScreen';
 export { ChatDetailScreen } from './ChatDetailScreen';
 export { Scene360Screen } from './Scene360Screen';
+export { BookOwnersScreen } from './BookOwnersScreen';

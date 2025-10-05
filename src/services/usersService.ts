@@ -40,6 +40,10 @@ export interface SearchUsersByLocationDto {
   top_right_longitude: number;
 }
 
+export interface SearchUsersByBooksDto {
+  book_ids: string[];
+}
+
 export class UsersService {
 
   /**
@@ -146,6 +150,30 @@ export class UsersService {
       return users;
     } catch (error) {
       logger.error('❌ Error searching users by location:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Search users who have specific books available for exchange
+   */
+  static async searchUsersByBooks(searchData: SearchUsersByBooksDto): Promise<UserDto[]> {
+    try {
+      logger.info('📚 Searching users by books:', searchData);
+
+      const response = await apiRequest('/users/search-by-books', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(searchData),
+      });
+
+      const users = response.data || response;
+      logger.info('✅ Users found with books:', users.length);
+      return users;
+    } catch (error) {
+      logger.error('❌ Error searching users by books:', error);
       throw error;
     }
   }

@@ -192,7 +192,7 @@ export function CounterOfferModal({
         theirBooksInfo: theirBooks.map(ub => ({ bookId: ub.book.id, title: ub.book.title })),
       });
 
-      await onSubmit(exchange.id, ownerBookIds, requesterBookIds);
+      await onSubmit(exchange.id, requesterBookIds, ownerBookIds);
       handleClose();
     } catch (error) {
       logger.error('❌ Error submitting counter offer:', error);

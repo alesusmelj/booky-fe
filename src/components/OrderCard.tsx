@@ -24,6 +24,7 @@ interface Order {
   date: string;
   status: string;
   requester: User;
+  owner?: User;
   requestedBooks: Book[];
   offeredBooks: Book[];
   canRate?: boolean;
@@ -87,7 +88,7 @@ export function OrderCard({
 
   // Determine user role and what buttons to show
   const isRequester = currentUserId === order.requester.id;
-  const isOwner = !isRequester; // Assuming if not requester, then owner
+  const isOwner = order.owner ? currentUserId === order.owner.id : !isRequester;
   const status = order.status;
 
   const renderActionButtons = () => {

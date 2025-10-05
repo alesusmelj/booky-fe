@@ -48,17 +48,18 @@ export function useExchanges() {
             setExchanges(validExchanges);
 
             // Separate exchanges into different categories
-            // Received offers: I'm the owner and someone wants my books (all statuses)
+            // Received offers: ONLY PENDING exchanges where I'm the owner
             const offers = validExchanges.filter(exchange =>
-                exchange.owner_id === user.id
+                exchange.owner_id === user.id && exchange.status === 'PENDING'
             );
 
-            // Active orders: All exchanges where I'm the requester (all statuses)
+            // My exchanges: All exchanges where I'm the requester OR exchanges in non-PENDING states where I'm the owner
             const orders = validExchanges.filter(exchange =>
-                exchange.requester_id === user.id
+                exchange.requester_id === user.id ||
+                (exchange.owner_id === user.id && exchange.status !== 'PENDING')
             );
 
-            logger.info('📥 [useExchanges] Received Offers (I am owner):', {
+            logger.info('📥 [useExchanges] Received Offers (PENDING only, I am owner):', {
                 count: offers.length,
                 offers: offers.map(ex => ({
                     id: ex.id,
@@ -69,12 +70,15 @@ export function useExchanges() {
                 }))
             });
 
-            logger.info('📤 [useExchanges] Active Orders (I am requester):', {
+            logger.info('📤 [useExchanges] My Exchanges (I am requester OR non-PENDING owner):', {
                 count: orders.length,
                 orders: orders.map(ex => ({
                     id: ex.id,
                     status: ex.status,
-                    owner: ex.owner ? `${ex.owner.name} ${ex.owner.lastname}` : 'Unknown',
+                    myRole: ex.requester_id === user.id ? 'requester' : 'owner',
+                    otherUser: ex.requester_id === user.id
+                        ? (ex.owner ? `${ex.owner.name} ${ex.owner.lastname}` : 'Unknown')
+                        : (ex.requester ? `${ex.requester.name} ${ex.requester.lastname}` : 'Unknown'),
                     books_requested: ex.owner_books?.length || 0,
                     books_offered: ex.requester_books?.length || 0
                 }))

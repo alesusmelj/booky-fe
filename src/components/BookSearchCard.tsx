@@ -7,13 +7,11 @@ import { BookDto } from '../types/api';
 interface BookSearchCardProps {
   book: BookDto;
   onPress?: () => void;
-  onAddToLibrary?: () => void;
 }
 
 export const BookSearchCard: React.FC<BookSearchCardProps> = ({
   book,
   onPress,
-  onAddToLibrary,
 }) => {
   const getBookCover = () => {
     if (book.image) {
@@ -69,16 +67,6 @@ export const BookSearchCard: React.FC<BookSearchCardProps> = ({
           </View>
         )}
       </View>
-
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={onAddToLibrary}
-        testID={`add-book-${book.id}`}
-        accessible={true}
-        accessibilityLabel="Agregar a mi biblioteca"
-      >
-        <MaterialIcons name="add" size={20} color={colors.primary.main} />
-      </TouchableOpacity>
     </TouchableOpacity>
   );
 };
@@ -148,15 +136,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.status.warning,
     marginLeft: 4,
-  },
-  addButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primary.light,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.primary.border,
   },
 });

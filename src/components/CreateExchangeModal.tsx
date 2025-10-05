@@ -148,8 +148,8 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
         } : null,
         hasUserRate: !!user.user_rate,
         userRate: user.user_rate ? {
-          average_rating: user.user_rate.average_rating,
-          total_ratings: user.user_rate.total_ratings
+          average_rating: user.user_rate.average_rating ?? 0,
+          total_ratings: user.user_rate.total_ratings ?? 0
         } : null
       })));
     } catch (error) {
@@ -423,14 +423,14 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
                 <View style={styles.userDetails}>
                   <View style={styles.userNameRow}>
                     <Text style={styles.userName}>{user.name} {user.lastname}</Text>
-                    {user.user_rate && (
+                    {user.user_rate && user.user_rate.average_rating !== undefined && user.user_rate.average_rating !== null && (
                       <View style={styles.userRatingContainer}>
                         <MaterialIcons name="star" size={14} color={colors.status.warning} />
                         <Text style={styles.userRatingText}>
                           {user.user_rate.average_rating.toFixed(1)}
                         </Text>
                         <Text style={styles.userRatingCount}>
-                          ({user.user_rate.total_ratings})
+                          ({user.user_rate.total_ratings || 0})
                         </Text>
                       </View>
                     )}

@@ -3,6 +3,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { OfferCard } from './OfferCard';
 import { OrderCard } from './OrderCard';
 import CreateExchangeModal from './CreateExchangeModal';
+import { CounterOfferModal } from './CounterOfferModal';
 import { CreateRatingModal } from './CreateRatingModal';
 import { strings, colors, theme } from '../constants';
 import { useExchanges } from '../hooks';
@@ -11,6 +12,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '../contexts/NavigationContext';
 import { getExchangeStatusInSpanish } from '../utils';
 import { logger } from '../utils/logger';
+import { exchangeService } from '../services/exchangeService';
 import React, { useState } from 'react';
 
 // Component uses real API data via useExchanges hook
@@ -48,6 +50,7 @@ export function TradeBooksView() {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
+  const [showCounterOfferModal, setShowCounterOfferModal] = useState(false);
   const [selectedExchange, setSelectedExchange] = useState<any>(null);
 
   const handleNewExchange = () => {
@@ -92,10 +95,57 @@ export function TradeBooksView() {
   };
 
   const handleCounterOffer = (exchangeId: string) => {
-    // TODO: Implement counter offer logic
-    // This would typically open a modal for creating a counter offer
-    // For now, we'll just show an alert
-    alert(`Counter offer functionality for exchange ${exchangeId} will be implemented soon`);
+    const exchange = [...receivedOffers, ...activeOrders].find(ex => ex.id === exchangeId);
+    if (exchange) {
+      setSelectedExchange(exchange);
+      setShowCounterOfferModal(true);
+    }
+  };
+
+  const handleSubmitCounterOffer = async (
+    exchangeId: string,
+    ownerBookIds: string[],
+    requesterBookIds: string[]
+  ) => {
+    try {
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+
+      if (!selectedExchange) {
+        throw new Error('Exchange not found');
+      }
+
+      // The userId param should be the owner of the exchange (who receives the counter-offer)
+      const ownerUserId = selectedExchange.owner?.id || user.id;
+
+      logger.info('📤 Submitting counter offer:', {
+        exchangeId,
+        ownerUserId,
+        currentUserId: user.id,
+        ownerBookIds,
+        requesterBookIds,
+        selectedExchange: {
+          id: selectedExchange.id,
+          ownerId: selectedExchange.owner?.id,
+          requesterId: selectedExchange.requester?.id,
+        }
+      });
+
+      await exchangeService.createCounterOffer(exchangeId, ownerUserId, {
+        owner_book_ids: ownerBookIds,
+        requester_book_ids: requesterBookIds,
+      });
+
+      Alert.alert('Éxito', 'Contraoferta enviada exitosamente');
+      setShowCounterOfferModal(false);
+      
+      // Refresh exchanges
+      await loadExchanges();
+    } catch (error) {
+      logger.error('❌ Error submitting counter offer:', error);
+      throw error;
+    }
   };
 
   const handleRate = (exchange: any) => {
@@ -293,6 +343,43 @@ export function TradeBooksView() {
               : `${selectedExchange.requester?.name} ${selectedExchange.requester?.lastname}`.trim()
           }
           onSuccess={handleRatingSuccess}
+        />
+      )}
+
+      {/* Counter Offer Modal */}
+      {showCounterOfferModal && selectedExchange && user?.id && (
+        <CounterOfferModal
+          visible={showCounterOfferModal}
+          exchange={{
+            id: selectedExchange.id,
+            exchangeNumber: selectedExchange.exchange_number,
+            requester: {
+              id: selectedExchange.requester?.id || '',
+              name: `${selectedExchange.requester?.name} ${selectedExchange.requester?.lastname}`.trim(),
+            },
+            owner: {
+              id: selectedExchange.owner?.id || '',
+              name: `${selectedExchange.owner?.name} ${selectedExchange.owner?.lastname}`.trim(),
+            },
+            requestedBooks: selectedExchange.owner_books.map((book: any) => ({
+              id: book.id,
+              title: book.title,
+              author: book.author,
+              image: book.image || '',
+            })),
+            offeredBooks: selectedExchange.requester_books.map((book: any) => ({
+              id: book.id,
+              title: book.title,
+              author: book.author,
+              image: book.image || '',
+            })),
+          }}
+          currentUserId={user.id}
+          onClose={() => {
+            setShowCounterOfferModal(false);
+            setSelectedExchange(null);
+          }}
+          onSubmit={handleSubmitCounterOffer}
         />
       )}
     </>

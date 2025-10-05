@@ -39,6 +39,7 @@ export { OfferCard } from './OfferCard';
 export { OrderCard } from './OrderCard';
 export { LibraryBookCard } from './LibraryBookCard';
 export { default as CreateExchangeModal } from './CreateExchangeModal';
+export { CounterOfferModal } from './CounterOfferModal';
 export { default as BookImage } from './BookImage';
 export { UserAvatar } from './UserAvatar';
 export { CreateRatingModal } from './CreateRatingModal';

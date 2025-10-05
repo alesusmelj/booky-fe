@@ -91,16 +91,9 @@ export function SearchScreen() {
   };
 
 
-  const handleBookPress = (bookId: string) => {
+  const handleBookPress = (bookId: string, bookTitle?: string) => {
     logger.info('📚 Book pressed:', bookId);
-    // TODO: Navigate to book details
-    Alert.alert('Libro', 'Funcionalidad de detalles del libro próximamente');
-  };
-
-  const handleAddBookToLibrary = (bookId: string) => {
-    logger.info('📚 Adding book to library:', bookId);
-    // TODO: Implement add to library
-    Alert.alert('Biblioteca', 'Funcionalidad de agregar a biblioteca próximamente');
+    navigate('book-owners', { bookId, bookTitle });
   };
 
   const handleCommunityPress = (communityId: string) => {
@@ -219,8 +212,7 @@ export function SearchScreen() {
               <BookSearchCard
                 key={book.id}
                 book={book}
-                onPress={() => handleBookPress(book.id)}
-                onAddToLibrary={() => handleAddBookToLibrary(book.id)}
+                onPress={() => handleBookPress(book.id, book.title)}
               />
             ))}
           </View>

@@ -36,6 +36,7 @@ import {
 // Configuration
 import { API_BASE_URL } from '../config/api';
 import { fileToBase64, uriToBase64 } from '../utils';
+import { logger } from '../utils/logger';
 
 
 // Error class for API errors
@@ -494,11 +495,30 @@ export const exchangeApi = {
     exchangeId: string,
     userId: string,
     counterOfferData: CounterOfferDto
-  ): Promise<BookExchangeDto> =>
-    apiRequest(`/exchanges/${exchangeId}/counter-offer?userId=${userId}`, {
+  ): Promise<BookExchangeDto> => {
+    const url = `/exchanges/${exchangeId}/counter-offer?userId=${userId}`;
+    const body = JSON.stringify(counterOfferData);
+
+    logger.info('🔄 [API] Creating counter offer - Request Details:', {
+      fullUrl: `${API_BASE_URL}${url}`,
       method: 'PUT',
-      body: JSON.stringify(counterOfferData),
-    }),
+      userId,
+      exchangeId,
+    });
+
+    logger.info('📦 [API] Counter Offer Body:', {
+      counterOfferData,
+      bodyString: body,
+      bodyParsed: JSON.parse(body),
+      ownerBookIds: counterOfferData.owner_book_ids,
+      requesterBookIds: counterOfferData.requester_book_ids,
+    });
+
+    return apiRequest(url, {
+      method: 'PUT',
+      body,
+    });
+  },
 };
 
 // Posts API

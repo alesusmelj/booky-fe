@@ -91,8 +91,13 @@ export function OrderCard({
   const status = order.status;
 
   const renderActionButtons = () => {
+    // If exchange is REJECTED or CANCELLED - no actions allowed
+    if (status === 'Rechazado' || status === 'Cancelado') {
+      return null;
+    }
+
     // If requester and status is PENDING - show Cancel
-    if (isRequester && status === 'PENDIENTE') {
+    if (isRequester && status === 'Pendiente') {
       return (
         <TouchableOpacity
           style={styles.cancelButton}
@@ -105,7 +110,7 @@ export function OrderCard({
     }
 
     // If owner and status is PENDING - show Accept, Reject, Counter Offer
-    if (isOwner && status === 'PENDIENTE') {
+    if (isOwner && status === 'Pendiente') {
       return (
         <>
           <TouchableOpacity

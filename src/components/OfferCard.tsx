@@ -91,6 +91,11 @@ export function OfferCard({
   const status = offer.status;
 
   const renderActionButtons = () => {
+    // If exchange is REJECTED or CANCELLED - no actions allowed
+    if (status === 'Rechazado' || status === 'Cancelado') {
+      return null;
+    }
+
     // If requester and status is PENDING - show Cancel
     if (isRequester && status === 'Pendiente') {
       return (

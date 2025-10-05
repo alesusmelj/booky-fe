@@ -6,13 +6,16 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
+  TouchableOpacity,
+  Image,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, theme } from '../constants';
-import { UserSearchCard } from '../components';
+import { CreateExchangeModal } from '../components';
 import { UsersService, SearchUsersByBooksDto } from '../services/usersService';
-import { UserDto } from '../types/api';
+import { UserDto, BookDto } from '../types/api';
 import { useNavigation } from '../contexts/NavigationContext';
+import { useAuth } from '../contexts/AuthContext';
 import { logger } from '../utils/logger';
 
 interface BookOwnersScreenProps {
@@ -22,10 +25,13 @@ interface BookOwnersScreenProps {
 
 export function BookOwnersScreen({ bookId, bookTitle }: BookOwnersScreenProps) {
   const { navigate } = useNavigation();
+  const { user } = useAuth();
   const [users, setUsers] = useState<UserDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showExchangeModal, setShowExchangeModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserDto | null>(null);
 
   const loadUsers = async (isRefreshing = false) => {
     try {
@@ -67,6 +73,40 @@ export function BookOwnersScreen({ bookId, bookTitle }: BookOwnersScreenProps) {
   const handleRefresh = () => {
     loadUsers(true);
   };
+
+  const handleRequestExchange = (targetUser: UserDto) => {
+    logger.info('💱 Requesting exchange with user:', targetUser.id);
+    setSelectedUser(targetUser);
+    setShowExchangeModal(true);
+  };
+
+  const handleExchangeSuccess = () => {
+    logger.info('✅ Exchange created successfully');
+    setShowExchangeModal(false);
+    setSelectedUser(null);
+  };
+
+  const handleCloseModal = () => {
+    logger.info('❌ Exchange modal closed');
+    setShowExchangeModal(false);
+    setSelectedUser(null);
+  };
+
+  // Format address to avoid empty commas
+  const formatAddress = (address: { city?: string; state: string; country: string }) => {
+    const parts = [address.city, address.state, address.country].filter(part => part && part.trim() !== '');
+    return parts.join(', ');
+  };
+
+  // Create a minimal BookDto for the pre-selection
+  const preSelectedBook: BookDto | undefined = bookId
+    ? {
+        id: bookId,
+        title: bookTitle || '',
+        author: '',
+        isbn: '',
+      }
+    : undefined;
 
   if (loading && !refreshing) {
     return (
@@ -139,15 +179,77 @@ export function BookOwnersScreen({ bookId, bookTitle }: BookOwnersScreenProps) {
             <Text style={styles.resultCount}>
               {users.length} {users.length === 1 ? 'usuario encontrado' : 'usuarios encontrados'}
             </Text>
-            {users.map((user) => (
-              <UserSearchCard
-                key={user.id}
-                user={user}
-                onPress={() => handleUserPress(user.id)}
-              />
+            {users.map((targetUser) => (
+              <View key={targetUser.id} style={styles.userCardContainer}>
+                {/* Avatar - clickeable para ir al perfil */}
+                <TouchableOpacity
+                  onPress={() => handleUserPress(targetUser.id)}
+                  activeOpacity={0.7}
+                >
+                  {targetUser.image ? (
+                    <Image 
+                      source={{ uri: targetUser.image }} 
+                      style={styles.avatar}
+                    />
+                  ) : (
+                    <View style={styles.defaultAvatar}>
+                      <MaterialIcons name="person" size={24} color={colors.primary.main} />
+                    </View>
+                  )}
+                </TouchableOpacity>
+
+                {/* Info del usuario - clickeable para ir al perfil */}
+                <TouchableOpacity
+                  style={styles.userInfo}
+                  onPress={() => handleUserPress(targetUser.id)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.userName} numberOfLines={1}>
+                    {`${targetUser.name} ${targetUser.lastname}`.trim()}
+                  </Text>
+                  <Text style={styles.username} numberOfLines={1}>
+                    @{targetUser.username}
+                  </Text>
+                  {targetUser.address && (
+                    <View style={styles.locationContainer}>
+                      <MaterialIcons name="location-on" size={14} color={colors.status.info} />
+                      <Text style={styles.locationText} numberOfLines={1}>
+                        {formatAddress(targetUser.address)}
+                      </Text>
+                    </View>
+                  )}
+                  {targetUser.description && (
+                    <Text style={styles.description} numberOfLines={2}>
+                      {targetUser.description}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+
+                {/* Botón de intercambio a la derecha */}
+                <TouchableOpacity
+                  style={styles.exchangeButton}
+                  onPress={() => handleRequestExchange(targetUser)}
+                  activeOpacity={0.8}
+                >
+                  <MaterialIcons name="swap-horiz" size={20} color={colors.neutral.white} />
+                  <Text style={styles.exchangeButtonText}>Intercambio</Text>
+                </TouchableOpacity>
+              </View>
             ))}
           </View>
         </ScrollView>
+      )}
+
+      {/* Exchange Modal */}
+      {user && (
+        <CreateExchangeModal
+          isVisible={showExchangeModal}
+          onClose={handleCloseModal}
+          currentUserId={user.id}
+          onSuccess={handleExchangeSuccess}
+          preSelectedBook={preSelectedBook}
+          preSelectedUser={selectedUser || undefined}
+        />
       )}
     </View>
   );
@@ -236,6 +338,88 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.text.secondary,
     textAlign: 'center',
+  },
+  userCardContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: theme.background.primary,
+    borderRadius: 12,
+    shadowColor: colors.shadow.default,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.neutral.gray100,
+    marginRight: 12,
+  },
+  defaultAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.primary.light,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.primary.border,
+    marginRight: 12,
+  },
+  userInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  userName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.text.primary,
+    marginBottom: 2,
+  },
+  username: {
+    fontSize: 14,
+    color: theme.text.secondary,
+    marginBottom: 4,
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  locationText: {
+    fontSize: 13,
+    color: colors.status.info,
+    marginLeft: 4,
+    flex: 1,
+  },
+  description: {
+    fontSize: 14,
+    color: theme.text.secondary,
+    lineHeight: 18,
+  },
+  exchangeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary.main,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    minWidth: 100,
+  },
+  exchangeButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.neutral.white,
+    marginLeft: 6,
   },
 });
 

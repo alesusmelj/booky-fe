@@ -19,11 +19,18 @@ export const CommunitySearchCard: React.FC<CommunitySearchCardProps> = ({
   isJoined = false,
   joinLoading = false,
 }) => {
+  // Si join_available es true: usuario NO es miembro, mostrar botón "Unirse", NO permitir entrar
+  // Si join_available es false: usuario YA es miembro, mostrar badge "Miembro", SÍ permitir entrar
+  const isUserMember = !community.join_available;
+  const canEnterCommunity = isUserMember;
+  const showJoinButton = community.join_available;
+
   return (
     <TouchableOpacity 
       style={styles.container}
-      onPress={onPress}
-      activeOpacity={0.7}
+      onPress={canEnterCommunity ? onPress : undefined}
+      activeOpacity={canEnterCommunity ? 0.7 : 1}
+      disabled={!canEnterCommunity}
       testID={`community-card-${community.id}`}
       accessible={true}
       accessibilityLabel={`Comunidad: ${community.name}`}
@@ -48,36 +55,46 @@ export const CommunitySearchCard: React.FC<CommunitySearchCardProps> = ({
         </View>
       </View>
 
-      <TouchableOpacity
-        style={[
-          styles.joinButton,
-          isJoined && styles.joinedButton,
-          joinLoading && styles.joinButtonDisabled,
-        ]}
-        onPress={onJoin}
-        disabled={joinLoading}
-        testID={`join-community-${community.id}`}
-        accessible={true}
-        accessibilityLabel={isJoined ? 'Salir de la comunidad' : 'Unirse a la comunidad'}
-      >
-        {joinLoading ? (
-          <MaterialIcons name="hourglass-empty" size={16} color={colors.neutral.gray500} />
-        ) : (
-          <>
-            <MaterialIcons 
-              name={isJoined ? "check" : "add"} 
-              size={16} 
-              color={isJoined ? colors.status.success : colors.neutral.white} 
-            />
-            <Text style={[
-              styles.joinButtonText,
-              isJoined && styles.joinedButtonText,
-            ]}>
-              {isJoined ? 'Miembro' : 'Unirse'}
-            </Text>
-          </>
-        )}
-      </TouchableOpacity>
+      {showJoinButton ? (
+        <TouchableOpacity
+          style={[
+            styles.joinButton,
+            joinLoading && styles.joinButtonDisabled,
+          ]}
+          onPress={(e) => {
+            e.stopPropagation();
+            onJoin?.();
+          }}
+          disabled={joinLoading}
+          testID={`join-community-${community.id}`}
+          accessible={true}
+          accessibilityLabel="Unirse a la comunidad"
+        >
+          {joinLoading ? (
+            <MaterialIcons name="hourglass-empty" size={16} color={colors.neutral.gray500} />
+          ) : (
+            <>
+              <MaterialIcons 
+                name="add" 
+                size={16} 
+                color={colors.neutral.white} 
+              />
+              <Text style={styles.joinButtonText}>
+                Unirse
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
+      ) : (
+        <View style={styles.memberBadge}>
+          <MaterialIcons 
+            name="check" 
+            size={16} 
+            color={colors.status.success} 
+          />
+          <Text style={styles.memberBadgeText}>Miembro</Text>
+        </View>
+      )}
     </TouchableOpacity>
   );
 };
@@ -161,5 +178,23 @@ const styles = StyleSheet.create({
   },
   joinedButtonText: {
     color: colors.status.success,
+  },
+  memberBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: colors.status.successLight,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.status.success,
+    minWidth: 90,
+    justifyContent: 'center',
+  },
+  memberBadgeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.status.success,
+    marginLeft: 4,
   },
 });

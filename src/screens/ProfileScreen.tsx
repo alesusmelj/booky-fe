@@ -184,6 +184,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
   useEffect(() => {
     if (userId) {
       loadProfileData();
+      loadUserReviews();
     }
   }, [userId]);
 
@@ -802,6 +803,29 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                   {profileUser.name} {profileUser.lastname}
                 </Text>
                 <Text style={styles.username}>@{profileUser.username}</Text>
+                
+                {/* Rating Stars */}
+                {userReviews && userReviews.length > 0 && (
+                  <View style={styles.ratingContainer}>
+                    <View style={styles.starsContainer}>
+                      {[1, 2, 3, 4, 5].map((star) => {
+                        const avgRating = userReviews.reduce((sum, review) => sum + review.rating, 0) / userReviews.length;
+                        return (
+                          <MaterialIcons
+                            key={star}
+                            name={star <= Math.round(avgRating) ? "star" : "star-border"}
+                            size={18}
+                            color={colors.status.warning}
+                          />
+                        );
+                      })}
+                    </View>
+                    <Text style={styles.ratingText}>
+                      {(userReviews.reduce((sum, review) => sum + review.rating, 0) / userReviews.length).toFixed(1)} ({userReviews.length} {userReviews.length === 1 ? 'reseña' : 'reseñas'})
+                    </Text>
+                  </View>
+                )}
+                
                 {profileUser.description && (
                   <Text style={styles.bio}>{profileUser.description}</Text>
                 )}
@@ -1551,6 +1575,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.neutral.gray600,
     marginBottom: 4,
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  starsContainer: {
+    flexDirection: 'row',
+    marginRight: 8,
+  },
+  ratingText: {
+    fontSize: 14,
+    color: colors.neutral.gray700,
+    fontWeight: '600',
   },
   levelSection: {
     marginTop: 16,

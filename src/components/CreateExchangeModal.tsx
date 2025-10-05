@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -22,6 +22,8 @@ interface CreateExchangeModalProps {
   onClose: () => void;
   currentUserId: string;
   onSuccess?: (exchange: any) => void;
+  preSelectedBook?: BookDto;
+  preSelectedUser?: UserDto;
 }
 
 interface Step1State {
@@ -47,7 +49,9 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
   isVisible,
   onClose,
   currentUserId,
-  onSuccess
+  onSuccess,
+  preSelectedBook,
+  preSelectedUser,
 }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isCreating, setIsCreating] = useState(false);
@@ -74,29 +78,67 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
     isLoading: false,
   });
 
+  // Step 3: Load user's library
+  const loadMyBooks = useCallback(async () => {
+    setStep3(prev => ({ ...prev, isLoading: true }));
+    try {
+      const books = await bookApi.getUserLibrary(currentUserId, { wantsToExchange: true });
+      setStep3(prev => ({ ...prev, myBooks: books, isLoading: false }));
+    } catch (error) {
+      logger.error('Error loading user library:', error);
+      setStep3(prev => ({ ...prev, myBooks: [], isLoading: false }));
+    }
+  }, [currentUserId]);
+
   // Reset state when modal opens/closes
   useEffect(() => {
     if (isVisible) {
-      setCurrentStep(1);
-      setStep1({
-        searchQuery: '',
-        searchResults: [],
-        selectedBooks: [],
-        isSearching: false,
-      });
-      setStep2({
-        users: [],
-        selectedUser: null,
-        isSearching: false,
-      });
-      setStep3({
-        myBooks: [],
-        selectedMyBooks: [],
-        isLoading: false,
-      });
+      // If both book and user are pre-selected, skip to step 3
+      const hasPreSelection = preSelectedBook && preSelectedUser;
+      
+      if (hasPreSelection) {
+        logger.info('📚 Pre-selected book and user detected, skipping to step 3');
+        setCurrentStep(3);
+        setStep1({
+          searchQuery: '',
+          searchResults: [],
+          selectedBooks: [preSelectedBook],
+          isSearching: false,
+        });
+        setStep2({
+          users: [preSelectedUser],
+          selectedUser: preSelectedUser,
+          isSearching: false,
+        });
+        setStep3({
+          myBooks: [],
+          selectedMyBooks: [],
+          isLoading: false,
+        });
+        // Load my books for step 3
+        loadMyBooks();
+      } else {
+        setCurrentStep(1);
+        setStep1({
+          searchQuery: '',
+          searchResults: [],
+          selectedBooks: [],
+          isSearching: false,
+        });
+        setStep2({
+          users: [],
+          selectedUser: null,
+          isSearching: false,
+        });
+        setStep3({
+          myBooks: [],
+          selectedMyBooks: [],
+          isLoading: false,
+        });
+      }
       setIsCreating(false);
     }
-  }, [isVisible]);
+  }, [isVisible, preSelectedBook, preSelectedUser, loadMyBooks]);
 
   // Step 1: Search books
   const searchBooks = async (query: string) => {
@@ -160,18 +202,6 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
 
   const selectUser = (user: UserDto) => {
     setStep2(prev => ({ ...prev, selectedUser: user }));
-  };
-
-  // Step 3: Load user's library
-  const loadMyBooks = async () => {
-    setStep3(prev => ({ ...prev, isLoading: true }));
-    try {
-      const books = await bookApi.getUserLibrary(currentUserId, { wantsToExchange: true });
-      setStep3(prev => ({ ...prev, myBooks: books, isLoading: false }));
-    } catch (error) {
-      logger.error('Error loading user library:', error);
-      setStep3(prev => ({ ...prev, myBooks: [], isLoading: false }));
-    }
   };
 
   const toggleMyBookSelection = (book: UserBookDto) => {

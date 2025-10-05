@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,9 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  PanResponder,
+  Animated,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons, Feather } from '@expo/vector-icons';
@@ -123,6 +126,59 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
   const [selectedAddress, setSelectedAddress] = useState<AddressDto | null>(null);
   const [showAddressPicker, setShowAddressPicker] = useState(false);
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  
+  // Pan responder for swipe to close modal
+  const panY = useRef(new Animated.Value(0)).current;
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        // Only respond to vertical swipes
+        return Math.abs(gestureState.dy) > Math.abs(gestureState.dx) && gestureState.dy > 0;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        // Only allow downward swipes
+        if (gestureState.dy > 0) {
+          panY.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        // If swiped down more than 150px or swiped quickly, close the modal
+        const shouldClose = gestureState.dy > 150 || gestureState.vy > 0.5;
+        
+        if (shouldClose) {
+          Animated.timing(panY, {
+            toValue: 1000,
+            duration: 250,
+            useNativeDriver: true,
+          }).start(() => {
+            setShowEditProfileModal(false);
+          });
+        } else {
+          // Otherwise, spring back to original position
+          Animated.spring(panY, {
+            toValue: 0,
+            tension: 40,
+            friction: 8,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    })
+  ).current;
+  
+  // Animate modal entrance
+  useEffect(() => {
+    if (showEditProfileModal) {
+      panY.setValue(500);
+      Animated.spring(panY, {
+        toValue: 0,
+        tension: 65,
+        friction: 11,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [showEditProfileModal, panY]);
   
   // Map states
   const [mapRegion, setMapRegion] = useState<Region>({
@@ -571,6 +627,16 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
     const coordinate = event.nativeEvent.coordinate;
     setMarkerCoordinate(coordinate);
     getAddressFromCoordinates(coordinate.latitude, coordinate.longitude);
+  };
+
+  const closeEditProfileModal = () => {
+    Animated.timing(panY, {
+      toValue: 1000,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowEditProfileModal(false);
+    });
   };
 
   const handleSaveProfile = async () => {
@@ -1086,8 +1152,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                   <View style={styles.emptyState}>
                     <MaterialIcons name="rate-review" size={48} color={colors.neutral.gray400} style={styles.emptyStateIcon} />
                     <Text style={styles.emptyStateTitle}>
-                      {isOwnProfile ? 'No has dejado reseñas' : `${profileUser.name} no ha dejado reseñas`}
-                    </Text>
+                    No han dejado reseñas</Text>
                     <Text style={styles.emptyStateText}>
                       {isOwnProfile 
                         ? 'Las reseñas aparecerán aquí después de completar intercambios de libros.'
@@ -1316,15 +1381,31 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
       <Modal
         visible={showEditProfileModal}
         transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowEditProfileModal(false)}
+        animationType="fade"
+        onRequestClose={closeEditProfileModal}
       >
         <KeyboardAvoidingView 
           style={styles.modalOverlay}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-          <View style={styles.modalContent}>
-            <View style={styles.modalHandle} />
+          <Pressable 
+            style={styles.modalBackdrop}
+            onPress={closeEditProfileModal}
+          />
+          <Animated.View 
+            style={[
+              styles.modalContent,
+              {
+                transform: [{ translateY: panY }],
+              },
+            ]}
+          >
+            <View 
+              style={styles.modalHandleContainer}
+              {...panResponder.panHandlers}
+            >
+              <View style={styles.modalHandle} />
+            </View>
             <ScrollView 
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
@@ -1468,7 +1549,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
               <View style={styles.modalActions}>
                 <TouchableOpacity
                   style={styles.cancelButton}
-                  onPress={() => setShowEditProfileModal(false)}
+                  onPress={closeEditProfileModal}
                   disabled={isUpdatingProfile}
                 >
                   <Text style={styles.cancelButtonText}>Cancelar</Text>
@@ -1496,7 +1577,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                 </TouchableOpacity>
               </View>
             </ScrollView>
-          </View>
+          </Animated.View>
         </KeyboardAvoidingView>
       </Modal>
 
@@ -1868,6 +1949,13 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     alignItems: 'center',
   },
+  modalBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
   modalContent: {
     backgroundColor: colors.neutral.white,
     borderTopLeftRadius: 20,
@@ -1882,13 +1970,17 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingBottom: 20,
   },
+  modalHandleContainer: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    width: '100%',
+  },
   modalHandle: {
     width: 40,
     height: 4,
     backgroundColor: colors.neutral.gray300,
     borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 16,
   },
   modalHeader: {
     flexDirection: 'row',

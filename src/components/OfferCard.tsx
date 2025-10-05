@@ -24,6 +24,7 @@ interface Offer {
   date: string;
   status: string;
   requester: User;
+  owner?: User;
   requestedBooks: Book[];
   offeredBooks: Book[];
   canRate?: boolean;
@@ -87,7 +88,7 @@ export function OfferCard({
 
   // Determine user role and what buttons to show
   const isRequester = currentUserId === offer.requester.id;
-  const isOwner = !isRequester;
+  const isOwner = offer.owner ? currentUserId === offer.owner.id : !isRequester;
   const status = offer.status;
 
   const renderActionButtons = () => {

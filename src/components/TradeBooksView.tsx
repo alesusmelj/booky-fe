@@ -52,6 +52,7 @@ export function TradeBooksView() {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [showCounterOfferModal, setShowCounterOfferModal] = useState(false);
   const [selectedExchange, setSelectedExchange] = useState<any>(null);
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('all');
 
   const handleNewExchange = () => {
     setShowCreateModal(true);
@@ -61,6 +62,28 @@ export function TradeBooksView() {
     // Refresh the exchanges list
     loadExchanges();
   };
+
+  // Filter exchanges by status
+  const filterExchangesByStatus = (exchanges: any[]) => {
+    if (selectedStatusFilter === 'all') {
+      return exchanges;
+    }
+    return exchanges.filter(exchange => 
+      getExchangeStatusInSpanish(exchange.status) === selectedStatusFilter
+    );
+  };
+
+  const filteredReceivedOffers = filterExchangesByStatus(receivedOffers);
+  const filteredActiveOrders = filterExchangesByStatus(activeOrders);
+
+  const statusFilters = [
+    { label: 'Todos', value: 'all' },
+    { label: 'Pendiente', value: strings.commerce.status.pending },
+    { label: 'Aceptado', value: strings.commerce.status.accepted },
+    { label: 'Completado', value: strings.commerce.status.completed },
+    { label: 'Rechazado', value: strings.commerce.status.rejected },
+    { label: 'Cancelado', value: strings.commerce.status.cancelled },
+  ];
 
   const handleAcceptOffer = async (exchangeId: string) => {
     try {
@@ -221,10 +244,42 @@ export function TradeBooksView() {
         </View>
       )}
 
+      {/* Status Filters */}
+      <View style={styles.filtersContainer}>
+        <Text style={styles.filtersLabel}>Filtrar por estado:</Text>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={styles.filtersScroll}
+        >
+          {statusFilters.map((filter) => (
+            <TouchableOpacity
+              key={filter.value}
+              style={[
+                styles.filterChip,
+                selectedStatusFilter === filter.value && styles.filterChipActive,
+              ]}
+              onPress={() => setSelectedStatusFilter(filter.value)}
+            >
+              <Text
+                style={[
+                  styles.filterChipText,
+                  selectedStatusFilter === filter.value && styles.filterChipTextActive,
+                ]}
+              >
+                {filter.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{strings.commerce.sections.receivedOffers}</Text>
-        {receivedOffers.length > 0 ? (
-          receivedOffers.map((exchange) => (
+        <Text style={styles.sectionTitle}>
+          {strings.commerce.sections.receivedOffers} ({filteredReceivedOffers.length})
+        </Text>
+        {filteredReceivedOffers.length > 0 ? (
+          filteredReceivedOffers.map((exchange) => (
                 <OfferCard 
                   key={exchange.id}
                   currentUserId={user?.id || ''}
@@ -241,6 +296,12 @@ export function TradeBooksView() {
                     : 'Usuario no disponible',
                   role: 'Solicitante',
                   avatar: exchange.requester?.image || (exchange.requester?.name?.charAt(0) || 'U'),
+                },
+                owner: {
+                  id: exchange.owner?.id || user?.id || '',
+                  name: user ? `${user.name} ${user.lastname}` : 'Usuario no disponible',
+                  role: 'Propietario',
+                  avatar: user?.image || (user?.name?.charAt(0) || 'U'),
                 },
                 requestedBooks: (exchange.owner_books || []).map(ub => ({
                   title: ub?.book?.title || 'Título no disponible',
@@ -271,9 +332,11 @@ export function TradeBooksView() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{strings.commerce.sections.activeOrders}</Text>
-        {activeOrders.length > 0 ? (
-          activeOrders.map((exchange) => (
+        <Text style={styles.sectionTitle}>
+          {strings.commerce.sections.activeOrders} ({filteredActiveOrders.length})
+        </Text>
+        {filteredActiveOrders.length > 0 ? (
+          filteredActiveOrders.map((exchange) => (
                 <OrderCard 
                   key={exchange.id}
                   currentUserId={user?.id || ''}
@@ -283,14 +346,27 @@ export function TradeBooksView() {
                 exchangeNumber: `Exchange #${exchange.id.slice(-4)}`,
                 date: new Date(exchange.date_created).toLocaleDateString(),
                 status: getExchangeStatusInSpanish(exchange.status) as any,
+                // Show the OTHER user (if I'm requester, show owner; if I'm owner, show requester)
                 requester: {
-                  id: exchange.owner?.id,
-                  name: exchange.owner 
-                    ? `${exchange.owner.name} ${exchange.owner.lastname}` 
-                    : 'Usuario no disponible',
-                  location: (exchange.owner as any)?.address 
-                    ? `${(exchange.owner as any).address.state}, ${(exchange.owner as any).address.country}`
-                    : undefined,
+                  id: exchange.requester_id === user?.id ? exchange.owner?.id : exchange.requester?.id,
+                  name: exchange.requester_id === user?.id
+                    ? (exchange.owner ? `${exchange.owner.name} ${exchange.owner.lastname}` : 'Usuario no disponible')
+                    : (exchange.requester ? `${exchange.requester.name} ${exchange.requester.lastname}` : 'Usuario no disponible'),
+                  location: exchange.requester_id === user?.id
+                    ? ((exchange.owner as any)?.address 
+                      ? `${(exchange.owner as any).address.state}, ${(exchange.owner as any).address.country}`
+                      : undefined)
+                    : ((exchange.requester as any)?.address 
+                      ? `${(exchange.requester as any).address.state}, ${(exchange.requester as any).address.country}`
+                      : undefined),
+                  avatar: exchange.requester_id === user?.id 
+                    ? (exchange.owner?.image || '/default-avatar.jpg')
+                    : (exchange.requester?.image || '/default-avatar.jpg'),
+                },
+                // Add owner field to help OrderCard determine roles correctly
+                owner: {
+                  id: exchange.owner?.id || '',
+                  name: exchange.owner ? `${exchange.owner.name} ${exchange.owner.lastname}` : 'Usuario no disponible',
                   avatar: exchange.owner?.image || '/default-avatar.jpg',
                 },
                 requestedBooks: (exchange.owner_books || []).map(ub => ({
@@ -304,7 +380,10 @@ export function TradeBooksView() {
                   image: ub?.book?.image || '/default-book.jpg',
                 })),
                 canRate: exchange.can_rate,
-                hasUserRated: !!exchange.requester_rate, // Current user is requester, so check requester_rate
+                // Check the appropriate rate based on user role
+                hasUserRated: exchange.requester_id === user?.id 
+                  ? !!exchange.requester_rate 
+                  : !!exchange.owner_rate,
               }}
                   onAccept={() => handleAcceptOffer(exchange.id)}
                   onReject={() => handleRejectOffer(exchange.id)}
@@ -457,5 +536,39 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: 20,
     fontStyle: 'italic',
+  },
+  filtersContainer: {
+    marginBottom: 20,
+  },
+  filtersLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.text.primary,
+    marginBottom: 12,
+  },
+  filtersScroll: {
+    flexGrow: 0,
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: colors.neutral.gray100,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: colors.neutral.gray300,
+  },
+  filterChipActive: {
+    backgroundColor: colors.primary.main,
+    borderColor: colors.primary.main,
+  },
+  filterChipText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.neutral.gray700,
+  },
+  filterChipTextActive: {
+    color: colors.neutral.white,
+    fontWeight: '600',
   },
 });

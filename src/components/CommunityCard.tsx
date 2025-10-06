@@ -1,11 +1,12 @@
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../constants';
 
 export interface CommunityData {
   id: string;
   name: string;
   description: string;
-  iconUrl: string;
+  iconUrl?: string;
 }
 
 interface CommunityCardProps {
@@ -22,7 +23,9 @@ export function CommunityCard({ community, onPress }: CommunityCardProps) {
       accessible={true}
       accessibilityLabel={`Comunidad: ${community.name}`}
     >
-      <Image source={{ uri: community.iconUrl }} style={styles.icon} />
+      <View style={styles.iconContainer}>
+        <MaterialIcons name="groups" size={28} color={colors.primary.main} />
+      </View>
       <View style={styles.contentContainer}>
         <Text style={styles.name} numberOfLines={1}>
           {community.name}
@@ -47,12 +50,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.neutral.gray200,
   },
-  icon: {
+  iconContainer: {
     width: 48,
     height: 48,
-    borderRadius: 8,
-    backgroundColor: colors.neutral.gray200,
+    borderRadius: 24,
+    backgroundColor: colors.primary.light,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 16,
+    borderWidth: 1,
+    borderColor: colors.primary.border,
   },
   contentContainer: {
     flex: 1,

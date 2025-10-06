@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../constants';
 import { logger } from '../utils/logger';
 import { CreateReadingClubModal, SetMeetingModal, Post, CreatePost, VideoCallRoom } from '../components';
@@ -429,15 +430,9 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
       case 'header':
         return (
           <View style={styles.communityHeader}>
-            {community.admin?.image ? (
-              <Image source={{ uri: community.admin.image }} style={styles.communityImage} />
-            ) : (
-              <View style={styles.communityImagePlaceholder}>
-                <Text style={styles.communityImagePlaceholderText}>
-                  {community.name.charAt(0).toUpperCase()}
-                </Text>
-              </View>
-            )}
+            <View style={styles.communityImagePlaceholder}>
+              <MaterialIcons name="groups" size={80} color={colors.neutral.white} />
+            </View>
             <View style={styles.communityOverlay}>
               <View style={styles.communityInfo}>
                 <View style={styles.communityContent}>

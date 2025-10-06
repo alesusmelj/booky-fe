@@ -13,6 +13,7 @@ import {
   Alert,
   Modal,
 } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../constants';
 import { logger } from '../utils/logger';
 import { useNavigation } from '../contexts/NavigationContext';
@@ -40,15 +41,9 @@ const CommunityCard: React.FC<CommunityCardProps> = ({ community, onPress, onJoi
       disabled={!canEnterCommunity}
     >
       <View style={styles.communityImageContainer}>
-        {community.admin?.image ? (
-          <Image source={{ uri: community.admin.image }} style={styles.communityImage} />
-        ) : (
-          <View style={styles.communityImagePlaceholder}>
-            <Text style={styles.communityImagePlaceholderText}>
-              {community.name.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
+        <View style={styles.communityImagePlaceholder}>
+          <MaterialIcons name="groups" size={60} color={colors.neutral.white} />
+        </View>
       </View>
       <View style={styles.communityContent}>
         <View style={styles.communityHeader}>

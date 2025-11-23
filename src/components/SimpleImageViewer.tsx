@@ -141,14 +141,56 @@ const loadTextureRobustAsync = async (
     if (isNative) {
       console.log('📱 [ROBUST] Usando ruta nativa optimizada para RN/Expo Go...');
       
-      // 1) Normalizar y descargar el asset
+      let localUri = url;
+      
+      // Para Android, intentar usar URL directa si es HTTP/HTTPS
+      if (Platform.OS === 'android' && (url.startsWith('http://') || url.startsWith('https://'))) {
+        console.log('🤖 [ANDROID] Intentando carga directa sin expo-asset...');
+        
+        try {
+          // Intentar cargar directamente con ExpoTHREE
+          console.log('🎨 [ANDROID] Cargando directamente con ExpoTHREE.loadAsync...');
+          const texture: THREE.Texture = await ExpoTHREE.loadAsync(url);
+          console.log('✅ [ANDROID] Textura cargada directamente');
+          
+          // Aplicar configuraciones
+          if (opts.noMipmaps) {
+            texture.generateMipmaps = false;
+            texture.minFilter = THREE.LinearFilter;
+          }
+          texture.magFilter = THREE.LinearFilter;
+          texture.wrapS = THREE.ClampToEdgeWrapping;
+          texture.wrapT = THREE.ClampToEdgeWrapping;
+          texture.flipY = true;
+          
+          if ((texture as any).colorSpace !== undefined) {
+            (texture as any).colorSpace = THREE.SRGBColorSpace;
+          } else if ((THREE as any).sRGBEncoding !== undefined) {
+            (texture as any).encoding = (THREE as any).sRGBEncoding;
+          }
+          
+          texture.needsUpdate = true;
+          console.log('✅ [ANDROID] Carga directa exitosa');
+          return texture;
+        } catch (directError) {
+          console.warn('⚠️ [ANDROID] Fallo carga directa, intentando con Asset...', directError);
+          // Continuar con método de Asset
+        }
+      }
+      
+      // Método estándar con expo-asset (para iOS o si Android falló carga directa)
       console.log('📁 [ROBUST] Creando Asset...');
       const asset = /^\d+$/.test(url) ? Asset.fromModule(Number(url)) : Asset.fromURI(url);
       
-      console.log('⬇️ [ROBUST] Descargando Asset...');
-      await asset.downloadAsync();
-      let localUri = asset.localUri ?? asset.uri;
-      console.log('✅ [ROBUST] Asset descargado:', localUri);
+      try {
+        console.log('⬇️ [ROBUST] Descargando Asset...');
+        await asset.downloadAsync();
+        localUri = asset.localUri ?? asset.uri;
+        console.log('✅ [ROBUST] Asset descargado:', localUri);
+      } catch (downloadError) {
+        console.error('❌ [ROBUST] Error descargando asset:', downloadError);
+        throw new Error(`Error descargando imagen: ${downloadError}`);
+      }
 
       // 2) Redimensionar preventivo (evita cuelgues por MAX_TEXTURE_SIZE)
       try {
@@ -386,38 +428,62 @@ const createProceduralTexture = (type: 'panorama' | 'test' = 'panorama'): THREE.
 const loadPanoramaTexture = async (src: { uri?: string; base64?: string }): Promise<THREE.Texture> => {
   console.log('🚀 [TEXTURE] Iniciando carga robusta de textura panorámica...');
   console.log('🔍 [TEXTURE] Fuente recibida:', { hasUri: !!src?.uri, hasBase64: !!src?.base64 });
+  console.log('📱 [TEXTURE] Plataforma:', Platform.OS);
   
   // Si hay una imagen específica, intentar cargarla primero
   if (src?.uri || src?.base64) {
     console.log('🖼️ [TEXTURE] Imagen específica detectada, intentando carga...');
     
     try {
-      // Método 1: Intentar carga HTTP directa (solo para URLs)
+      // Método 1: Intentar carga HTTP directa (solo para URLs) - MÁS ROBUSTO
       if (src.uri && src.uri.startsWith('http')) {
         console.log('🌐 [TEXTURE] Intentando carga HTTP directa:', src.uri);
-        try {
-          const texture = await loadTextureRobustAsync(src.uri, {
-            timeoutMs: 15000,
-            noMipmaps: true,
-            maxWidth: 4096
-          });
-          console.log('🎉 [TEXTURE] Carga HTTP directa exitosa');
-          return texture;
-        } catch (httpError) {
-          console.warn('⚠️ [TEXTURE] Fallo HTTP directo:', httpError);
+        
+        // En Android, intentar método directo primero (sin expo-asset)
+        if (Platform.OS === 'android') {
+          try {
+            console.log('🤖 [ANDROID] Usando método directo para Android...');
+            const texture = await loadTextureRobustAsync(src.uri, {
+              timeoutMs: 20000, // Más tiempo para Android
+              noMipmaps: true,
+              maxWidth: 4096
+            });
+            console.log('🎉 [ANDROID] Carga HTTP directa exitosa en Android');
+            return texture;
+          } catch (androidError) {
+            console.warn('⚠️ [ANDROID] Fallo método directo Android:', androidError);
+            // Continuar a método 2
+          }
+        } else {
+          // iOS - método original
+          try {
+            const texture = await loadTextureRobustAsync(src.uri, {
+              timeoutMs: 15000,
+              noMipmaps: true,
+              maxWidth: 4096
+            });
+            console.log('🎉 [IOS] Carga HTTP directa exitosa en iOS');
+            return texture;
+          } catch (iosError) {
+            console.warn('⚠️ [IOS] Fallo HTTP directo iOS:', iosError);
+          }
         }
       }
       
       // Método 2: Usar expo-asset para descargar y cargar localmente
       console.log('📁 [TEXTURE] Intentando método local con expo-asset...');
-      const localUri = await uriFromSource(src);
-      const texture = await loadTextureRobustAsync(localUri, {
-        timeoutMs: 10000,
-        noMipmaps: true,
-        maxWidth: 4096
-      });
-      console.log('🎉 [TEXTURE] Carga local exitosa');
-      return texture;
+      try {
+        const localUri = await uriFromSource(src);
+        const texture = await loadTextureRobustAsync(localUri, {
+          timeoutMs: 10000,
+          noMipmaps: true,
+          maxWidth: 4096
+        });
+        console.log('🎉 [TEXTURE] Carga local exitosa');
+        return texture;
+      } catch (assetError) {
+        console.warn('⚠️ [TEXTURE] Fallo método expo-asset:', assetError);
+      }
       
     } catch (imageError) {
       console.warn('⚠️ [TEXTURE] Fallo cargando imagen específica:', imageError);
@@ -428,7 +494,8 @@ const loadPanoramaTexture = async (src: { uri?: string; base64?: string }): Prom
   }
   
   // Fallback confiable: Panorama procedural
-  console.log('🍎 [FALLBACK] Usando panorama procedural (funciona garantizado en iOS)');
+  console.log('🎨 [FALLBACK] Usando panorama procedural (funciona garantizado)');
+  console.log('💡 [FALLBACK] Esto garantiza que siempre veas algo en lugar de negro');
   try {
     const texture = createProceduralTexture('panorama');
     console.log('🎉 [FALLBACK] Panorama procedural creado exitosamente');
@@ -454,7 +521,7 @@ export const SimpleImageViewer: React.FC<SimpleImageViewerProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [loggingEnabled, setLoggingEnabled] = useState(false);
+  const [loggingEnabled, setLoggingEnabled] = useState(true); // HABILITAR logging por defecto para debug
   
   // Professional camera system with proper orientation handling
   const yawRef = useRef(0);
@@ -526,23 +593,42 @@ export const SimpleImageViewer: React.FC<SimpleImageViewerProps> = ({
     const r = data.rotation; // { alpha, beta, gamma } in radians (Expo)
     let yaw = r.alpha ?? 0;   // around Z-axis
     let pitch = r.beta ?? 0;  // around X-axis
-    const roll = r.gamma ?? 0; // around Y-axis (ignored)
+    const roll = r.gamma ?? 0; // around Y-axis
+
+    // Detectar landscape por dimensiones si orientation es null
+    let effectiveOrientation = orientation;
+    if (effectiveOrientation === null || effectiveOrientation === undefined) {
+      const dims = Dimensions.get('window');
+      const isLandscape = dims.width > dims.height;
+      if (isLandscape) {
+        // Asumir LANDSCAPE_LEFT por defecto si no tenemos info específica
+        effectiveOrientation = ScreenOrientation.Orientation.LANDSCAPE_LEFT;
+        console.log('🔧 [ORIENTATION] Detectado landscape por dimensiones:', dims.width + 'x' + dims.height);
+      } else {
+        effectiveOrientation = ScreenOrientation.Orientation.PORTRAIT_UP;
+      }
+    }
 
     // Compensate for screen orientation following exact specifications
-    switch (orientation) {
+    // CRÍTICO: En landscape, beta y gamma cambian de significado
+    switch (effectiveOrientation) {
       case ScreenOrientation.Orientation.LANDSCAPE_LEFT:
-        // Device rotated 90° CCW
+        // Device rotated 90° CCW - el teléfono está girado hacia la izquierda
         yaw = normalizePi(yaw - Math.PI / 2);
-        pitch = -roll;
+        // En landscape left: roll es el pitch (arriba/abajo)
+        pitch = roll;
+        console.log('📱 [LANDSCAPE_LEFT] Raw: α=' + radToDeg(r.alpha || 0).toFixed(1) + '° β=' + radToDeg(r.beta || 0).toFixed(1) + '° γ=' + radToDeg(roll).toFixed(1) + '°');
         break;
       case ScreenOrientation.Orientation.LANDSCAPE_RIGHT:
-        // Device rotated 90° CW
+        // Device rotated 90° CW - el teléfono está girado hacia la derecha
         yaw = normalizePi(yaw + Math.PI / 2);
-        pitch = roll;
+        // En landscape right: -roll es el pitch (arriba/abajo)
+        pitch = -roll;
+        console.log('📱 [LANDSCAPE_RIGHT] Raw: α=' + radToDeg(r.alpha || 0).toFixed(1) + '° β=' + radToDeg(r.beta || 0).toFixed(1) + '° γ=' + radToDeg(roll).toFixed(1) + '°');
         break;
       case ScreenOrientation.Orientation.PORTRAIT_DOWN:
         yaw = normalizePi(yaw + Math.PI);
-        pitch = +pitch;
+        pitch = pitch;
         break;
       case ScreenOrientation.Orientation.PORTRAIT_UP:
       default:
@@ -555,6 +641,7 @@ export const SimpleImageViewer: React.FC<SimpleImageViewerProps> = ({
     if (yaw0Ref.current === 0 && pitch0Ref.current === 0) {
       yaw0Ref.current = yaw;
       pitch0Ref.current = pitch;
+      console.log('🎯 [CALIBRATION] Calibración inicial: yaw0=' + radToDeg(yaw).toFixed(1) + '° pitch0=' + radToDeg(pitch).toFixed(1) + '°');
     }
 
     // Apply calibration offsets
@@ -574,8 +661,8 @@ export const SimpleImageViewer: React.FC<SimpleImageViewerProps> = ({
 
     // Throttled logging
     if (loggingEnabled && (currentTime * 1000 - lastLogTime.current) >= logInterval) {
-      console.log(`🎥 3D Camera: yaw=${radToDeg(yawRef.current).toFixed(1)}° pitch=${radToDeg(pitchRef.current).toFixed(1)}°`);
-      console.log(`📱 Orientation: ${orientation} | Raw: α=${radToDeg(r.alpha || 0).toFixed(1)}° β=${radToDeg(r.beta || 0).toFixed(1)}° γ=${radToDeg(roll).toFixed(1)}°`);
+      console.log(`🎥 Camera: yaw=${radToDeg(yawRef.current).toFixed(1)}° pitch=${radToDeg(pitchRef.current).toFixed(1)}°`);
+      console.log(`📱 Orientation: ${effectiveOrientation} | Raw: α=${radToDeg(r.alpha || 0).toFixed(1)}° β=${radToDeg(r.beta || 0).toFixed(1)}° γ=${radToDeg(roll).toFixed(1)}°`);
       lastLogTime.current = currentTime * 1000;
     }
   };
@@ -866,34 +953,66 @@ export const SimpleImageViewer: React.FC<SimpleImageViewerProps> = ({
   // Función para crear el contexto 3D con esfera invertida
   const onContextCreate = async (gl: WebGLRenderingContext) => {
     console.log('🚀 [3D] Iniciando contexto WebGL...');
-    const { drawingBufferWidth: width, drawingBufferHeight: height } = gl;
-    console.log('📐 [3D] Dimensiones del canvas:', width + 'x' + height);
+    console.log('📷 [3D] Fuente de imagen:', {
+      hasUri: !!imageSource.uri,
+      hasBase64: !!imageSource.base64,
+      uri: imageSource.uri?.substring(0, 100)
+    });
+    
+    // Usar dimensiones de la pantalla real en lugar del buffer GL
+    const screenDimensions = Dimensions.get('window');
+    const renderWidth = screenDimensions.width;
+    const renderHeight = screenDimensions.height;
+    console.log('📐 [3D] Dimensiones de pantalla:', renderWidth + 'x' + renderHeight);
+    
+    const { drawingBufferWidth: glWidth, drawingBufferHeight: glHeight } = gl;
+    console.log('📐 [3D] Dimensiones del canvas GL:', glWidth + 'x' + glHeight);
 
     try {
+      // CRÍTICO: Configurar viewport ANTES de crear el renderer
+      gl.viewport(0, 0, glWidth, glHeight);
+      console.log('✅ [3D] Viewport configurado:', glWidth + 'x' + glHeight);
+
       // Renderer de Expo
       console.log('🎨 [3D] Creando renderer...');
       const renderer = new Renderer({ gl });
-      renderer.setSize(width, height);
+      // Usar dimensiones del buffer GL que es lo que realmente tiene el canvas
+      renderer.setSize(glWidth, glHeight);
+      renderer.setPixelRatio(1); // Importante para dispositivos con alta densidad
       renderer.setClearColor(0x000000, 1);
-      console.log('✅ [3D] Renderer creado exitosamente');
+      console.log('✅ [3D] Renderer creado exitosamente con dimensiones GL');
 
-      // Escena + cámara
+      // Escena + cámara con FOV equilibrado
       console.log('🎬 [3D] Creando escena y cámara...');
       const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+      
+      // FOV equilibrado (100) para buena vista panorámica
+      const aspectRatio = glWidth / glHeight;
+      const fov = 100; // Campo de visión equilibrado
+      const camera = new THREE.PerspectiveCamera(fov, aspectRatio, 0.1, 1000);
       camera.position.set(0, 0, 0);
       camera.rotation.order = 'YXZ'; // Yaw-Pitch-Roll
-      console.log('✅ [3D] Escena y cámara creadas');
+      console.log('✅ [3D] Cámara creada - FOV:', fov, 'Aspect:', aspectRatio.toFixed(2));
 
-      // Geometría de esfera grande
-      console.log('🌐 [3D] Creando geometría de esfera (50 radio, 64x64 segmentos)...');
-      const geometry = new THREE.SphereGeometry(50, 64, 64);
-      console.log('✅ [3D] Geometría de esfera creada');
+      // Geometría de esfera con radio óptimo para pantalla completa
+      // Radio 30 es un buen equilibrio - no muy cerca ni muy lejos
+      console.log('🌐 [3D] Creando geometría de esfera (radio 30 para vista óptima)...');
+      const geometry = new THREE.SphereGeometry(30, 64, 64);
+      console.log('✅ [3D] Geometría de esfera creada con radio óptimo');
 
       // Cargar textura panorámica (ahora siempre procedural para iOS)
       console.log('🖼️ [3D] Iniciando carga de textura panorámica...');
-      const texture = await loadPanoramaTexture(imageSource);
-      console.log('✅ [3D] Textura panorámica cargada exitosamente, creando material...');
+      let texture;
+      try {
+        texture = await loadPanoramaTexture(imageSource);
+        console.log('✅ [3D] Textura panorámica cargada exitosamente, creando material...');
+      } catch (textureError) {
+        console.error('❌ [3D] Error crítico cargando textura:', textureError);
+        console.log('🔄 [3D] Cayendo a panorama procedural de emergencia...');
+        // Crear textura procedural como último recurso
+        texture = createProceduralTexture('panorama');
+        console.log('✅ [3D] Usando panorama procedural de emergencia');
+      }
 
       // Material básico con la textura; renderizamos la CARA INTERIOR
       const material = new THREE.MeshBasicMaterial({
@@ -917,6 +1036,20 @@ export const SimpleImageViewer: React.FC<SimpleImageViewerProps> = ({
       setImageLoaded(true);
       setIsLoading(false);
       console.log('🎉 [3D] Setup completo, iniciando render loop...');
+
+      // Función para actualizar aspect ratio al rotar pantalla
+      const updateCameraAspect = () => {
+        const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+        const newAspect = screenWidth / screenHeight;
+        camera.aspect = newAspect;
+        camera.updateProjectionMatrix();
+        // CRÍTICO: Actualizar viewport también
+        gl.viewport(0, 0, glWidth, glHeight);
+        console.log('📐 [3D] Aspect ratio y viewport actualizados:', newAspect.toFixed(2), `${screenWidth}x${screenHeight}`);
+      };
+
+      // Listener para cambios de orientación
+      const dimensionsSubscription = Dimensions.addEventListener('change', updateCameraAspect);
 
       // Loop de render (usa tus refs del giroscopio)
       let frameCount = 0;
@@ -943,7 +1076,8 @@ export const SimpleImageViewer: React.FC<SimpleImageViewerProps> = ({
       console.log('🔄 [3D] Render loop iniciado exitosamente');
     } catch (err) {
       console.error('❌ [3D] Error en onContextCreate:', err);
-      setError('Error inicializando visor 3D: ' + (err as Error).message);
+      console.error('❌ [3D] Stack trace:', (err as Error).stack);
+      setError('Error inicializando visor 3D. La imagen puede no ser una panorámica equirectangular válida.');
       setIsLoading(false);
     }
   };
@@ -955,19 +1089,36 @@ export const SimpleImageViewer: React.FC<SimpleImageViewerProps> = ({
         <View style={styles.loadingOverlay}>
           <Text style={styles.loadingText}>🌐 Cargando Visor 3D...</Text>
           <Text style={styles.loadingSubtext}>
-            {imageSource.uri ? 'Descargando imagen panorámica...' : 'Inicializando textura 3D...'}
+            {imageSource.uri ? `Descargando: ${imageSource.uri.substring(0, 60)}...` : 'Inicializando textura 3D...'}
           </Text>
           <Text style={styles.loadingSubtext}>
             ⏱️ Si tarda más de 10 segundos, se usará imagen de prueba
           </Text>
+          <Text style={styles.loadingSubtext}>
+            💡 Si ves una pantalla negra, puede ser un problema con la URL de la imagen
+          </Text>
         </View>
       )}
       
-      {/* 3D Panorama viewport container */}
+      {/* 3D Panorama viewport container - ABSOLUTAMENTE toda la pantalla */}
       <View style={styles.imageViewport}>
-        <GLView style={{ flex: 1 }} onContextCreate={onContextCreate} />
+        <GLView 
+          style={styles.glView}
+          onContextCreate={onContextCreate} 
+        />
       </View>
       
+      {/* Debug info overlay - only show when loaded and no error */}
+      {imageLoaded && !error && (
+        <View style={styles.debugOverlay}>
+          <Text style={styles.debugText}>
+            🎥 {useGyro ? 'Giroscopio activo' : 'Control táctil'}
+          </Text>
+          <Text style={styles.debugText}>
+            📱 {orientation === ScreenOrientation.Orientation.LANDSCAPE_LEFT || orientation === ScreenOrientation.Orientation.LANDSCAPE_RIGHT ? 'Horizontal' : 'Vertical'}
+          </Text>
+        </View>
+      )}
 
     </View>
   );
@@ -975,13 +1126,33 @@ export const SimpleImageViewer: React.FC<SimpleImageViewerProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
     backgroundColor: '#000',
   },
   imageViewport: {
-    flex: 1,
-    overflow: 'hidden', // Critical: prevents image from showing outside bounds
-    position: 'relative',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+    overflow: 'hidden',
+  },
+  glView: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
   },
   // No image styles needed - using GLView for 3D rendering
   loadingOverlay: {
@@ -1097,5 +1268,20 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 8,
     textAlign: 'center',
+  },
+  debugOverlay: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    zIndex: 50,
+  },
+  debugText: {
+    color: '#4CAF50',
+    fontSize: 11,
+    fontWeight: '600',
   },
 });

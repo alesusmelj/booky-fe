@@ -17,7 +17,7 @@ import { Asset } from 'expo-asset';
 import { Renderer } from 'expo-three';
 import * as ExpoTHREE from 'expo-three';
 import * as THREE from 'three';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { DeviceMotion, Gyroscope } from 'expo-sensors';
 
@@ -61,8 +61,11 @@ const IMMERSIVE_MODE_DELAY_MS = 250;
 const uriFromSource = async (src: { uri?: string; base64?: string }): Promise<string> => {
   try {
     if (src?.base64) {
-      const filePath = `${FileSystem.documentDirectory}panorama_${Date.now()}.jpg`;
-      await FileSystem.writeAsStringAsync(filePath, src.base64, { encoding: 'base64' });
+      const docDir = FileSystem.documentDirectory || FileSystem.cacheDirectory || '';
+      const filePath = `${docDir}panorama_${Date.now()}.jpg`;
+      await FileSystem.writeAsStringAsync(filePath, src.base64, { 
+        encoding: FileSystem.EncodingType.Base64 
+      });
       return filePath;
     }
     
@@ -478,6 +481,12 @@ export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({
   const [currentUseGyro, setCurrentUseGyro] = useState(useGyro);
   const [orientation, setOrientation] = useState<ScreenOrientation.Orientation | null>(null);
   
+  // ══════════════════════════════════════════════════════════════════════════
+  // CRITICAL: State to control when GLView should mount
+  // GLView must NOT mount until orientation is landscape AND dimensions are correct
+  // ══════════════════════════════════════════════════════════════════════════
+  const [isReadyToRender, setIsReadyToRender] = useState(false);
+  
   // Refs for camera control
   const yawRef = useRef(0);
   const pitchRef = useRef(0);
@@ -498,9 +507,68 @@ export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({
 
   useEffect(() => {
     let isMounted = true;
+    let dimensionsCheckInterval: ReturnType<typeof setInterval> | null = null;
 
-    // Enter fullscreen on mount
-    enterFullscreen();
+    const initializeFullscreen = async () => {
+      console.log('🚀 [INIT] Starting fullscreen initialization...');
+      
+      // Step 1: Enter fullscreen mode (locks to landscape + hides system bars)
+      await enterFullscreen();
+      
+      // Step 2: Wait for dimensions to be landscape (width > height)
+      // This is CRITICAL because on some devices (One UI), the orientation change
+      // completes but Dimensions.get() still returns portrait dimensions briefly
+      const waitForLandscapeDimensions = (): Promise<void> => {
+        return new Promise((resolve) => {
+          const checkDimensions = () => {
+            const { width, height } = Dimensions.get('screen');
+            const isLandscape = width > height;
+            console.log(`📐 [INIT] Checking dimensions: ${width}x${height} (landscape: ${isLandscape})`);
+            
+            if (isLandscape) {
+              console.log('✅ [INIT] Dimensions are landscape, ready to render');
+              resolve();
+              return true;
+            }
+            return false;
+          };
+          
+          // Check immediately
+          if (checkDimensions()) return;
+          
+          // Poll until dimensions are landscape (max 2 seconds)
+          let attempts = 0;
+          const maxAttempts = 20; // 20 * 100ms = 2 seconds
+          
+          dimensionsCheckInterval = setInterval(() => {
+            attempts++;
+            if (checkDimensions() || attempts >= maxAttempts) {
+              if (dimensionsCheckInterval) {
+                clearInterval(dimensionsCheckInterval);
+                dimensionsCheckInterval = null;
+              }
+              if (attempts >= maxAttempts) {
+                console.warn('⚠️ [INIT] Timeout waiting for landscape dimensions, proceeding anyway');
+              }
+              resolve();
+            }
+          }, 100);
+        });
+      };
+      
+      await waitForLandscapeDimensions();
+      
+      // Step 3: Additional delay to ensure system has fully settled
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Step 4: Now safe to mount GLView
+      if (isMounted) {
+        console.log('🎬 [INIT] Setting isReadyToRender = true');
+        setIsReadyToRender(true);
+      }
+    };
+
+    initializeFullscreen();
 
     // Listen for orientation changes
     const subscription = ScreenOrientation.addOrientationChangeListener((event) => {
@@ -519,6 +587,9 @@ export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({
     // Cleanup: exit fullscreen on unmount
     return () => {
       isMounted = false;
+      if (dimensionsCheckInterval) {
+        clearInterval(dimensionsCheckInterval);
+      }
       subscription.remove();
       exitFullscreen();
     };
@@ -726,9 +797,25 @@ export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({
   // ============================================================================
 
   const onContextCreate = useCallback(async (gl: WebGLRenderingContext) => {
+    // ══════════════════════════════════════════════════════════════════════════
+    // CRITICAL: Get CURRENT screen dimensions, not GL buffer dimensions
+    // The GL buffer might have been created with old dimensions
+    // ══════════════════════════════════════════════════════════════════════════
+    const screenDims = Dimensions.get('screen');
     const { drawingBufferWidth: glWidth, drawingBufferHeight: glHeight } = gl;
+    
+    // Use the larger dimension as width (we're in landscape)
+    const renderWidth = Math.max(screenDims.width, screenDims.height, glWidth);
+    const renderHeight = Math.min(screenDims.width, screenDims.height, glHeight);
+    
+    console.log(`🎨 [3D] Initializing renderer:`);
+    console.log(`   Screen: ${screenDims.width}x${screenDims.height}`);
+    console.log(`   GL Buffer: ${glWidth}x${glHeight}`);
+    console.log(`   Render: ${renderWidth}x${renderHeight}`);
+    console.log(`   Aspect Ratio: ${(renderWidth / renderHeight).toFixed(2)}`);
 
     try {
+      // Use actual GL buffer dimensions for viewport
       gl.viewport(0, 0, glWidth, glHeight);
 
       const renderer = new Renderer({ gl });
@@ -737,7 +824,15 @@ export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({
       renderer.setClearColor(0x000000, 1);
 
       const scene = new THREE.Scene();
-      const aspectRatio = glWidth / glHeight;
+      
+      // Calculate aspect ratio from screen dimensions (should be landscape)
+      // Use screen dimensions for camera, which are more reliable
+      const aspectRatio = screenDims.width > screenDims.height 
+        ? screenDims.width / screenDims.height 
+        : screenDims.height / screenDims.width; // Force landscape aspect
+      
+      console.log(`📷 [3D] Camera aspect ratio: ${aspectRatio.toFixed(2)}`);
+      
       const fov = 100;
       const camera = new THREE.PerspectiveCamera(fov, aspectRatio, 0.1, 1000);
       camera.position.set(0, 0, 0);
@@ -763,13 +858,17 @@ export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({
 
       setImageLoaded(true);
       setIsLoading(false);
+      
+      console.log('✅ [3D] Renderer initialized successfully');
 
-      // Update camera aspect on resize
+      // Update camera aspect on resize/rotation
       const updateCameraAspect = () => {
         const { width: sw, height: sh } = Dimensions.get('screen');
-        camera.aspect = sw / sh;
+        // Always use landscape aspect ratio
+        const newAspect = sw > sh ? sw / sh : sh / sw;
+        camera.aspect = newAspect;
         camera.updateProjectionMatrix();
-        gl.viewport(0, 0, glWidth, glHeight);
+        console.log(`📐 [3D] Camera aspect updated: ${newAspect.toFixed(2)}`);
       };
 
       const dimensionsSubscription = Dimensions.addEventListener('change', updateCameraAspect);
@@ -836,12 +935,14 @@ export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({
       */}
       <StatusBar hidden translucent backgroundColor="transparent" />
       
-      {/* Loading overlay */}
-      {isLoading && (
+      {/* Loading overlay - shown until 3D is loaded */}
+      {(isLoading || !isReadyToRender) && (
         <View style={styles.loadingOverlay}>
           <Text style={styles.loadingText}>🌐 Loading 360° Viewer...</Text>
           <Text style={styles.loadingSubtext}>
-            {imageSource.uri ? 'Downloading image...' : 'Initializing...'}
+            {!isReadyToRender 
+              ? 'Preparing fullscreen...' 
+              : (imageSource.uri ? 'Downloading image...' : 'Initializing...')}
           </Text>
         </View>
       )}
@@ -854,11 +955,14 @@ export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({
         - Uses absoluteFillObject (NOT SafeAreaView)
         - NO padding, NO margin, NO insets
         - Fills 100% of physical screen including notch/navigation areas
+        - MUST NOT mount until isReadyToRender is true (orientation settled)
       */}
-      <GLView 
-        style={styles.glView}
-        onContextCreate={onContextCreate} 
-      />
+      {isReadyToRender && (
+        <GLView 
+          style={styles.glView}
+          onContextCreate={onContextCreate} 
+        />
+      )}
       
       {/* 
         ════════════════════════════════════════════════════════════════════

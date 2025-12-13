@@ -63,89 +63,77 @@ export const Scene360Screen: React.FC = () => {
     setSceneData(null);
   };
 
+  // When viewing the panorama, render it fullscreen
+  if (sceneData) {
+    return (
+      <PanoramaViewer
+        imageSource={{
+          uri: sceneData.imageUrl,
+          base64: sceneData.imageBase64,
+        }}
+        useGyro={useGyro}
+        initialYaw={0}
+        initialPitch={0}
+        onClose={resetView}
+        showCloseButton={true}
+        showControls={true}
+      />
+    );
+  }
+
+  // Form view
   return (
     <SafeAreaView style={styles.container}>
-      {!sceneData ? (
-        <ScrollView style={styles.inputContainer}>
-          <Text style={styles.title}>Generador de Escenas 360°</Text>
-          
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>ID del Libro</Text>
-            <TextInput
-              style={styles.input}
-              value={bookId}
-              onChangeText={setBookId}
-              placeholder="Ej: 123"
-              keyboardType="numeric"
-              editable={!isLoading}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Fragmento del Libro</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={text}
-              onChangeText={setText}
-              placeholder="Ingresa un fragmento narrado del libro..."
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-              editable={!isLoading}
-            />
-          </View>
-
-          <View style={styles.switchContainer}>
-            <Text style={styles.switchLabel}>Usar Giroscopio</Text>
-            <Switch
-              value={useGyro}
-              onValueChange={setUseGyro}
-              disabled={isLoading}
-            />
-          </View>
-
-          <TouchableOpacity
-            style={[styles.button, isLoading && styles.buttonDisabled]}
-            onPress={handleGenerateScene}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Generar Escena 360°</Text>
-            )}
-          </TouchableOpacity>
-        </ScrollView>
-      ) : (
-        <View style={styles.viewerContainer}>
-          <View style={styles.header}>
-            <TouchableOpacity style={styles.backButton} onPress={resetView}>
-              <Text style={styles.backButtonText}>← Volver</Text>
-            </TouchableOpacity>
-            
-            <View style={styles.gyroToggle}>
-              <Text style={styles.gyroLabel}>Giroscopio</Text>
-              <Switch value={useGyro} onValueChange={setUseGyro} />
-            </View>
-          </View>
-
-          <PanoramaViewer
-            imageSource={{
-              uri: sceneData.imageUrl,
-              base64: sceneData.imageBase64,
-            }}
-            useGyro={useGyro}
-            initialYaw={0}
-            initialPitch={0}
+      <ScrollView style={styles.inputContainer}>
+        <Text style={styles.title}>Generador de Escenas 360°</Text>
+        
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>ID del Libro</Text>
+          <TextInput
+            style={styles.input}
+            value={bookId}
+            onChangeText={setBookId}
+            placeholder="Ej: 123"
+            keyboardType="numeric"
+            editable={!isLoading}
           />
-
-          <View style={styles.info}>
-            <Text style={styles.infoText}>
-              Libro: {sceneData.bookId} | Tamaño: {sceneData.size}
-            </Text>
-          </View>
         </View>
-      )}
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Fragmento del Libro</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={text}
+            onChangeText={setText}
+            placeholder="Ingresa un fragmento narrado del libro..."
+            multiline
+            numberOfLines={4}
+            textAlignVertical="top"
+            editable={!isLoading}
+          />
+        </View>
+
+        <View style={styles.switchContainer}>
+          <Text style={styles.switchLabel}>Usar Giroscopio</Text>
+          <Switch
+            value={useGyro}
+            onValueChange={setUseGyro}
+            disabled={isLoading}
+          />
+        </View>
+
+        <TouchableOpacity
+          style={[styles.button, isLoading && styles.buttonDisabled]}
+          onPress={handleGenerateScene}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Generar Escena 360°</Text>
+          )}
+        </TouchableOpacity>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -211,45 +199,5 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: '600',
-  },
-  viewerContainer: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  backButton: {
-    padding: 8,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: '#007AFF',
-    fontWeight: '600',
-  },
-  gyroToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  gyroLabel: {
-    fontSize: 14,
-    color: '#333',
-  },
-  info: {
-    padding: 12,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-  },
-  infoText: {
-    fontSize: 12,
-    color: '#666',
-    textAlign: 'center',
   },
 });

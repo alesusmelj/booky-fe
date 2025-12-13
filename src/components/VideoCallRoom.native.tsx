@@ -14,7 +14,7 @@ import { logger } from '../utils/logger';
 import { LiveKitService, LiveKitToken } from '../services/liveKitService';
 import { useAuth } from '../contexts/AuthContext';
 import { getLiveKitUrl } from '../config/livekit';
-import { PanoramaViewerMeeting } from './PanoramaViewerMeeting';
+import { PanoramaViewer } from './PanoramaViewer';
 
 // For Expo managed workflow, we'll use a mock implementation
 // In production, you'd need to eject to bare workflow or use EAS Build
@@ -277,9 +277,12 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
 
       {/* Panorama Viewer Modal */}
       {showPanoramaViewer && (
-        <PanoramaViewerMeeting
-          imageUrl={PANORAMA_URL}
+        <PanoramaViewer
+          imageSource={{ uri: PANORAMA_URL }}
+          useGyro={true}
           onClose={handleClosePanoramaViewer}
+          showCloseButton={true}
+          showControls={true}
         />
       )}
     </SafeAreaView>

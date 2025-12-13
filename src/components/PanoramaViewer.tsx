@@ -10,6 +10,7 @@ import {
   BackHandler,
 } from 'react-native';
 import * as ScreenOrientation from 'expo-screen-orientation';
+import * as NavigationBar from 'expo-navigation-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GLView } from 'expo-gl';
 import { Asset } from 'expo-asset';
@@ -49,6 +50,9 @@ export interface PanoramaViewerProps {
 // ============================================================================
 
 const TEST_PANORAMA_URI = 'https://cdn.pixabay.com/photo/2016/01/05/13/58/360-degree-1123718_1280.jpg';
+
+// Delay after orientation lock before applying immersive mode (One UI quirk)
+const IMMERSIVE_MODE_DELAY_MS = 250;
 
 // ============================================================================
 // TEXTURE LOADING UTILITIES
@@ -312,6 +316,149 @@ const loadPanoramaTexture = async (src: { uri?: string; base64?: string }): Prom
 };
 
 // ============================================================================
+// FULLSCREEN / IMMERSIVE MODE UTILITIES
+// ============================================================================
+
+/**
+ * ========================================================================
+ * enterFullscreen()
+ * ========================================================================
+ * 
+ * Enters TRUE immersive fullscreen mode on Android:
+ * 1. Lock orientation to landscape
+ * 2. Wait for One UI to settle (delay)
+ * 3. Hide StatusBar using imperative API
+ * 4. Set NavigationBar to absolute position (edge-to-edge)
+ * 5. Hide NavigationBar with overlay-swipe behavior
+ * 
+ * On iOS: Only locks orientation and hides status bar (no navigation bar API)
+ */
+const enterFullscreen = async (): Promise<void> => {
+  console.log('🔲 [FULLSCREEN] Entering fullscreen mode...');
+  
+  try {
+    // ══════════════════════════════════════════════════════════════════════
+    // STEP 1: Lock orientation to landscape FIRST
+    // ══════════════════════════════════════════════════════════════════════
+    await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+    console.log('✅ [FULLSCREEN] Orientation locked to landscape');
+    
+    // ══════════════════════════════════════════════════════════════════════
+    // STEP 2: Wait for orientation change to settle (One UI quirk)
+    // Without this delay, immersive mode may not apply correctly
+    // ══════════════════════════════════════════════════════════════════════
+    await new Promise(resolve => setTimeout(resolve, IMMERSIVE_MODE_DELAY_MS));
+    console.log(`✅ [FULLSCREEN] Waited ${IMMERSIVE_MODE_DELAY_MS}ms for orientation settle`);
+    
+    // ══════════════════════════════════════════════════════════════════════
+    // STEP 3: Hide StatusBar using IMPERATIVE API (not just JSX component)
+    // This is critical - <StatusBar hidden /> alone doesn't work on One UI
+    // ══════════════════════════════════════════════════════════════════════
+    StatusBar.setHidden(true, 'fade');
+    if (Platform.OS === 'android') {
+      StatusBar.setTranslucent(true);
+      StatusBar.setBackgroundColor('transparent');
+    }
+    console.log('✅ [FULLSCREEN] StatusBar hidden (imperative)');
+    
+    // ══════════════════════════════════════════════════════════════════════
+    // STEP 4 & 5: Android-specific NavigationBar handling
+    // ══════════════════════════════════════════════════════════════════════
+    if (Platform.OS === 'android') {
+      // Set position to ABSOLUTE for true edge-to-edge rendering
+      // This allows content to draw BEHIND the navigation bar area
+      await NavigationBar.setPositionAsync('absolute');
+      console.log('✅ [FULLSCREEN] NavigationBar position set to absolute (edge-to-edge)');
+      
+      // Hide the navigation bar
+      await NavigationBar.setVisibilityAsync('hidden');
+      console.log('✅ [FULLSCREEN] NavigationBar visibility set to hidden');
+      
+      // Set behavior: bars appear temporarily on swipe, then auto-hide
+      await NavigationBar.setBehaviorAsync('overlay-swipe');
+      console.log('✅ [FULLSCREEN] NavigationBar behavior set to overlay-swipe');
+      
+      // Make navigation bar transparent when it does appear
+      await NavigationBar.setBackgroundColorAsync('transparent');
+      await NavigationBar.setButtonStyleAsync('light');
+      console.log('✅ [FULLSCREEN] NavigationBar styled transparent/light');
+    }
+    
+    console.log('🎉 [FULLSCREEN] Fullscreen mode ENABLED');
+    
+  } catch (error) {
+    console.error('❌ [FULLSCREEN] Error entering fullscreen:', error);
+  }
+};
+
+/**
+ * ========================================================================
+ * exitFullscreen()
+ * ========================================================================
+ * 
+ * Exits immersive mode and restores system UI:
+ * 1. Show StatusBar
+ * 2. Restore NavigationBar (Android)
+ * 3. Return to portrait orientation
+ * 4. Unlock orientation
+ */
+const exitFullscreen = async (): Promise<void> => {
+  console.log('🔳 [FULLSCREEN] Exiting fullscreen mode...');
+  
+  try {
+    // ══════════════════════════════════════════════════════════════════════
+    // STEP 1: Restore StatusBar FIRST
+    // ══════════════════════════════════════════════════════════════════════
+    StatusBar.setHidden(false, 'fade');
+    if (Platform.OS === 'android') {
+      StatusBar.setTranslucent(false);
+      StatusBar.setBackgroundColor('#FFFFFF');
+      StatusBar.setBarStyle('dark-content');
+    }
+    console.log('✅ [FULLSCREEN] StatusBar restored');
+    
+    // ══════════════════════════════════════════════════════════════════════
+    // STEP 2: Restore NavigationBar (Android only)
+    // ══════════════════════════════════════════════════════════════════════
+    if (Platform.OS === 'android') {
+      // Restore position to relative (normal behavior)
+      await NavigationBar.setPositionAsync('relative');
+      console.log('✅ [FULLSCREEN] NavigationBar position set to relative');
+      
+      // Show navigation bar
+      await NavigationBar.setVisibilityAsync('visible');
+      console.log('✅ [FULLSCREEN] NavigationBar visibility set to visible');
+      
+      // Restore default behavior
+      await NavigationBar.setBehaviorAsync('inset-swipe');
+      console.log('✅ [FULLSCREEN] NavigationBar behavior set to inset-swipe');
+      
+      // Restore default styling
+      await NavigationBar.setBackgroundColorAsync('#FFFFFF');
+      await NavigationBar.setButtonStyleAsync('dark');
+      console.log('✅ [FULLSCREEN] NavigationBar styled default');
+    }
+    
+    // ══════════════════════════════════════════════════════════════════════
+    // STEP 3: Return to portrait orientation
+    // ══════════════════════════════════════════════════════════════════════
+    await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+    console.log('✅ [FULLSCREEN] Orientation set to portrait');
+    
+    // ══════════════════════════════════════════════════════════════════════
+    // STEP 4: Unlock orientation completely
+    // ══════════════════════════════════════════════════════════════════════
+    await ScreenOrientation.unlockAsync();
+    console.log('✅ [FULLSCREEN] Orientation unlocked');
+    
+    console.log('🎉 [FULLSCREEN] Fullscreen mode DISABLED');
+    
+  } catch (error) {
+    console.error('❌ [FULLSCREEN] Error exiting fullscreen:', error);
+  }
+};
+
+// ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
@@ -330,7 +477,6 @@ export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [currentUseGyro, setCurrentUseGyro] = useState(useGyro);
   const [orientation, setOrientation] = useState<ScreenOrientation.Orientation | null>(null);
-  const [screenDimensions, setScreenDimensions] = useState(Dimensions.get('screen'));
   
   // Refs for camera control
   const yawRef = useRef(0);
@@ -343,44 +489,23 @@ export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({
   const sensorSubscription = useRef<any>(null);
   const touchRef = useRef({ lastX: 0, lastY: 0, isDragging: false });
   
+  // Safe area insets (only used for controls, NOT for canvas)
   const insets = useSafeAreaInsets();
 
   // ============================================================================
-  // ORIENTATION MANAGEMENT
+  // FULLSCREEN LIFECYCLE - Called on mount/unmount
   // ============================================================================
 
   useEffect(() => {
     let isMounted = true;
 
-    const lockToLandscape = async () => {
-      try {
-        // Lock to landscape (allows both left and right)
-        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-        console.log('🔄 [PANORAMA] Locked to landscape');
-      } catch (error) {
-        console.warn('Could not lock orientation:', error);
-      }
-    };
-
-    const unlockOrientation = async () => {
-      try {
-        // Unlock and return to default (portrait for most apps)
-        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
-        // Then unlock completely
-        await ScreenOrientation.unlockAsync();
-        console.log('🔓 [PANORAMA] Orientation unlocked');
-      } catch (error) {
-        console.warn('Could not unlock orientation:', error);
-      }
-    };
-
-    lockToLandscape();
+    // Enter fullscreen on mount
+    enterFullscreen();
 
     // Listen for orientation changes
     const subscription = ScreenOrientation.addOrientationChangeListener((event) => {
       if (isMounted) {
         setOrientation(event.orientationInfo.orientation);
-        setScreenDimensions(Dimensions.get('screen'));
       }
     });
 
@@ -391,10 +516,11 @@ export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({
       }
     });
 
+    // Cleanup: exit fullscreen on unmount
     return () => {
       isMounted = false;
       subscription.remove();
-      unlockOrientation();
+      exitFullscreen();
     };
   }, []);
 
@@ -410,15 +536,6 @@ export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({
 
     return () => backHandler.remove();
   }, [onClose]);
-
-  // Update dimensions when screen changes
-  useEffect(() => {
-    const subscription = Dimensions.addEventListener('change', ({ screen }) => {
-      setScreenDimensions(screen);
-    });
-
-    return () => subscription.remove();
-  }, []);
 
   // ============================================================================
   // SENSOR MANAGEMENT
@@ -649,7 +766,7 @@ export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({
 
       // Update camera aspect on resize
       const updateCameraAspect = () => {
-        const { width: sw, height: sh } = Dimensions.get('window');
+        const { width: sw, height: sh } = Dimensions.get('screen');
         camera.aspect = sw / sh;
         camera.updateProjectionMatrix();
         gl.viewport(0, 0, glWidth, glHeight);
@@ -669,7 +786,6 @@ export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({
 
       render();
 
-      // Return cleanup function (will be called on unmount via effect)
       return () => {
         dimensionsSubscription.remove();
       };
@@ -684,13 +800,12 @@ export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({
   // RENDER
   // ============================================================================
 
-  const { width, height } = screenDimensions;
-
   // Error state
   if (error) {
     return (
-      <View style={[styles.container, { width, height }]}>
-        <StatusBar hidden />
+      <View style={styles.container}>
+        {/* Imperative StatusBar control backup */}
+        <StatusBar hidden translucent backgroundColor="transparent" />
         <View style={styles.errorContainer}>
           <Text style={styles.errorTitle}>❌ Error</Text>
           <Text style={styles.errorText}>{error}</Text>
@@ -709,12 +824,16 @@ export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({
 
   return (
     <View
-      style={[styles.container, { width, height }]}
+      style={styles.container}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Hide status bar completely */}
+      {/* 
+        ════════════════════════════════════════════════════════════════════
+        StatusBar JSX component (backup, main control is imperative)
+        ════════════════════════════════════════════════════════════════════
+      */}
       <StatusBar hidden translucent backgroundColor="transparent" />
       
       {/* Loading overlay */}
@@ -727,22 +846,42 @@ export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({
         </View>
       )}
       
-      {/* 3D Viewer - fills entire screen */}
-      <View style={styles.viewerContainer}>
-        <GLView 
-          style={styles.glView}
-          onContextCreate={onContextCreate} 
-        />
-      </View>
+      {/* 
+        ════════════════════════════════════════════════════════════════════
+        3D CANVAS - GLView
+        ════════════════════════════════════════════════════════════════════
+        CRITICAL: 
+        - Uses absoluteFillObject (NOT SafeAreaView)
+        - NO padding, NO margin, NO insets
+        - Fills 100% of physical screen including notch/navigation areas
+      */}
+      <GLView 
+        style={styles.glView}
+        onContextCreate={onContextCreate} 
+      />
       
-      {/* Close button - positioned in safe area */}
+      {/* 
+        ════════════════════════════════════════════════════════════════════
+        CONTROLS - These DO respect safe area insets
+        ════════════════════════════════════════════════════════════════════
+      */}
+      
+      {/* Close button */}
       {showCloseButton && onClose && (
         <TouchableOpacity
           style={[
             styles.closeButton,
             {
-              top: Platform.OS === 'ios' ? Math.max(20, insets.top) : 20,
-              left: Platform.OS === 'ios' ? Math.max(20, insets.left) : 20,
+              top: Platform.select({
+                ios: Math.max(20, insets.top),
+                android: 20,
+                default: 20,
+              }),
+              left: Platform.select({
+                ios: Math.max(20, insets.left),
+                android: 20,
+                default: 20,
+              }),
             },
           ]}
           onPress={handleClose}
@@ -758,8 +897,11 @@ export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({
           style={[
             styles.controlsOverlay,
             {
-              bottom: Platform.OS === 'ios' ? Math.max(30, insets.bottom + 10) : 30,
-              paddingHorizontal: Platform.OS === 'ios' ? Math.max(20, insets.left) : 20,
+              bottom: Platform.select({
+                ios: Math.max(30, insets.bottom + 10),
+                android: 30,
+                default: 30,
+              }),
             },
           ]}
         >
@@ -787,8 +929,16 @@ export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({
           style={[
             styles.debugOverlay,
             {
-              top: Platform.OS === 'ios' ? Math.max(20, insets.top) : 20,
-              right: Platform.OS === 'ios' ? Math.max(20, insets.right) : 20,
+              top: Platform.select({
+                ios: Math.max(20, insets.top),
+                android: 20,
+                default: 20,
+              }),
+              right: Platform.select({
+                ios: Math.max(20, insets.right),
+                android: 20,
+                default: 20,
+              }),
             },
           ]}
         >
@@ -806,40 +956,25 @@ export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({
 // ============================================================================
 
 const styles = StyleSheet.create({
+  /**
+   * Container fills ENTIRE screen using absoluteFillObject
+   * NO SafeAreaView wrapper - content must cover notch/navigation areas
+   */
   container: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: '#000',
     zIndex: 99999,
     elevation: 99999,
   },
-  viewerContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: '100%',
-    height: '100%',
-  },
+  /**
+   * GLView (3D canvas) fills entire container
+   * NO padding, NO margin - must be edge-to-edge
+   */
   glView: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: '100%',
-    height: '100%',
+    ...StyleSheet.absoluteFillObject,
   },
   loadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -931,6 +1066,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 12,
     zIndex: 100,
+    paddingHorizontal: 20,
   },
   controlButton: {
     backgroundColor: 'rgba(0, 0, 0, 0.7)',

@@ -41,8 +41,7 @@ export interface PanoramaViewerProps {
   onClose?: () => void;
   /** Show close button (default: true) */
   showCloseButton?: boolean;
-  /** Show controls overlay (default: true) */
-  showControls?: boolean;
+  // NOTE: showControls removed - UI simplified to only show close button
 }
 
 // ============================================================================
@@ -472,7 +471,6 @@ export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({
   initialPitch = 0,
   onClose,
   showCloseButton = true,
-  showControls = true,
 }) => {
   // State
   const [isLoading, setIsLoading] = useState(true);
@@ -773,18 +771,8 @@ export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({
     onClose?.();
   }, [onClose]);
 
-  const handleCenterView = useCallback(() => {
-    yawRef.current = 0;
-    pitchRef.current = 0;
-    filteredYawRef.current = 0;
-    filteredPitchRef.current = 0;
-    yaw0Ref.current = 0;
-    pitch0Ref.current = 0;
-  }, []);
-
-  const handleToggleGyro = useCallback(() => {
-    setCurrentUseGyro(prev => !prev);
-  }, []);
+  // NOTE: handleCenterView and handleToggleGyro removed - UI simplified
+  // Gyroscope is always active based on useGyro prop (default: true)
 
   const handleRetry = useCallback(() => {
     setError(null);
@@ -970,7 +958,11 @@ export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({
         ════════════════════════════════════════════════════════════════════
       */}
       
-      {/* Close button */}
+      {/* 
+        ════════════════════════════════════════════════════════════════════
+        CLOSE BUTTON - Only UI element visible (respects safe area)
+        ════════════════════════════════════════════════════════════════════
+      */}
       {showCloseButton && onClose && (
         <TouchableOpacity
           style={[
@@ -995,62 +987,19 @@ export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({
         </TouchableOpacity>
       )}
       
-      {/* Controls overlay */}
-      {showControls && imageLoaded && (
-        <View
-          style={[
-            styles.controlsOverlay,
-            {
-              bottom: Platform.select({
-                ios: Math.max(30, insets.bottom + 10),
-                android: 30,
-                default: 30,
-              }),
-            },
-          ]}
-        >
-          <TouchableOpacity style={styles.controlButton} onPress={handleCenterView}>
-            <Text style={styles.controlButtonText}>🎯 Center</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[
-              styles.controlButton,
-              currentUseGyro ? styles.controlButtonActive : styles.controlButtonInactive,
-            ]}
-            onPress={handleToggleGyro}
-          >
-            <Text style={styles.controlButtonText}>
-              {currentUseGyro ? '🔄 Gyro ON' : '🔄 Gyro OFF'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
-      
-      {/* Debug info */}
-      {imageLoaded && (
-        <View
-          style={[
-            styles.debugOverlay,
-            {
-              top: Platform.select({
-                ios: Math.max(20, insets.top),
-                android: 20,
-                default: 20,
-              }),
-              right: Platform.select({
-                ios: Math.max(20, insets.right),
-                android: 20,
-                default: 20,
-              }),
-            },
-          ]}
-        >
-          <Text style={styles.debugText}>
-            {currentUseGyro ? '🎥 Gyroscope' : '👆 Touch'}
-          </Text>
-        </View>
-      )}
+      {/* 
+        ════════════════════════════════════════════════════════════════════
+        SIMPLIFIED UI: Only close button visible for immersive experience
+        
+        Removed elements:
+        - Center button
+        - Gyro ON/OFF toggle button
+        - Gyroscope status indicator
+        
+        Gyroscope remains ALWAYS ACTIVE by default (useGyro prop = true)
+        Touch control also available as fallback
+        ════════════════════════════════════════════════════════════════════
+      */}
     </View>
   );
 };
@@ -1162,48 +1111,9 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
   },
-  controlsOverlay: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 12,
-    zIndex: 100,
-    paddingHorizontal: 20,
-  },
-  controlButton: {
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  controlButtonActive: {
-    backgroundColor: 'rgba(0, 122, 255, 0.8)',
-    borderColor: 'rgba(0, 122, 255, 1)',
-  },
-  controlButtonInactive: {
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  controlButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  debugOverlay: {
-    position: 'absolute',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    zIndex: 50,
-  },
-  debugText: {
-    color: '#4CAF50',
-    fontSize: 11,
-    fontWeight: '600',
-  },
+  // ════════════════════════════════════════════════════════════════════════
+  // REMOVED STYLES (UI elements hidden for immersive experience):
+  // - controlsOverlay, controlButton, controlButtonActive, controlButtonInactive
+  // - controlButtonText, debugOverlay, debugText
+  // ════════════════════════════════════════════════════════════════════════
 });

@@ -76,7 +76,6 @@ export const Scene360Screen: React.FC = () => {
         initialPitch={0}
         onClose={resetView}
         showCloseButton={true}
-        showControls={true}
       />
     );
   }

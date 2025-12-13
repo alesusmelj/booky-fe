@@ -282,7 +282,6 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
           useGyro={true}
           onClose={handleClosePanoramaViewer}
           showCloseButton={true}
-          showControls={true}
         />
       )}
     </SafeAreaView>

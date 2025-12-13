@@ -58,10 +58,4 @@ export { UserDropdown } from './UserDropdown';
 
 // 360° Scene Viewer components
 export { PanoramaViewer } from './PanoramaViewer';
-export { PanoramaViewerSafe } from './PanoramaViewerSafe';
-export { ThreeJSViewer } from './ThreeJSViewer';
-export { ThreeJSViewerImproved } from './ThreeJSViewerImproved';
-export { ThreeJSViewerFixed } from './ThreeJSViewerFixed';
-export { SimpleImageViewer } from './SimpleImageViewer';
-export { PanoramaViewerFullscreen } from './PanoramaViewerFullscreen';
-export { PanoramaViewerMeeting } from './PanoramaViewerMeeting';
+export type { PanoramaViewerProps } from './PanoramaViewer';

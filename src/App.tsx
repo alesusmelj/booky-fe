@@ -3,7 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, SafeAreaView, ActivityIndicator, TouchableOpacity, StatusBar as RNStatusBar, Platform } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Navbar, TopNavbar } from './components';
-import { HomeScreen, SearchScreen, LoginScreen, SignUpScreen, CommunitiesScreen, CommunityDetailScreen, ReadingClubsScreen, ProfileScreen, LibraryScreen, ChatsScreen, ChatDetailScreen, Scene360TestScreen, Scene360TestScreenSimple, Scene360TestScreenSafe, Scene360TestImageOptions, Scene360ProceduralTest, Scene360CustomImageTest, BookOwnersScreen } from './screens';
+import { HomeScreen, SearchScreen, LoginScreen, SignUpScreen, CommunitiesScreen, CommunityDetailScreen, ReadingClubsScreen, ProfileScreen, LibraryScreen, ChatsScreen, ChatDetailScreen, Scene360Screen, BookOwnersScreen } from './screens';
 import CommerceScreen from './screens/CommerceScreen';
 import { strings, colors } from './constants';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -78,18 +78,8 @@ function AppContent() {
         return <ChatDetailScreen route={{ params: currentScreen.params }} />;
       case 'book-owners':
         return <BookOwnersScreen bookId={currentScreen.params?.bookId} bookTitle={currentScreen.params?.bookTitle} />;
-      case 'scene360-test':
-        return <Scene360TestScreen />;
-      case 'scene360-test-simple':
-        return <Scene360TestScreenSimple />;
-      case 'scene360-test-safe':
-        return <Scene360TestScreenSafe />;
-      case 'scene360-image-options':
-        return <Scene360TestImageOptions />;
-      case 'scene360-procedural':
-        return <Scene360ProceduralTest />;
-      case 'scene360-custom':
-        return <Scene360CustomImageTest />;
+      case 'scene360':
+        return <Scene360Screen />;
       default:
         // Handle tab-based screens
         switch (activeTab) {

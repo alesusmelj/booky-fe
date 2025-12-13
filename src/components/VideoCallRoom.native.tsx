@@ -9,7 +9,7 @@ import {
   Dimensions,
   SafeAreaView,
 } from 'react-native';
-import { colors } from '../constants';
+import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { logger } from '../utils/logger';
 import { LiveKitService, LiveKitToken } from '../services/liveKitService';
 import { useAuth } from '../contexts/AuthContext';
@@ -19,6 +19,52 @@ import { PanoramaViewer } from './PanoramaViewer';
 // For Expo managed workflow, we'll use a mock implementation
 // In production, you'd need to eject to bare workflow or use EAS Build
 import { Room, Track } from 'livekit-client';
+
+// ============================================================================
+// DESIGN SYSTEM - Premium dark theme for book club aesthetic
+// ============================================================================
+const theme = {
+  colors: {
+    // Background hierarchy
+    background: '#0D1117',      // Deep dark with blue tint
+    surface: '#161B22',         // Elevated surface
+    surfaceElevated: '#21262D', // Cards and modals
+    surfaceHover: '#30363D',    // Interactive hover
+    
+    // Text hierarchy
+    textPrimary: '#F0F6FC',     // Main text
+    textSecondary: '#8B949E',   // Secondary text
+    textMuted: '#484F58',       // Subtle text
+    
+    // Accent colors
+    accent: '#58A6FF',          // Primary blue accent
+    accentMuted: '#388BFD26',   // Blue with transparency
+    
+    // Status colors
+    success: '#3FB950',
+    successMuted: '#23863626',
+    error: '#F85149',
+    errorMuted: '#F8514926',
+    warning: '#D29922',
+    
+    // Borders
+    border: '#30363D',
+    borderSubtle: '#21262D',
+  },
+  spacing: {
+    xs: 4,
+    sm: 8,
+    md: 16,
+    lg: 24,
+    xl: 32,
+  },
+  radius: {
+    sm: 8,
+    md: 12,
+    lg: 16,
+    full: 9999,
+  },
+};
 
 interface VideoCallRoomProps {
   readingClubId: string;
@@ -59,7 +105,7 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
         participant_name: `${user.name} ${user.lastname || ''}`.trim(),
       });
 
-      logger.info('🎯 Token data received:', tokenData);
+      logger.info('Token data received:', tokenData);
 
       // Validate token data
       if (!tokenData || !tokenData.token) {
@@ -67,15 +113,15 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
       }
 
       if (!tokenData.room_name) {
-        logger.warn('⚠️ No room_name in token data, using fallback');
+        logger.warn('No room_name in token data, using fallback');
         tokenData.room_name = `reading-club-${readingClubId}`;
       }
 
       setToken(tokenData);
 
       // Mock connection for Expo managed workflow
-      logger.info('🔧 Mock connection to LiveKit room:', tokenData.room_name);
-      logger.warn('⚠️ Using mock implementation - LiveKit native features not available in Expo managed workflow');
+      logger.info('Mock connection to LiveKit room:', tokenData.room_name);
+      logger.warn('Using mock implementation - LiveKit native features not available in Expo managed workflow');
       
       // Simulate connection delay
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -92,7 +138,7 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
       
       setParticipants(mockParticipants);
       setIsConnected(true);
-      logger.info('✅ Mock connection established with', mockParticipants.length, 'participants');
+      logger.info('Mock connection established with', mockParticipants.length, 'participants');
       setIsConnecting(false);
 
     } catch (err) {
@@ -124,12 +170,12 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
 
   const toggleMute = useCallback(() => {
     setIsMuted(!isMuted);
-    logger.info('🎤 Microphone toggled:', !isMuted ? 'muted' : 'unmuted');
+    logger.info('Microphone toggled:', !isMuted ? 'muted' : 'unmuted');
   }, [isMuted]);
 
   const toggleVideo = useCallback(() => {
     setIsVideoEnabled(!isVideoEnabled);
-    logger.info('📹 Camera toggled:', !isVideoEnabled ? 'disabled' : 'enabled');
+    logger.info('Camera toggled:', !isVideoEnabled ? 'disabled' : 'enabled');
   }, [isVideoEnabled]);
 
   const handleLeave = useCallback(async () => {
@@ -138,12 +184,12 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
   }, [disconnectFromRoom, onClose]);
 
   const handleOpenPanoramaViewer = useCallback(() => {
-    logger.info('🌐 Opening panorama viewer from meeting');
+    logger.info('Opening panorama viewer from meeting');
     setShowPanoramaViewer(true);
   }, []);
 
   const handleClosePanoramaViewer = useCallback(() => {
-    logger.info('🌐 Closing panorama viewer');
+    logger.info('Closing panorama viewer');
     setShowPanoramaViewer(false);
   }, []);
 
@@ -155,127 +201,211 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
     };
   }, [connectToRoom, disconnectFromRoom]);
 
+  // ============================================================================
+  // LOADING STATE
+  // ============================================================================
   if (isConnecting) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary.main} />
-          <Text style={styles.loadingText}>Connecting to meeting...</Text>
+          <View style={styles.loadingIconWrapper}>
+            <Ionicons name="book" size={48} color={theme.colors.accent} />
+          </View>
+          <Text style={styles.loadingTitle}>Conectando a la reunión</Text>
+          <Text style={styles.loadingSubtitle}>Preparando tu sesión del club...</Text>
+          <ActivityIndicator 
+            size="small" 
+            color={theme.colors.accent} 
+            style={styles.loadingSpinner}
+          />
         </View>
       </SafeAreaView>
     );
   }
 
+  // ============================================================================
+  // ERROR STATE
+  // ============================================================================
   if (error) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Connection Error</Text>
+          <View style={styles.errorIconWrapper}>
+            <Ionicons name="alert-circle" size={56} color={theme.colors.error} />
+          </View>
+          <Text style={styles.errorTitle}>Error de conexión</Text>
           <Text style={styles.errorMessage}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={connectToRoom}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+          <TouchableOpacity style={styles.primaryButton} onPress={connectToRoom}>
+            <Ionicons name="refresh" size={20} color={theme.colors.textPrimary} />
+            <Text style={styles.primaryButtonText}>Reintentar</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Text style={styles.closeButtonText}>Close</Text>
+          <TouchableOpacity style={styles.secondaryButton} onPress={onClose}>
+            <Text style={styles.secondaryButtonText}>Volver</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
   }
 
+  // ============================================================================
+  // MAIN MEETING VIEW
+  // ============================================================================
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
+      {/* ════════════════════════════════════════════════════════════════════
+          HEADER - Clean dark header with elegant typography
+          ════════════════════════════════════════════════════════════════════ */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Reunión del Club de Lectura</Text>
-        <TouchableOpacity onPress={handleLeave} style={styles.headerCloseButton}>
-          <Text style={styles.headerCloseText}>✕</Text>
-        </TouchableOpacity>
+        <View style={styles.headerContent}>
+          <View style={styles.headerTitleContainer}>
+            <Ionicons 
+              name="book-outline" 
+              size={20} 
+              color={theme.colors.accent} 
+              style={styles.headerIcon}
+            />
+            <Text style={styles.headerTitle}>Reunión del Club</Text>
+          </View>
+          <TouchableOpacity 
+            onPress={handleLeave} 
+            style={styles.headerCloseButton}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="close" size={22} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* Video Container */}
+      {/* ════════════════════════════════════════════════════════════════════
+          MAIN VIDEO AREA - Clean centered status
+          ════════════════════════════════════════════════════════════════════ */}
       <View style={styles.videoContainer}>
-        {/* Main video view - placeholder for now */}
         <View style={styles.mainVideoView}>
-          <View style={styles.placeholderVideo}>
-            <Text style={styles.placeholderText}>📹</Text>
-            <Text style={styles.placeholderSubtext}>
-              {isConnected ? 'Connected to meeting' : 'Connecting...'}
+          <View style={styles.connectionStatus}>
+            {/* Connection indicator */}
+            <View style={[
+              styles.statusBadge,
+              isConnected ? styles.statusConnected : styles.statusDisconnected
+            ]}>
+              <View style={[
+                styles.statusDot,
+                { backgroundColor: isConnected ? theme.colors.success : theme.colors.error }
+              ]} />
+              <Text style={styles.statusBadgeText}>
+                {isConnected ? 'Conectado' : 'Desconectado'}
+              </Text>
+            </View>
+            
+            {/* Central icon */}
+            <View style={styles.centralIconWrapper}>
+              <Ionicons 
+                name={isConnected ? "videocam" : "videocam-off"} 
+                size={64} 
+                color={theme.colors.textMuted} 
+              />
+            </View>
+            
+            {/* Status text */}
+            <Text style={styles.connectionTitle}>
+              {isConnected ? 'En sesión' : 'Sin conexión'}
+            </Text>
+            <Text style={styles.connectionSubtitle}>
+              {isConnected 
+                ? 'Estás participando en la reunión del club' 
+                : 'Intentando reconectar...'}
             </Text>
           </View>
         </View>
 
-        {/* Participants thumbnails */}
-        <View style={styles.thumbnailContainer}>
-          {participants.map((participant) => {
-            // Find video track for this participant
-            const videoTrack = tracks.find(
-              (track) => 
-                track.participant.identity === participant.identity &&
-                track.source === Track.Source.Camera
-            );
-            
-            return (
-              <View key={participant.identity} style={styles.thumbnail}>
-                <View style={styles.thumbnailVideo}>
-                  {videoTrack && videoTrack.publication && !videoTrack.publication.isMuted ? (
-                    <View style={styles.videoView}>
-                      <Text style={styles.thumbnailIcon}>📹</Text>
-                      <Text style={styles.videoPlaceholder}>Video Active</Text>
+        {/* ════════════════════════════════════════════════════════════════════
+            PARTICIPANTS - Refined cards with avatars
+            ════════════════════════════════════════════════════════════════════ */}
+        <View style={styles.participantsSection}>
+          <Text style={styles.participantsTitle}>
+            Participantes ({participants.length})
+          </Text>
+          <View style={styles.participantsList}>
+            {participants.map((participant) => {
+              const videoTrack = tracks.find(
+                (track) => 
+                  track.participant.identity === participant.identity &&
+                  track.source === Track.Source.Camera
+              );
+              const hasVideo = videoTrack && videoTrack.publication && !videoTrack.publication.isMuted;
+              
+              return (
+                <View key={participant.identity} style={styles.participantCard}>
+                  <View style={styles.participantAvatar}>
+                    {hasVideo ? (
+                      <Ionicons name="videocam" size={20} color={theme.colors.success} />
+                    ) : (
+                      <Ionicons name="person" size={20} color={theme.colors.textSecondary} />
+                    )}
+                  </View>
+                  <Text style={styles.participantName} numberOfLines={1}>
+                    {participant.name || participant.identity}
+                  </Text>
+                  {participant.isLocal && (
+                    <View style={styles.youBadge}>
+                      <Text style={styles.youBadgeText}>Tú</Text>
                     </View>
-                  ) : (
-                    <Text style={styles.thumbnailIcon}>👤</Text>
                   )}
                 </View>
-                <Text style={styles.participantName} numberOfLines={1}>
-                  {participant.name || participant.identity}
-                </Text>
-              </View>
-            );
-          })}
+              );
+            })}
+          </View>
         </View>
       </View>
 
-      {/* Controls */}
-      <View style={styles.controlsContainer}>
-        <View style={styles.controls}>
-          {/* Mute button */}
+      {/* ════════════════════════════════════════════════════════════════════
+          CONTROLS BAR - Unified circular buttons
+          ════════════════════════════════════════════════════════════════════ */}
+      <View style={styles.controlsWrapper}>
+        <View style={styles.controlsContainer}>
+          {/* Microphone toggle */}
           <TouchableOpacity
             style={[
               styles.controlButton,
-              isMuted && styles.controlButtonActive,
+              isMuted && styles.controlButtonMuted,
             ]}
             onPress={toggleMute}
+            activeOpacity={0.8}
           >
-            <Text style={styles.controlIcon}>
-              {!isMuted ? '🎤' : '🔇'}
-            </Text>
+            <Ionicons 
+              name={isMuted ? "mic-off" : "mic"} 
+              size={24} 
+              color={isMuted ? theme.colors.textPrimary : theme.colors.textPrimary} 
+            />
           </TouchableOpacity>
 
-
-          {/* 360° Viewer button */}
+          {/* 360° Panorama Viewer - Accent button */}
           <TouchableOpacity
             style={styles.panoramaButton}
             onPress={handleOpenPanoramaViewer}
+            activeOpacity={0.8}
           >
-            <Text style={styles.controlIcon}>🌐</Text>
+            <MaterialCommunityIcons 
+              name="panorama-sphere-outline" 
+              size={26} 
+              color={theme.colors.textPrimary} 
+            />
           </TouchableOpacity>
 
-          {/* Leave button */}
-          <TouchableOpacity style={styles.leaveButton} onPress={handleLeave}>
-            <Text style={styles.leaveButtonText}>Leave</Text>
+          {/* Leave meeting - Destructive action */}
+          <TouchableOpacity 
+            style={styles.leaveButton} 
+            onPress={handleLeave}
+            activeOpacity={0.8}
+          >
+            <Feather name="phone-off" size={20} color={theme.colors.textPrimary} />
+            <Text style={styles.leaveButtonText}>Salir</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Connection status */}
-      <View style={styles.statusContainer}>
-        <Text style={styles.statusText}>
-          {isConnected ? '🟢 Connected' : '🔴 Disconnected'} • {participants.length} participant{participants.length !== 1 ? 's' : ''}
-        </Text>
-      </View>
-
-      {/* Panorama Viewer Modal */}
+      {/* ════════════════════════════════════════════════════════════════════
+          PANORAMA VIEWER MODAL
+          ════════════════════════════════════════════════════════════════════ */}
       {showPanoramaViewer && (
         <PanoramaViewer
           imageSource={{ uri: PANORAMA_URL }}
@@ -288,200 +418,341 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
   );
 };
 
+// ============================================================================
+// STYLES
+// ============================================================================
 const { width, height } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
+  // ════════════════════════════════════════════════════════════════════════
+  // CONTAINER
+  // ════════════════════════════════════════════════════════════════════════
   container: {
     flex: 1,
-    backgroundColor: colors.neutral.black,
+    backgroundColor: theme.colors.background,
   },
+
+  // ════════════════════════════════════════════════════════════════════════
+  // LOADING STATE
+  // ════════════════════════════════════════════════════════════════════════
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.neutral.black,
+    paddingHorizontal: theme.spacing.xl,
   },
-  loadingText: {
-    color: colors.neutral.white,
-    fontSize: 16,
-    marginTop: 16,
+  loadingIconWrapper: {
+    width: 96,
+    height: 96,
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.accentMuted,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: theme.spacing.lg,
   },
+  loadingTitle: {
+    color: theme.colors.textPrimary,
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: theme.spacing.xs,
+    letterSpacing: -0.3,
+  },
+  loadingSubtitle: {
+    color: theme.colors.textSecondary,
+    fontSize: 15,
+    marginBottom: theme.spacing.lg,
+  },
+  loadingSpinner: {
+    marginTop: theme.spacing.sm,
+  },
+
+  // ════════════════════════════════════════════════════════════════════════
+  // ERROR STATE
+  // ════════════════════════════════════════════════════════════════════════
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: colors.neutral.black,
+    paddingHorizontal: theme.spacing.xl,
   },
-  errorText: {
-    color: colors.status.error,
+  errorIconWrapper: {
+    width: 96,
+    height: 96,
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.errorMuted,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: theme.spacing.lg,
+  },
+  errorTitle: {
+    color: theme.colors.textPrimary,
     fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 8,
+    fontWeight: '600',
+    marginBottom: theme.spacing.sm,
+    letterSpacing: -0.3,
   },
   errorMessage: {
-    color: colors.neutral.white,
-    fontSize: 16,
+    color: theme.colors.textSecondary,
+    fontSize: 15,
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: theme.spacing.xl,
+    lineHeight: 22,
   },
-  retryButton: {
-    backgroundColor: colors.primary.main,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginBottom: 12,
+  primaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.accent,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.radius.md,
+    marginBottom: theme.spacing.sm,
+    gap: theme.spacing.sm,
   },
-  retryButtonText: {
-    color: colors.neutral.white,
+  primaryButtonText: {
+    color: theme.colors.textPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
-  closeButton: {
-    backgroundColor: colors.neutral.gray600,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+  secondaryButton: {
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
   },
-  closeButtonText: {
-    color: colors.neutral.white,
+  secondaryButtonText: {
+    color: theme.colors.textSecondary,
     fontSize: 16,
   },
+
+  // ════════════════════════════════════════════════════════════════════════
+  // HEADER
+  // ════════════════════════════════════════════════════════════════════════
   header: {
+    paddingTop: theme.spacing.sm,
+    paddingBottom: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+    backgroundColor: theme.colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: colors.neutral.gray800,
+  },
+  headerTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerIcon: {
+    marginRight: theme.spacing.sm,
   },
   headerTitle: {
-    color: colors.neutral.white,
-    fontSize: 18,
+    color: theme.colors.textPrimary,
+    fontSize: 17,
     fontWeight: '600',
+    letterSpacing: -0.3,
   },
   headerCloseButton: {
-    padding: 8,
+    width: 36,
+    height: 36,
+    borderRadius: theme.radius.sm,
+    backgroundColor: theme.colors.surfaceElevated,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  headerCloseText: {
-    color: colors.neutral.white,
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
+
+  // ════════════════════════════════════════════════════════════════════════
+  // VIDEO CONTAINER
+  // ════════════════════════════════════════════════════════════════════════
   videoContainer: {
     flex: 1,
-    padding: 16,
+    padding: theme.spacing.md,
   },
   mainVideoView: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.surface,
     overflow: 'hidden',
-    marginBottom: 16,
+    marginBottom: theme.spacing.md,
   },
-  placeholderVideo: {
+  connectionStatus: {
     flex: 1,
-    backgroundColor: colors.neutral.gray800,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: theme.spacing.xl,
   },
-  placeholderText: {
-    fontSize: 48,
-    marginBottom: 8,
-  },
-  placeholderSubtext: {
-    color: colors.neutral.white,
-    fontSize: 16,
-  },
-  thumbnailContainer: {
+  statusBadge: {
     flexDirection: 'row',
-    height: 80,
-  },
-  thumbnail: {
-    width: 60,
-    marginRight: 8,
     alignItems: 'center',
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.xs + 2,
+    borderRadius: theme.radius.full,
+    marginBottom: theme.spacing.lg,
   },
-  thumbnailVideo: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    backgroundColor: colors.neutral.gray700,
+  statusConnected: {
+    backgroundColor: theme.colors.successMuted,
+  },
+  statusDisconnected: {
+    backgroundColor: theme.colors.errorMuted,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: theme.spacing.sm,
+  },
+  statusBadgeText: {
+    color: theme.colors.textPrimary,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  centralIconWrapper: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: theme.colors.surfaceElevated,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 4,
-    overflow: 'hidden',
+    marginBottom: theme.spacing.lg,
   },
-  videoView: {
-    width: '100%',
-    height: '100%',
+  connectionTitle: {
+    color: theme.colors.textPrimary,
+    fontSize: 22,
+    fontWeight: '600',
+    marginBottom: theme.spacing.xs,
+    letterSpacing: -0.5,
+  },
+  connectionSubtitle: {
+    color: theme.colors.textSecondary,
+    fontSize: 15,
+    textAlign: 'center',
+    lineHeight: 21,
+  },
+
+  // ════════════════════════════════════════════════════════════════════════
+  // PARTICIPANTS
+  // ════════════════════════════════════════════════════════════════════════
+  participantsSection: {
+    marginTop: theme.spacing.sm,
+  },
+  participantsTitle: {
+    color: theme.colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '500',
+    marginBottom: theme.spacing.sm,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  participantsList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
+  },
+  participantCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  participantAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: theme.colors.surfaceElevated,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.neutral.gray800,
-  },
-  videoPlaceholder: {
-    color: colors.neutral.white,
-    fontSize: 12,
-    marginTop: 4,
-  },
-  thumbnailIcon: {
-    fontSize: 24,
+    marginRight: theme.spacing.sm,
   },
   participantName: {
-    fontSize: 12,
-    color: colors.neutral.white,
-    textAlign: 'center',
+    color: theme.colors.textPrimary,
+    fontSize: 14,
+    fontWeight: '500',
+    maxWidth: 120,
+  },
+  youBadge: {
+    backgroundColor: theme.colors.accentMuted,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 2,
+    borderRadius: theme.radius.sm,
+    marginLeft: theme.spacing.sm,
+  },
+  youBadgeText: {
+    color: theme.colors.accent,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+
+  // ════════════════════════════════════════════════════════════════════════
+  // CONTROLS
+  // ════════════════════════════════════════════════════════════════════════
+  controlsWrapper: {
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.lg,
+    backgroundColor: theme.colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
   },
   controlsContainer: {
-    padding: 16,
-  },
-  controls: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    gap: theme.spacing.md,
   },
   controlButton: {
     width: 56,
     height: 56,
-    marginHorizontal: 8,
     borderRadius: 28,
-    backgroundColor: colors.neutral.gray700,
+    backgroundColor: theme.colors.surfaceElevated,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    // Subtle shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  controlButtonActive: {
-    backgroundColor: colors.status.error,
-  },
-  controlIcon: {
-    fontSize: 24,
+  controlButtonMuted: {
+    backgroundColor: theme.colors.error,
+    borderColor: theme.colors.error,
   },
   panoramaButton: {
     width: 56,
     height: 56,
-    marginHorizontal: 8,
     borderRadius: 28,
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.colors.accent,
     justifyContent: 'center',
     alignItems: 'center',
+    // Subtle shadow
+    shadowColor: theme.colors.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   leaveButton: {
-    backgroundColor: colors.status.error,
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderRadius: 28,
-    marginLeft: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.error,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.radius.full,
+    gap: theme.spacing.sm,
+    // Subtle shadow
+    shadowColor: theme.colors.error,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
   },
   leaveButtonText: {
-    color: colors.neutral.white,
-    fontSize: 16,
+    color: theme.colors.textPrimary,
+    fontSize: 15,
     fontWeight: '600',
-  },
-  statusContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    alignItems: 'center',
-  },
-  statusText: {
-    color: colors.neutral.gray400,
-    fontSize: 14,
   },
 });

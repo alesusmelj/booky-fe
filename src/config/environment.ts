@@ -29,13 +29,13 @@ export const environmentConfig = {
     apiTimeout: 10000, // 10 seconds
   },
   staging: {
-    apiBaseUrl: 'https://api-staging.booky.com',
+    apiBaseUrl: 'https://booky-be.fly.dev',
     enableLogging: true,
     enableMockData: false,
     apiTimeout: 15000, // 15 seconds
   },
   production: {
-    apiBaseUrl: 'https://api.booky.com',
+    apiBaseUrl: 'https://booky-be.fly.dev',
     enableLogging: false,
     enableMockData: false,
     apiTimeout: 20000, // 20 seconds

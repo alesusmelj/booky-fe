@@ -1,55 +1,54 @@
 {
   "expo": {
-    "name": "booky-temp",
-    "slug": "booky-temp",
+    "name": "Booky",
+    "slug": "booky",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/logo.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.felipelena8.bookytempapp",
+      "bundleIdentifier": "com.felipelena8.booky",
       "infoPlist": {
-        "NSCameraUsageDescription": "This app uses the camera to scan book ISBN barcodes for adding books to your library.",
-        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to let you select profile pictures."
+        "NSCameraUsageDescription": "Esta app usa la cámara para escanear códigos ISBN de libros.",
+        "NSPhotoLibraryUsageDescription": "Esta app accede a tus fotos para compartirlas.",
+        "NSMicrophoneUsageDescription": "Esta app usa el micrófono para videollamadas.",
+        "NSLocationWhenInUseUsageDescription": "Esta app usa tu ubicación para mostrar lectores cercanos."
       }
     },
     "android": {
-      "package": "com.felipelena8.bookytempapp",
+      "package": "com.felipelena8.booky",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
       "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "INTERNET",
-        "ACCESS_NETWORK_STATE"
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
       ],
       "usesCleartextTraffic": true
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/logo.png"
     },
-    "plugins": [
-      "expo-camera",
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "The app accesses your photos to let you share them.",
-          "cameraPermission": "The app accesses your camera to let you take photos."
-        }
-      ],
-      "expo-asset",
-      "expo-maps"
-    ]
+    "extra": {
+      "eas": {
+        "projectId": "77ce92b2-32eb-4315-a20f-76e98b477705"
+      }
+    },
+    "owner": "felipelena8"
   }
 }

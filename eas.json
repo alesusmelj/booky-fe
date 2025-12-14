@@ -8,17 +8,22 @@
       "distribution": "internal",
       "node": "22.12.0",
       "env": {
-        "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
+        "NPM_CONFIG_LEGACY_PEER_DEPS": "true",
+        "EAS_BUILD_NPM_CACHE_URL": "false"
       }
     },
     "preview": {
       "distribution": "internal",
       "node": "22.12.0",
       "env": {
-        "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
+        "NPM_CONFIG_LEGACY_PEER_DEPS": "true",
+        "EAS_BUILD_NPM_CACHE_URL": "false"
       },
       "android": {
         "buildType": "apk"
+      },
+      "cache": {
+        "disabled": true
       }
     },
     "production": {

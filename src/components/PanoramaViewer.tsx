@@ -1,1119 +1,580 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
-import {
-  View,
-  StyleSheet,
-  TouchableOpacity,
-  Text,
-  StatusBar,
-  Dimensions,
-  Platform,
-  BackHandler,
-} from 'react-native';
-import * as ScreenOrientation from 'expo-screen-orientation';
-import * as NavigationBar from 'expo-navigation-bar';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { GLView } from 'expo-gl';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { View, StyleSheet, TouchableOpacity, Text, ActivityIndicator, Platform } from 'react-native';
+import { WebView } from 'react-native-webview';
 import { Asset } from 'expo-asset';
-import { Renderer } from 'expo-three';
-import * as ExpoTHREE from 'expo-three';
-import * as THREE from 'three';
 import * as FileSystem from 'expo-file-system/legacy';
-import * as ImageManipulator from 'expo-image-manipulator';
-import { DeviceMotion, Gyroscope } from 'expo-sensors';
-
-// ============================================================================
-// TYPES & INTERFACES
-// ============================================================================
+import * as ScreenOrientation from 'expo-screen-orientation';
+import { DeviceMotion } from 'expo-sensors';
 
 export interface PanoramaViewerProps {
-  /** Image source - can be a URL or base64 encoded image */
-  imageSource: {
-    uri?: string;
-    base64?: string;
-  };
-  /** Enable gyroscope control (default: true) */
-  useGyro?: boolean;
-  /** Initial horizontal rotation in degrees (default: 0) */
-  initialYaw?: number;
-  /** Initial vertical rotation in degrees (default: 0) */
-  initialPitch?: number;
-  /** Callback when user closes the viewer */
+  uri: string;
   onClose?: () => void;
-  /** Show close button (default: true) */
-  showCloseButton?: boolean;
-  // NOTE: showControls removed - UI simplified to only show close button
 }
 
-// ============================================================================
-// CONSTANTS
-// ============================================================================
-
-const TEST_PANORAMA_URI = 'https://cdn.pixabay.com/photo/2016/01/05/13/58/360-degree-1123718_1280.jpg';
-
-// Delay after orientation lock before applying immersive mode (One UI quirk)
-const IMMERSIVE_MODE_DELAY_MS = 250;
-
-// ============================================================================
-// TEXTURE LOADING UTILITIES
-// ============================================================================
-
-const uriFromSource = async (src: { uri?: string; base64?: string }): Promise<string> => {
-  try {
-    if (src?.base64) {
-      const docDir = FileSystem.documentDirectory || FileSystem.cacheDirectory || '';
-      const filePath = `${docDir}panorama_${Date.now()}.jpg`;
-      await FileSystem.writeAsStringAsync(filePath, src.base64, { 
-        encoding: FileSystem.EncodingType.Base64 
-      });
-      return filePath;
-    }
-    
-    if (src?.uri) {
-      const asset = Asset.fromURI(src.uri);
-      await asset.downloadAsync();
-      return asset.localUri ?? asset.uri;
-    }
-    
-    const asset = Asset.fromURI(TEST_PANORAMA_URI);
-    await asset.downloadAsync();
-    return asset.localUri ?? asset.uri;
-  } catch (error) {
-    console.error('❌ [URI] Error getting local URI:', error);
-    throw error;
-  }
+// ------------------------ math ------------------------
+const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
+const normalizePi = (v: number) => {
+  const twoPi = Math.PI * 2;
+  return ((v + Math.PI) % twoPi + twoPi) % twoPi - Math.PI;
 };
+const radToDeg = (r: number) => (r * 180) / Math.PI;
 
-type LoadOpts = {
-  timeoutMs?: number;
-  noMipmaps?: boolean;
-  maxWidth?: number;
-};
+// shortest angular difference (target - current) in [-pi, pi]
+const angleDiff = (target: number, current: number) => normalizePi(target - current);
 
-const loadTextureRobustAsync = async (
-  url: string,
-  opts: LoadOpts = {}
-): Promise<THREE.Texture> => {
-  const timeoutMs = opts.timeoutMs ?? 10000;
-  const maxWidth = opts.maxWidth ?? 4096;
+// EMA for angles (yaw): move by shortest path
+const emaAngle = (prev: number, target: number, alpha: number) => normalizePi(prev + angleDiff(target, prev) * alpha);
+// EMA for linear values (pitch)
+const ema = (prev: number, target: number, alpha: number) => prev + (target - prev) * alpha;
 
-  if (url.startsWith('http://')) {
-    throw new Error('iOS/ATS blocks http:// — use https://');
-  }
+export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({ uri, onClose }) => {
+  const webRef = useRef<WebView>(null);
 
-  const timeout = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error(`Timeout after ${timeoutMs}ms`)), timeoutMs)
-  );
+  const [pannellumJs, setPannellumJs] = useState<string | null>(null);
+  const [pannellumCss, setPannellumCss] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  const loadOp = (async () => {
-    const isNative = Platform.OS === 'ios' || Platform.OS === 'android';
+  const [webReady, setWebReady] = useState(false);
+  const [webHasSetPose, setWebHasSetPose] = useState<boolean | null>(null);
+  const [lastWebMsg, setLastWebMsg] = useState<string>('');
 
-    if (isNative) {
-      let localUri = url;
-      
-      // Direct load for Android with HTTP/HTTPS URLs
-      if (Platform.OS === 'android' && url.startsWith('https://')) {
-        try {
-          const texture: THREE.Texture = await ExpoTHREE.loadAsync(url);
-          if (opts.noMipmaps) {
-            texture.generateMipmaps = false;
-            texture.minFilter = THREE.LinearFilter;
-          }
-          texture.magFilter = THREE.LinearFilter;
-          texture.wrapS = THREE.ClampToEdgeWrapping;
-          texture.wrapT = THREE.ClampToEdgeWrapping;
-          texture.flipY = true;
-          if ((texture as any).colorSpace !== undefined) {
-            (texture as any).colorSpace = THREE.SRGBColorSpace;
-          }
-          texture.needsUpdate = true;
-          return texture;
-        } catch {
-          // Fall through to asset method
-        }
-      }
-      
-      // Standard method with expo-asset
-      const asset = /^\d+$/.test(url) ? Asset.fromModule(Number(url)) : Asset.fromURI(url);
-      
-      try {
-        await asset.downloadAsync();
-        localUri = asset.localUri ?? asset.uri;
-      } catch (downloadError) {
-        throw new Error(`Error downloading image: ${downloadError}`);
-      }
+  // ====== tuning (lo que te dejó funcionando) ======
+  const INVERT_YAW = true;
+  const INVERT_PITCH = true;
 
-      // Resize to avoid MAX_TEXTURE_SIZE issues
-      try {
-        const resized = await ImageManipulator.manipulateAsync(
-          localUri,
-          [{ resize: { width: maxWidth } }],
-          { compress: 0.9, format: ImageManipulator.SaveFormat.JPEG }
-        );
-        localUri = resized.uri;
-      } catch {
-        // Use original if resize fails
-      }
+  // Ganancia (si está lento, subí un poco, ej 2.8 / 2.6)
+  const GAIN_YAW = 2.3;
+  const GAIN_PITCH = 2.1;
 
-      const texture: THREE.Texture = await ExpoTHREE.loadAsync(localUri);
+  // Suavizado (más alto = más suave, menos respuesta)
+  // 0.12–0.22 suele ir ideal en Samsung
+  const EMA_ALPHA = 0.05;
 
-      if (opts.noMipmaps) {
-        texture.generateMipmaps = false;
-        texture.minFilter = THREE.LinearFilter;
-      }
-      texture.magFilter = THREE.LinearFilter;
-      texture.wrapS = THREE.ClampToEdgeWrapping;
-      texture.wrapT = THREE.ClampToEdgeWrapping;
-      texture.flipY = true;
-      
-      if ((texture as any).colorSpace !== undefined) {
-        (texture as any).colorSpace = THREE.SRGBColorSpace;
-      }
-      
-      texture.needsUpdate = true;
-      return texture;
-    }
+  // Límite pitch
+  const PITCH_LIMIT = Math.PI / 2 - 0.06;
 
-    // Web fallback
-    const loader = new THREE.TextureLoader();
-    loader.crossOrigin = 'anonymous';
+  // Envío a WebView: 25-30 fps (postMessage aguanta bien)
+  const SEND_FPS = 60;
+  const SEND_MS = Math.round(1000 / SEND_FPS);
 
-    return await new Promise<THREE.Texture>((resolve, reject) => {
-      loader.load(
-        url,
-        (texture) => {
-          if (opts.noMipmaps) {
-            texture.generateMipmaps = false;
-            texture.minFilter = THREE.LinearFilter;
-          }
-          texture.magFilter = THREE.LinearFilter;
-          texture.wrapS = THREE.ClampToEdgeWrapping;
-          texture.wrapT = THREE.ClampToEdgeWrapping;
-          texture.flipY = true;
-          if ((texture as any).colorSpace !== undefined) {
-            (texture as any).colorSpace = THREE.SRGBColorSpace;
-          }
-          texture.needsUpdate = true;
-          resolve(texture);
-        },
-        undefined,
-        (err: any) => reject(new Error(`TextureLoader failed: ${err?.message ?? 'Unknown'}`))
-      );
-    });
-  })();
+  // Deadzone para evitar micro spam
+  const DEADZONE_RAD = 0.0018; // ~0.10°
 
-  return Promise.race([loadOp, timeout]);
-};
+  // ====== pose target + filtered ======
+  const yawTargetRef = useRef(0);
+  const pitchTargetRef = useRef(0);
+  const yawFilteredRef = useRef(0);
+  const pitchFilteredRef = useRef(0);
 
-// Procedural texture fallback
-const createProceduralTexture = (): THREE.Texture => {
-  const width = 2048;
-  const height = 1024;
-  const size = width * height;
-  const data = new Uint8Array(4 * size);
-  
-  for (let i = 0; i < size; i++) {
-    const x = i % width;
-    const y = Math.floor(i / width);
-    const stride = i * 4;
-    
-    const u = x / width;
-    const v = y / height;
-    
-    const skyRegion = v < 0.4;
-    const mountainRegion = v >= 0.4 && v < 0.7;
-    
-    if (skyRegion) {
-      const skyIntensity = 1 - (v / 0.4);
-      const cloudNoise = Math.sin(u * Math.PI * 6) * Math.sin(v * Math.PI * 8) * Math.sin(u * Math.PI * 15);
-      const hasCloud = cloudNoise > 0.4;
-      
-      if (hasCloud) {
-        data[stride] = 255;
-        data[stride + 1] = 255;
-        data[stride + 2] = 255;
-      } else {
-        data[stride] = Math.floor(100 + skyIntensity * 55);
-        data[stride + 1] = Math.floor(150 + skyIntensity * 56);
-        data[stride + 2] = Math.floor(200 + skyIntensity * 55);
-      }
-    } else if (mountainRegion) {
-      const mountainHeight = Math.sin(u * Math.PI * 8) * 0.15 + 0.55;
-      const isAboveMountain = v < mountainHeight;
-      
-      if (isAboveMountain) {
-        const mountainShade = Math.sin(u * Math.PI * 20) * 0.3 + 0.7;
-        const grayValue = Math.floor(80 + mountainShade * 60);
-        data[stride] = grayValue;
-        data[stride + 1] = grayValue;
-        data[stride + 2] = grayValue + 10;
-      } else {
-        data[stride] = 60;
-        data[stride + 1] = 120;
-        data[stride + 2] = 40;
-      }
-    } else {
-      const grassVariation = Math.sin(u * Math.PI * 25) * Math.sin(v * Math.PI * 30) * 0.3 + 0.7;
-      data[stride] = Math.floor(20 + grassVariation * 40);
-      data[stride + 1] = Math.floor(80 + grassVariation * 60);
-      data[stride + 2] = Math.floor(20 + grassVariation * 30);
-    }
-    
-    // Reference lines
-    const isVerticalLine = (x % (width / 8)) < 2;
-    const isHorizontalLine = Math.abs(y - height/2) < 1;
-    
-    if (isVerticalLine || isHorizontalLine) {
-      data[stride] = Math.min(255, data[stride] + 100);
-      data[stride + 1] = Math.min(255, data[stride + 1] + 100);
-      data[stride + 2] = Math.max(0, data[stride + 2] - 50);
-    }
-    
-    data[stride + 3] = 255;
-  }
-  
-  const texture = new THREE.DataTexture(data, width, height);
-  texture.needsUpdate = true;
-  texture.minFilter = THREE.LinearFilter;
-  texture.magFilter = THREE.LinearFilter;
-  texture.format = THREE.RGBAFormat;
-  texture.type = THREE.UnsignedByteType;
-  texture.wrapS = THREE.ClampToEdgeWrapping;
-  texture.wrapT = THREE.ClampToEdgeWrapping;
-  texture.flipY = true;
-  
-  if ((texture as any).colorSpace !== undefined) {
-    (texture as any).colorSpace = THREE.SRGBColorSpace;
-  }
-  
-  return texture;
-};
-
-const loadPanoramaTexture = async (src: { uri?: string; base64?: string }): Promise<THREE.Texture> => {
-  if (src?.uri || src?.base64) {
-    try {
-      if (src.uri && src.uri.startsWith('http')) {
-        try {
-          return await loadTextureRobustAsync(src.uri, {
-            timeoutMs: 20000,
-            noMipmaps: true,
-            maxWidth: 4096
-          });
-        } catch {
-          // Fall through to local method
-        }
-      }
-      
-      const localUri = await uriFromSource(src);
-      return await loadTextureRobustAsync(localUri, {
-        timeoutMs: 10000,
-        noMipmaps: true,
-        maxWidth: 4096
-      });
-    } catch {
-      // Fall through to procedural
-    }
-  }
-  
-  return createProceduralTexture();
-};
-
-// ============================================================================
-// FULLSCREEN / IMMERSIVE MODE UTILITIES
-// ============================================================================
-
-/**
- * ========================================================================
- * enterFullscreen()
- * ========================================================================
- * 
- * Enters TRUE immersive fullscreen mode on Android:
- * 1. Lock orientation to landscape
- * 2. Wait for One UI to settle (delay)
- * 3. Hide StatusBar using imperative API
- * 4. Set NavigationBar to absolute position (edge-to-edge)
- * 5. Hide NavigationBar with overlay-swipe behavior
- * 
- * On iOS: Only locks orientation and hides status bar (no navigation bar API)
- */
-const enterFullscreen = async (): Promise<void> => {
-  console.log('🔲 [FULLSCREEN] Entering fullscreen mode...');
-  
-  try {
-    // ══════════════════════════════════════════════════════════════════════
-    // STEP 1: Lock orientation to landscape FIRST
-    // ══════════════════════════════════════════════════════════════════════
-    await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-    console.log('✅ [FULLSCREEN] Orientation locked to landscape');
-    
-    // ══════════════════════════════════════════════════════════════════════
-    // STEP 2: Wait for orientation change to settle (One UI quirk)
-    // Without this delay, immersive mode may not apply correctly
-    // ══════════════════════════════════════════════════════════════════════
-    await new Promise(resolve => setTimeout(resolve, IMMERSIVE_MODE_DELAY_MS));
-    console.log(`✅ [FULLSCREEN] Waited ${IMMERSIVE_MODE_DELAY_MS}ms for orientation settle`);
-    
-    // ══════════════════════════════════════════════════════════════════════
-    // STEP 3: Hide StatusBar using IMPERATIVE API (not just JSX component)
-    // This is critical - <StatusBar hidden /> alone doesn't work on One UI
-    // ══════════════════════════════════════════════════════════════════════
-    StatusBar.setHidden(true, 'fade');
-    if (Platform.OS === 'android') {
-      StatusBar.setTranslucent(true);
-      StatusBar.setBackgroundColor('transparent');
-    }
-    console.log('✅ [FULLSCREEN] StatusBar hidden (imperative)');
-    
-    // ══════════════════════════════════════════════════════════════════════
-    // STEP 4 & 5: Android-specific NavigationBar handling
-    // ══════════════════════════════════════════════════════════════════════
-    if (Platform.OS === 'android') {
-      // Set position to ABSOLUTE for true edge-to-edge rendering
-      // This allows content to draw BEHIND the navigation bar area
-      await NavigationBar.setPositionAsync('absolute');
-      console.log('✅ [FULLSCREEN] NavigationBar position set to absolute (edge-to-edge)');
-      
-      // Hide the navigation bar
-      await NavigationBar.setVisibilityAsync('hidden');
-      console.log('✅ [FULLSCREEN] NavigationBar visibility set to hidden');
-      
-      // Set behavior: bars appear temporarily on swipe, then auto-hide
-      await NavigationBar.setBehaviorAsync('overlay-swipe');
-      console.log('✅ [FULLSCREEN] NavigationBar behavior set to overlay-swipe');
-      
-      // Make navigation bar transparent when it does appear
-      await NavigationBar.setBackgroundColorAsync('transparent');
-      await NavigationBar.setButtonStyleAsync('light');
-      console.log('✅ [FULLSCREEN] NavigationBar styled transparent/light');
-    }
-    
-    console.log('🎉 [FULLSCREEN] Fullscreen mode ENABLED');
-    
-  } catch (error) {
-    console.error('❌ [FULLSCREEN] Error entering fullscreen:', error);
-  }
-};
-
-/**
- * ========================================================================
- * exitFullscreen()
- * ========================================================================
- * 
- * Exits immersive mode and restores system UI:
- * 1. Show StatusBar
- * 2. Restore NavigationBar (Android)
- * 3. Return to portrait orientation
- * 4. Unlock orientation
- */
-const exitFullscreen = async (): Promise<void> => {
-  console.log('🔳 [FULLSCREEN] Exiting fullscreen mode...');
-  
-  try {
-    // ══════════════════════════════════════════════════════════════════════
-    // STEP 1: Restore StatusBar FIRST
-    // ══════════════════════════════════════════════════════════════════════
-    StatusBar.setHidden(false, 'fade');
-    if (Platform.OS === 'android') {
-      StatusBar.setTranslucent(false);
-      StatusBar.setBackgroundColor('#FFFFFF');
-      StatusBar.setBarStyle('dark-content');
-    }
-    console.log('✅ [FULLSCREEN] StatusBar restored');
-    
-    // ══════════════════════════════════════════════════════════════════════
-    // STEP 2: Restore NavigationBar (Android only)
-    // ══════════════════════════════════════════════════════════════════════
-    if (Platform.OS === 'android') {
-      // Restore position to relative (normal behavior)
-      await NavigationBar.setPositionAsync('relative');
-      console.log('✅ [FULLSCREEN] NavigationBar position set to relative');
-      
-      // Show navigation bar
-      await NavigationBar.setVisibilityAsync('visible');
-      console.log('✅ [FULLSCREEN] NavigationBar visibility set to visible');
-      
-      // Restore default behavior
-      await NavigationBar.setBehaviorAsync('inset-swipe');
-      console.log('✅ [FULLSCREEN] NavigationBar behavior set to inset-swipe');
-      
-      // Restore default styling
-      await NavigationBar.setBackgroundColorAsync('#FFFFFF');
-      await NavigationBar.setButtonStyleAsync('dark');
-      console.log('✅ [FULLSCREEN] NavigationBar styled default');
-    }
-    
-    // ══════════════════════════════════════════════════════════════════════
-    // STEP 3: Return to portrait orientation
-    // ══════════════════════════════════════════════════════════════════════
-    await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
-    console.log('✅ [FULLSCREEN] Orientation set to portrait');
-    
-    // ══════════════════════════════════════════════════════════════════════
-    // STEP 4: Unlock orientation completely
-    // ══════════════════════════════════════════════════════════════════════
-    await ScreenOrientation.unlockAsync();
-    console.log('✅ [FULLSCREEN] Orientation unlocked');
-    
-    console.log('🎉 [FULLSCREEN] Fullscreen mode DISABLED');
-    
-  } catch (error) {
-    console.error('❌ [FULLSCREEN] Error exiting fullscreen:', error);
-  }
-};
-
-// ============================================================================
-// MAIN COMPONENT
-// ============================================================================
-
-export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({
-  imageSource,
-  useGyro = true,
-  initialYaw = 0,
-  initialPitch = 0,
-  onClose,
-  showCloseButton = true,
-}) => {
-  // State
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [currentUseGyro, setCurrentUseGyro] = useState(useGyro);
-  const [orientation, setOrientation] = useState<ScreenOrientation.Orientation | null>(null);
-  
-  // ══════════════════════════════════════════════════════════════════════════
-  // CRITICAL: State to control when GLView should mount
-  // GLView must NOT mount until orientation is landscape AND dimensions are correct
-  // ══════════════════════════════════════════════════════════════════════════
-  const [isReadyToRender, setIsReadyToRender] = useState(false);
-  
-  // Refs for camera control
-  const yawRef = useRef(0);
-  const pitchRef = useRef(0);
-  const filteredYawRef = useRef(0);
-  const filteredPitchRef = useRef(0);
-  const lastTimeRef = useRef<number | null>(null);
+  // ====== calibration ======
+  const calibratingRef = useRef(true);
+  const calStartRef = useRef(Date.now());
   const yaw0Ref = useRef(0);
   const pitch0Ref = useRef(0);
-  const sensorSubscription = useRef<any>(null);
-  const touchRef = useRef({ lastX: 0, lastY: 0, isDragging: false });
-  
-  // Safe area insets (only used for controls, NOT for canvas)
-  const insets = useSafeAreaInsets();
 
-  // ============================================================================
-  // FULLSCREEN LIFECYCLE - Called on mount/unmount
-  // ============================================================================
+  // ====== stats ======
+  const dmCountRef = useRef(0);
+  const dmT0Ref = useRef(Date.now());
+  const sendCountRef = useRef(0);
+  const sendT0Ref = useRef(Date.now());
 
+  // ============================================================
+  // LANDSCAPE (pantalla solo horizontal)
+  // ============================================================
   useEffect(() => {
-    let isMounted = true;
-    let dimensionsCheckInterval: ReturnType<typeof setInterval> | null = null;
-
-    const initializeFullscreen = async () => {
-      console.log('🚀 [INIT] Starting fullscreen initialization...');
-      
-      // Step 1: Enter fullscreen mode (locks to landscape + hides system bars)
-      await enterFullscreen();
-      
-      // Step 2: Wait for dimensions to be landscape (width > height)
-      // This is CRITICAL because on some devices (One UI), the orientation change
-      // completes but Dimensions.get() still returns portrait dimensions briefly
-      const waitForLandscapeDimensions = (): Promise<void> => {
-        return new Promise((resolve) => {
-          const checkDimensions = () => {
-            const { width, height } = Dimensions.get('screen');
-            const isLandscape = width > height;
-            console.log(`📐 [INIT] Checking dimensions: ${width}x${height} (landscape: ${isLandscape})`);
-            
-            if (isLandscape) {
-              console.log('✅ [INIT] Dimensions are landscape, ready to render');
-              resolve();
-              return true;
-            }
-            return false;
-          };
-          
-          // Check immediately
-          if (checkDimensions()) return;
-          
-          // Poll until dimensions are landscape (max 2 seconds)
-          let attempts = 0;
-          const maxAttempts = 20; // 20 * 100ms = 2 seconds
-          
-          dimensionsCheckInterval = setInterval(() => {
-            attempts++;
-            if (checkDimensions() || attempts >= maxAttempts) {
-              if (dimensionsCheckInterval) {
-                clearInterval(dimensionsCheckInterval);
-                dimensionsCheckInterval = null;
-              }
-              if (attempts >= maxAttempts) {
-                console.warn('⚠️ [INIT] Timeout waiting for landscape dimensions, proceeding anyway');
-              }
-              resolve();
-            }
-          }, 100);
-        });
-      };
-      
-      await waitForLandscapeDimensions();
-      
-      // Step 3: Additional delay to ensure system has fully settled
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Step 4: Now safe to mount GLView
-      if (isMounted) {
-        console.log('🎬 [INIT] Setting isReadyToRender = true');
-        setIsReadyToRender(true);
+    (async () => {
+      try {
+        console.log('[PANORAMA] lock landscape');
+        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+      } catch (e) {
+        console.log('[PANORAMA] lock landscape error', String((e as any)?.message ?? e));
       }
-    };
+    })();
 
-    initializeFullscreen();
-
-    // Listen for orientation changes
-    const subscription = ScreenOrientation.addOrientationChangeListener((event) => {
-      if (isMounted) {
-        setOrientation(event.orientationInfo.orientation);
-      }
-    });
-
-    // Get initial orientation
-    ScreenOrientation.getOrientationAsync().then((orient) => {
-      if (isMounted) {
-        setOrientation(orient);
-      }
-    });
-
-    // Cleanup: exit fullscreen on unmount
     return () => {
-      isMounted = false;
-      if (dimensionsCheckInterval) {
-        clearInterval(dimensionsCheckInterval);
-      }
-      subscription.remove();
-      exitFullscreen();
+      (async () => {
+        try {
+          console.log('[PANORAMA] restore portrait');
+          await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+          await ScreenOrientation.unlockAsync();
+        } catch {}
+      })();
     };
   }, []);
 
-  // Handle Android back button
+  // ============================================================
+  // Load pannellum assets
+  // ============================================================
   useEffect(() => {
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (onClose) {
-        onClose();
-        return true;
+    let mounted = true;
+    (async () => {
+      try {
+        console.log('[PANORAMA] loading pannellum assets');
+        const jsAsset = Asset.fromModule(require('../../assets/web/pannellum.js.txt'));
+        const cssAsset = Asset.fromModule(require('../../assets/web/pannellum.css.txt'));
+        await Promise.all([jsAsset.downloadAsync(), cssAsset.downloadAsync()]);
+
+        const jsCode = await FileSystem.readAsStringAsync(jsAsset.localUri ?? jsAsset.uri);
+        const cssCode = await FileSystem.readAsStringAsync(cssAsset.localUri ?? cssAsset.uri);
+
+        if (!mounted) return;
+        setPannellumJs(jsCode);
+        setPannellumCss(cssCode);
+        console.log('[PANORAMA] pannellum assets loaded');
+      } catch (e: any) {
+        console.error('[PANORAMA] ❌ Error loading pannellum assets', e);
+        if (mounted) setLoadError(String(e?.message ?? e));
       }
-      return false;
-    });
+    })();
 
-    return () => backHandler.remove();
-  }, [onClose]);
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
-  // ============================================================================
-  // SENSOR MANAGEMENT
-  // ============================================================================
+  // ============================================================
+  // Probe: confirm __setPose / ready (WebView)
+  // ============================================================
+  useEffect(() => {
+    const t = setInterval(() => {
+      webRef.current?.injectJavaScript(`
+        (function(){
+          try {
+            var has = typeof window.__setPose === 'function';
+            var ready = !!window.__panoReady;
+            window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'probe',
+              hasSetPose: has,
+              ready: ready
+            }));
+          } catch(e) {}
+        })();
+        true;
+      `);
+    }, 900);
 
-  const clamp = (v: number, min: number, max: number): number => Math.max(min, Math.min(max, v));
-  const normalizePi = (v: number): number => {
-    const twoPi = Math.PI * 2;
-    return ((v + Math.PI) % twoPi + twoPi) % twoPi - Math.PI;
-  };
-  const ema = (prev: number, target: number, dt: number, tau: number = 0.1): number => {
-    return prev + (target - prev) * (1 - Math.exp(-dt / tau));
-  };
-  const degToRad = (degrees: number): number => degrees * (Math.PI / 180);
+    return () => clearInterval(t);
+  }, []);
 
-  const processSensorData = useCallback((data: any) => {
-    if (!data.rotation) return;
+  // ============================================================
+  // WebView onMessage
+  // ============================================================
+  const onWebMessage = (evt: any) => {
+    const raw = evt.nativeEvent.data;
+    setLastWebMsg(raw);
 
-    const currentTime = Date.now() / 1000;
-    const dt = lastTimeRef.current ? (currentTime - lastTimeRef.current) : 1 / 60;
-    lastTimeRef.current = currentTime;
-
-    const r = data.rotation;
-    let yaw = r.alpha ?? 0;
-    let pitch = r.beta ?? 0;
-    const roll = r.gamma ?? 0;
-
-    // Detect landscape by dimensions if orientation is null
-    let effectiveOrientation = orientation;
-    if (!effectiveOrientation) {
-      const dims = Dimensions.get('window');
-      effectiveOrientation = dims.width > dims.height
-        ? ScreenOrientation.Orientation.LANDSCAPE_LEFT
-        : ScreenOrientation.Orientation.PORTRAIT_UP;
-    }
-
-    // Compensate for screen orientation - CRITICAL for landscape
-    switch (effectiveOrientation) {
-      case ScreenOrientation.Orientation.LANDSCAPE_LEFT:
-        yaw = normalizePi(yaw - Math.PI / 2);
-        pitch = roll;
-        break;
-      case ScreenOrientation.Orientation.LANDSCAPE_RIGHT:
-        yaw = normalizePi(yaw + Math.PI / 2);
-        pitch = -roll;
-        break;
-      case ScreenOrientation.Orientation.PORTRAIT_DOWN:
-        yaw = normalizePi(yaw + Math.PI);
-        break;
-      default:
-        yaw = normalizePi(yaw);
-        pitch = -pitch;
-        break;
-    }
-
-    // Initial calibration
-    if (yaw0Ref.current === 0 && pitch0Ref.current === 0) {
-      yaw0Ref.current = yaw;
-      pitch0Ref.current = pitch;
-    }
-
-    // Apply calibration offsets
-    const yawEff = normalizePi(yaw - yaw0Ref.current);
-    const pitchEff = pitch - pitch0Ref.current;
-
-    // Apply smoothing
-    filteredYawRef.current = ema(filteredYawRef.current, yawEff, dt, 0.1);
-    filteredPitchRef.current = ema(filteredPitchRef.current, pitchEff, dt, 0.1);
-
-    // Store values
-    yawRef.current = filteredYawRef.current;
-    pitchRef.current = clamp(filteredPitchRef.current, degToRad(-85), degToRad(85));
-  }, [orientation]);
-
-  const startSensorSystem = useCallback(async () => {
     try {
-      const deviceMotionAvailable = await DeviceMotion.isAvailableAsync();
-      
-      if (deviceMotionAvailable) {
-        DeviceMotion.setUpdateInterval(16); // ~60Hz
-        const subscription = DeviceMotion.addListener(processSensorData);
-        sensorSubscription.current = subscription;
-        console.log('✅ DeviceMotion started');
-      } else {
-        const gyroAvailable = await Gyroscope.isAvailableAsync();
-        
-        if (gyroAvailable) {
-          Gyroscope.setUpdateInterval(16);
-          const subscription = Gyroscope.addListener((gyroData) => {
-            const currentTime = Date.now() / 1000;
-            const dt = lastTimeRef.current ? (currentTime - lastTimeRef.current) : 1 / 60;
-            lastTimeRef.current = currentTime;
-            
-            yawRef.current += (gyroData.z ?? 0) * dt;
-            pitchRef.current += (-(gyroData.x || 0)) * dt;
-            yawRef.current = normalizePi(yawRef.current);
-            pitchRef.current = clamp(pitchRef.current, degToRad(-85), degToRad(85));
-          });
-          
-          sensorSubscription.current = subscription;
-          console.log('✅ Gyroscope fallback started');
+      const msg = JSON.parse(raw);
+      if (msg.type === 'ready') setWebReady(true);
+      if (msg.type === 'probe') {
+        setWebHasSetPose(!!msg.hasSetPose);
+        if (msg.ready) setWebReady(true);
+      }
+      if (msg.type === 'fatal') setLoadError(`Web fatal: ${msg.message}`);
+      if (msg.type === 'img_error') setLoadError(`Imagen: ${msg.message}`);
+    } catch {
+      // ignore
+    }
+  };
+
+  // ============================================================
+  // DeviceMotion → target pose
+  // ============================================================
+  useEffect(() => {
+    if (!webReady) {
+      console.log('[PANORAMA] motion waiting for webReady...');
+      return;
+    }
+
+    let motionSub: any = null;
+
+    // reset state
+    yawTargetRef.current = 0;
+    pitchTargetRef.current = 0;
+    yawFilteredRef.current = 0;
+    pitchFilteredRef.current = 0;
+
+    calibratingRef.current = true;
+    calStartRef.current = Date.now();
+    yaw0Ref.current = 0;
+    pitch0Ref.current = 0;
+
+    dmCountRef.current = 0;
+    dmT0Ref.current = Date.now();
+
+    console.log('[PANORAMA] DeviceMotion start (landscape mapping)');
+
+    const applyInvert = (yaw: number, pitch: number) => {
+      let y = yaw;
+      let p = pitch;
+      if (INVERT_YAW) y = -y;
+      if (INVERT_PITCH) p = -p;
+      return { y, p };
+    };
+
+    const updateTarget = (rawYaw: number, rawPitch: number) => {
+      const now = Date.now();
+
+      if (calibratingRef.current) {
+        if (now - calStartRef.current < 700) {
+          yaw0Ref.current = rawYaw;
+          pitch0Ref.current = rawPitch;
+        } else {
+          calibratingRef.current = false;
+          console.log('[PANORAMA] calibration done');
         }
       }
-    } catch (error) {
-      console.error('❌ Sensor system error:', error);
-    }
-  }, [processSensorData]);
 
-  const stopSensorSystem = useCallback(() => {
-    if (sensorSubscription.current) {
-      sensorSubscription.current.remove();
-      sensorSubscription.current = null;
-    }
-  }, []);
+      // delta from calibration
+      let yawDelta = normalizePi(rawYaw - yaw0Ref.current);
+      let pitchDelta = rawPitch - pitch0Ref.current;
 
-  useEffect(() => {
-    if (currentUseGyro) {
-      startSensorSystem();
-    } else {
-      stopSensorSystem();
-    }
-    
-    return () => stopSensorSystem();
-  }, [currentUseGyro, startSensorSystem, stopSensorSystem]);
+      // gain
+      yawDelta = normalizePi(yawDelta * GAIN_YAW);
+      pitchDelta = pitchDelta * GAIN_PITCH;
 
-  // ============================================================================
-  // TOUCH CONTROLS
-  // ============================================================================
+      yawTargetRef.current = normalizePi(yawDelta);
+      pitchTargetRef.current = clamp(pitchDelta, -PITCH_LIMIT, PITCH_LIMIT);
+    };
 
-  const DRAG_YAW_K = 0.005;
-  const DRAG_PITCH_K = 0.003;
-
-  const handleTouchStart = useCallback((evt: any) => {
-    if (!currentUseGyro) {
-      touchRef.current.isDragging = true;
-      touchRef.current.lastX = evt.nativeEvent.pageX;
-      touchRef.current.lastY = evt.nativeEvent.pageY;
-    }
-  }, [currentUseGyro]);
-
-  const handleTouchMove = useCallback((evt: any) => {
-    if (!currentUseGyro && touchRef.current.isDragging) {
-      const dx = evt.nativeEvent.pageX - touchRef.current.lastX;
-      const dy = evt.nativeEvent.pageY - touchRef.current.lastY;
-
-      yawRef.current -= dx * DRAG_YAW_K;
-      const nextPitch = pitchRef.current + dy * DRAG_PITCH_K;
-      pitchRef.current = clamp(nextPitch, degToRad(-85), degToRad(85));
-
-      touchRef.current.lastX = evt.nativeEvent.pageX;
-      touchRef.current.lastY = evt.nativeEvent.pageY;
-    }
-  }, [currentUseGyro]);
-
-  const handleTouchEnd = useCallback(() => {
-    touchRef.current.isDragging = false;
-  }, []);
-
-  // ============================================================================
-  // ACTIONS
-  // ============================================================================
-
-  const handleClose = useCallback(() => {
-    onClose?.();
-  }, [onClose]);
-
-  // NOTE: handleCenterView and handleToggleGyro removed - UI simplified
-  // Gyroscope is always active based on useGyro prop (default: true)
-
-  const handleRetry = useCallback(() => {
-    setError(null);
-    setIsLoading(true);
-    setImageLoaded(false);
-  }, []);
-
-  // ============================================================================
-  // 3D RENDERING
-  // ============================================================================
-
-  const onContextCreate = useCallback(async (gl: WebGLRenderingContext) => {
-    // ══════════════════════════════════════════════════════════════════════════
-    // CRITICAL: Get CURRENT screen dimensions, not GL buffer dimensions
-    // The GL buffer might have been created with old dimensions
-    // ══════════════════════════════════════════════════════════════════════════
-    const screenDims = Dimensions.get('screen');
-    const { drawingBufferWidth: glWidth, drawingBufferHeight: glHeight } = gl;
-    
-    // Use the larger dimension as width (we're in landscape)
-    const renderWidth = Math.max(screenDims.width, screenDims.height, glWidth);
-    const renderHeight = Math.min(screenDims.width, screenDims.height, glHeight);
-    
-    console.log(`🎨 [3D] Initializing renderer:`);
-    console.log(`   Screen: ${screenDims.width}x${screenDims.height}`);
-    console.log(`   GL Buffer: ${glWidth}x${glHeight}`);
-    console.log(`   Render: ${renderWidth}x${renderHeight}`);
-    console.log(`   Aspect Ratio: ${(renderWidth / renderHeight).toFixed(2)}`);
-
-    try {
-      // Use actual GL buffer dimensions for viewport
-      gl.viewport(0, 0, glWidth, glHeight);
-
-      const renderer = new Renderer({ gl });
-      renderer.setSize(glWidth, glHeight);
-      renderer.setPixelRatio(1);
-      renderer.setClearColor(0x000000, 1);
-
-      const scene = new THREE.Scene();
-      
-      // Calculate aspect ratio from screen dimensions (should be landscape)
-      // Use screen dimensions for camera, which are more reliable
-      const aspectRatio = screenDims.width > screenDims.height 
-        ? screenDims.width / screenDims.height 
-        : screenDims.height / screenDims.width; // Force landscape aspect
-      
-      console.log(`📷 [3D] Camera aspect ratio: ${aspectRatio.toFixed(2)}`);
-      
-      const fov = 100;
-      const camera = new THREE.PerspectiveCamera(fov, aspectRatio, 0.1, 1000);
-      camera.position.set(0, 0, 0);
-      camera.rotation.order = 'YXZ';
-
-      const geometry = new THREE.SphereGeometry(30, 64, 64);
-
-      let texture;
-      try {
-        texture = await loadPanoramaTexture(imageSource);
-      } catch {
-        texture = createProceduralTexture();
+    (async () => {
+      const ok = await DeviceMotion.isAvailableAsync();
+      console.log('[PANORAMA] DeviceMotion available:', ok);
+      if (!ok) {
+        setLoadError('DeviceMotion no disponible en este dispositivo');
+        return;
       }
 
-      const material = new THREE.MeshBasicMaterial({
-        map: texture,
-        side: THREE.BackSide,
+      // 60Hz aprox
+      DeviceMotion.setUpdateInterval(16);
+
+      motionSub = DeviceMotion.addListener((data) => {
+        dmCountRef.current += 1;
+
+        const r = (data as any)?.rotation;
+        if (!r) return;
+
+        // ✅ Landscape: yaw desde alpha, pitch desde roll (gamma)
+        // Esta es la clave para que “acostado” funcione coherente.
+        let yaw = r.alpha ?? 0;
+        const roll = r.gamma ?? 0;
+
+        // Ajuste landscape (como venías usando)
+        yaw = normalizePi(yaw - Math.PI / 2);
+        const pitch = roll;
+
+        const inv = applyInvert(yaw, pitch);
+        updateTarget(inv.y, inv.p);
+
+        const now = Date.now();
+        if (now - dmT0Ref.current >= 1000) {
+          const hz = dmCountRef.current / ((now - dmT0Ref.current) / 1000);
+          dmCountRef.current = 0;
+          dmT0Ref.current = now;
+          console.log(
+            `[PANORAMA][DM 1s] hz=${hz.toFixed(0)} target(deg)=(${radToDeg(yawTargetRef.current).toFixed(
+              0
+            )},${radToDeg(pitchTargetRef.current).toFixed(0)}) cal=${calibratingRef.current}`
+          );
+        }
+      });
+    })();
+
+    return () => {
+      console.log('[PANORAMA] DeviceMotion stop');
+      if (motionSub) motionSub.remove();
+    };
+  }, [webReady]);
+
+  // ============================================================
+  // Sender loop: postMessage (NO injectJavaScript por frame)
+  // ============================================================
+  useEffect(() => {
+    if (!webReady) {
+      console.log('[PANORAMA] sender waiting for webReady...');
+      return;
+    }
+
+    let sendTimer: any = null;
+
+    sendCountRef.current = 0;
+    sendT0Ref.current = Date.now();
+
+    console.log('[PANORAMA] sender loop started', SEND_FPS, 'fps (postMessage)');
+
+    sendTimer = setInterval(() => {
+      if (!webHasSetPose) return;
+
+      const yT = yawTargetRef.current;
+      const pT = pitchTargetRef.current;
+
+      // ✅ yaw sin saltos (shortest path)
+      const yF = emaAngle(yawFilteredRef.current, yT, EMA_ALPHA);
+      const pF = ema(pitchFilteredRef.current, pT, EMA_ALPHA);
+
+      const dy = Math.abs(angleDiff(yF, yawFilteredRef.current));
+      const dp = Math.abs(pF - pitchFilteredRef.current);
+
+      yawFilteredRef.current = yF;
+      pitchFilteredRef.current = pF;
+
+      if (dy < DEADZONE_RAD && dp < DEADZONE_RAD) return;
+
+      // ✅ más fluido que injectJavaScript
+      webRef.current?.postMessage(
+        JSON.stringify({
+          type: 'pose',
+          yaw: yF,
+          pitch: pF,
+        })
+      );
+
+      sendCountRef.current += 1;
+      const now = Date.now();
+      if (now - sendT0Ref.current >= 1000) {
+        console.log(
+          `[PANORAMA][SEND 1s] fps=${sendCountRef.current} filtered(deg)=(${radToDeg(
+            yawFilteredRef.current
+          ).toFixed(0)},${radToDeg(pitchFilteredRef.current).toFixed(0)})`
+        );
+        sendCountRef.current = 0;
+        sendT0Ref.current = now;
+      }
+    }, SEND_MS);
+
+    return () => {
+      console.log('[PANORAMA] sender loop stop');
+      if (sendTimer) clearInterval(sendTimer);
+    };
+  }, [webReady, webHasSetPose]);
+
+  // ============================================================
+  // HTML
+  // ============================================================
+  const html = useMemo(() => {
+    if (!pannellumJs || !pannellumCss || !uri) return '';
+
+    const safeUri = uri.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
+    return `<!doctype html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<style>
+html, body { margin:0; padding:0; width:100%; height:100%; background:black; overflow:hidden; }
+#viewer { width:100%; height:100%; }
+#loading {
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  color:white; font-family:sans-serif; font-size:14px;
+  background: rgba(0,0,0,0.25);
+  z-index: 9999;
+  pointer-events:none;
+}
+${pannellumCss}
+</style>
+</head>
+<body>
+<div id="viewer"></div>
+<div id="loading">Cargando imagen 360°…</div>
+
+<script>
+${pannellumJs}
+
+(function(){
+  function __post(obj){
+    try { window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify(obj)); } catch(e){}
+  }
+  function radToDeg(r){ return r * 180 / Math.PI; }
+
+  window.__panoReady = false;
+  var v = null;
+
+  // buffer de última pose (para no spamear lookAt con colas)
+  var lastYaw = 0;
+  var lastPitch = 0;
+  var hasPose = false;
+
+  window.__setPose = function(yawRad, pitchRad){
+    if (!v) return;
+    var yawDeg = radToDeg(yawRad);
+    var pitchDeg = radToDeg(pitchRad);
+
+    // ✅ speed > 0 para suavidad en pannellum
+    var SPEED = 0.22;
+
+    try { v.lookAt(pitchDeg, yawDeg, v.getHfov(), SPEED); }
+    catch(e) {
+      try { v.setYaw(yawDeg); } catch(_){}
+      try { v.setPitch(pitchDeg); } catch(_){}
+    }
+  };
+
+  // RN -> WebView messages (postMessage)
+  function handleMsg(data){
+    try {
+      var msg = JSON.parse(data);
+      if (msg && msg.type === 'pose') {
+        lastYaw = msg.yaw;
+        lastPitch = msg.pitch;
+        hasPose = true;
+        if (window.__panoReady) window.__setPose(lastYaw, lastPitch);
+      }
+    } catch(e){}
+  }
+
+  // Android/iOS compat
+  document.addEventListener('message', function(e){ handleMsg(e.data); });
+  window.addEventListener('message', function(e){ handleMsg(e.data); });
+
+  function setReady(reason){
+    if (window.__panoReady) return;
+    window.__panoReady = true;
+    var el = document.getElementById('loading');
+    if (el) el.style.display = 'none';
+    __post({ type:'ready', reason: reason });
+
+    if (hasPose) window.__setPose(lastYaw, lastPitch);
+  }
+
+  // preload imagen
+  var img = new Image();
+  img.onload = function(){
+    try {
+      v = pannellum.viewer('viewer', {
+        type: 'equirectangular',
+        panorama: '${safeUri}',
+        autoLoad: true,
+        showControls: false,
+        mouseZoom: true,
+        keyboardZoom: false,
+        hfov: 100,
       });
 
-      const sphere = new THREE.Mesh(geometry, material);
-      sphere.scale.set(1, 1, 1);
-      scene.add(sphere);
+      var tries=0;
+      var t=setInterval(function(){
+        tries++;
+        try {
+          if (v && typeof v.getYaw === 'function') {
+            v.getYaw();
+            clearInterval(t);
+            setReady('viewer_ready_probe');
+          }
+        } catch(e) {}
+        if (tries >= 30) {
+          clearInterval(t);
+          setReady('timeout_force_ready');
+        }
+      }, 100);
 
-      setImageLoaded(true);
-      setIsLoading(false);
-      
-      console.log('✅ [3D] Renderer initialized successfully');
+      setTimeout(function(){ setReady('fallback_timeout'); }, 1500);
 
-      // Update camera aspect on resize/rotation
-      const updateCameraAspect = () => {
-        const { width: sw, height: sh } = Dimensions.get('screen');
-        // Always use landscape aspect ratio
-        const newAspect = sw > sh ? sw / sh : sh / sw;
-        camera.aspect = newAspect;
-        camera.updateProjectionMatrix();
-        console.log(`📐 [3D] Camera aspect updated: ${newAspect.toFixed(2)}`);
-      };
-
-      const dimensionsSubscription = Dimensions.addEventListener('change', updateCameraAspect);
-
-      // Render loop
-      const render = () => {
-        requestAnimationFrame(render);
-        camera.rotation.y = yawRef.current;
-        camera.rotation.x = pitchRef.current;
-        camera.rotation.z = 0;
-        renderer.render(scene, camera);
-        (gl as any).endFrameEXP();
-      };
-
-      render();
-
-      return () => {
-        dimensionsSubscription.remove();
-      };
-    } catch (err) {
-      console.error('❌ [3D] Error:', err);
-      setError('Error initializing 3D viewer');
-      setIsLoading(false);
+    } catch(e) {
+      __post({ type:'fatal', message: 'pannellum init: ' + String(e) });
     }
-  }, [imageSource]);
+  };
+  img.onerror = function(){
+    __post({ type:'img_error', message:'No se pudo cargar la imagen' });
+  };
+  img.src = '${safeUri}';
+})();
+</script>
+</body>
+</html>`;
+  }, [pannellumJs, pannellumCss, uri]);
 
-  // ============================================================================
-  // RENDER
-  // ============================================================================
-
-  // Error state
-  if (error) {
+  // ============================================================
+  // UI
+  // ============================================================
+  if (loadError) {
     return (
-      <View style={styles.container}>
-        {/* Imperative StatusBar control backup */}
-        <StatusBar hidden translucent backgroundColor="transparent" />
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorTitle}>❌ Error</Text>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-            <Text style={styles.retryButtonText}>🔄 Retry</Text>
+      <View style={styles.center}>
+        <Text style={styles.errorText}>❌ {loadError}</Text>
+        {onClose && (
+          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <Text style={styles.closeText}>✕</Text>
           </TouchableOpacity>
-          {showCloseButton && onClose && (
-            <TouchableOpacity style={styles.closeButtonError} onPress={handleClose}>
-              <Text style={styles.closeButtonErrorText}>Close</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        )}
+      </View>
+    );
+  }
+
+  if (!pannellumJs || !pannellumCss || !html) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#fff" />
+        <Text style={styles.text}>Cargando visor 360°…</Text>
       </View>
     );
   }
 
   return (
-    <View
-      style={styles.container}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
-      {/* 
-        ════════════════════════════════════════════════════════════════════
-        StatusBar JSX component (backup, main control is imperative)
-        ════════════════════════════════════════════════════════════════════
-      */}
-      <StatusBar hidden translucent backgroundColor="transparent" />
-      
-      {/* Loading overlay - shown until 3D is loaded */}
-      {(isLoading || !isReadyToRender) && (
-        <View style={styles.loadingOverlay}>
-          <Text style={styles.loadingText}>🌐 Loading 360° Viewer...</Text>
-          <Text style={styles.loadingSubtext}>
-            {!isReadyToRender 
-              ? 'Preparing fullscreen...' 
-              : (imageSource.uri ? 'Downloading image...' : 'Initializing...')}
-          </Text>
-        </View>
-      )}
-      
-      {/* 
-        ════════════════════════════════════════════════════════════════════
-        3D CANVAS - GLView
-        ════════════════════════════════════════════════════════════════════
-        CRITICAL: 
-        - Uses absoluteFillObject (NOT SafeAreaView)
-        - NO padding, NO margin, NO insets
-        - Fills 100% of physical screen including notch/navigation areas
-        - MUST NOT mount until isReadyToRender is true (orientation settled)
-      */}
-      {isReadyToRender && (
-        <GLView 
-          style={styles.glView}
-          onContextCreate={onContextCreate} 
-        />
-      )}
-      
-      {/* 
-        ════════════════════════════════════════════════════════════════════
-        CONTROLS - These DO respect safe area insets
-        ════════════════════════════════════════════════════════════════════
-      */}
-      
-      {/* 
-        ════════════════════════════════════════════════════════════════════
-        CLOSE BUTTON - Only UI element visible (respects safe area)
-        ════════════════════════════════════════════════════════════════════
-      */}
-      {showCloseButton && onClose && (
-        <TouchableOpacity
-          style={[
-            styles.closeButton,
-            {
-              top: Platform.select({
-                ios: Math.max(20, insets.top),
-                android: 20,
-                default: 20,
-              }),
-              left: Platform.select({
-                ios: Math.max(20, insets.left),
-                android: 20,
-                default: 20,
-              }),
-            },
-          ]}
-          onPress={handleClose}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.closeButtonText}>✕</Text>
+    <View style={styles.container}>
+      <WebView
+        ref={webRef}
+        originWhitelist={['*']}
+        source={{ html }}
+        style={StyleSheet.absoluteFill}
+        onMessage={onWebMessage}
+        javaScriptEnabled
+        domStorageEnabled
+        allowFileAccess
+        mixedContentMode="always"
+        androidLayerType={Platform.OS === 'android' ? 'hardware' : undefined}
+      />
+
+      {/* Debug overlay */}
+      <View style={styles.debug}>
+        <Text style={styles.debugText}>webReady: {String(webReady)}</Text>
+        <Text style={styles.debugText}>has __setPose: {String(webHasSetPose)}</Text>
+        <Text style={styles.debugText}>invert yaw/pitch: {String(INVERT_YAW)}/{String(INVERT_PITCH)}</Text>
+        <Text style={styles.debugText}>gain yaw/pitch: {GAIN_YAW}/{GAIN_PITCH}</Text>
+        <Text style={styles.debugText}>ema: {EMA_ALPHA} sendFPS: {SEND_FPS}</Text>
+        <Text style={styles.debugText}>last msg: {lastWebMsg?.slice(0, 120)}</Text>
+      </View>
+
+      {onClose && (
+        <TouchableOpacity style={styles.closeButton} onPress={onClose} activeOpacity={0.85}>
+          <Text style={styles.closeText}>✕</Text>
         </TouchableOpacity>
       )}
-      
-      {/* 
-        ════════════════════════════════════════════════════════════════════
-        SIMPLIFIED UI: Only close button visible for immersive experience
-        
-        Removed elements:
-        - Center button
-        - Gyro ON/OFF toggle button
-        - Gyroscope status indicator
-        
-        Gyroscope remains ALWAYS ACTIVE by default (useGyro prop = true)
-        Touch control also available as fallback
-        ════════════════════════════════════════════════════════════════════
-      */}
     </View>
   );
 };
 
-// ============================================================================
-// STYLES
-// ============================================================================
-
 const styles = StyleSheet.create({
-  /**
-   * Container fills ENTIRE screen using absoluteFillObject
-   * NO SafeAreaView wrapper - content must cover notch/navigation areas
-   */
-  container: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#000',
-    zIndex: 99999,
-    elevation: 99999,
-  },
-  /**
-   * GLView (3D canvas) fills entire container
-   * NO padding, NO margin - must be edge-to-edge
-   */
-  glView: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 100,
-  },
-  loadingText: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  loadingSubtext: {
-    color: '#ccc',
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  errorContainer: {
+  container: { ...StyleSheet.absoluteFillObject, backgroundColor: 'black' },
+  center: {
     flex: 1,
+    backgroundColor: 'black',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000',
-    padding: 20,
-  },
-  errorTitle: {
-    color: '#ff6b6b',
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  errorText: {
-    color: '#fff',
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 22,
-  },
-  retryButton: {
-    backgroundColor: '#007AFF',
     paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginBottom: 12,
   },
-  retryButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  closeButtonError: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  closeButtonErrorText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  text: { color: '#fff', marginTop: 12, textAlign: 'center' },
+  errorText: { color: '#ff6b6b', fontSize: 16, textAlign: 'center', marginBottom: 12 },
   closeButton: {
     position: 'absolute',
-    zIndex: 10000,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    top: 24,
+    left: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
+    zIndex: 50,
   },
-  closeButtonText: {
-    color: '#fff',
-    fontSize: 24,
-    fontWeight: '700',
+  closeText: { color: '#fff', fontSize: 22, fontWeight: 'bold' },
+  debug: {
+    position: 'absolute',
+    bottom: 16,
+    left: 16,
+    right: 16,
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    zIndex: 60,
   },
-  // ════════════════════════════════════════════════════════════════════════
-  // REMOVED STYLES (UI elements hidden for immersive experience):
-  // - controlsOverlay, controlButton, controlButtonActive, controlButtonInactive
-  // - controlButtonText, debugOverlay, debugText
-  // ════════════════════════════════════════════════════════════════════════
+  debugText: { color: '#fff', fontSize: 12 },
 });

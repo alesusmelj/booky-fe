@@ -407,12 +407,10 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
           PANORAMA VIEWER MODAL
           ════════════════════════════════════════════════════════════════════ */}
       {showPanoramaViewer && (
-        <PanoramaViewer
-          imageSource={{ uri: PANORAMA_URL }}
-          useGyro={true}
-          onClose={handleClosePanoramaViewer}
-          showCloseButton={true}
-        />
+<PanoramaViewer
+  uri="https://miro.medium.com/v2/resize:fit:1400/1*dgJ8el2wNtlICSCJwF4dbQ.jpeg"
+  onClose={() => setShowPanoramaViewer(false)}
+/>
       )}
     </SafeAreaView>
   );

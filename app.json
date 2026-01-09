@@ -39,8 +39,12 @@
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION"
       ],
-      "config": { "usesCleartextTraffic": true }
-
+      "config": {
+        "usesCleartextTraffic": true,
+        "googleMaps": {
+          "apiKey": "GOOGLE_MAPS_API_KEY"
+        }
+      }
     },
     "web": {
       "favicon": "./assets/logo.png"

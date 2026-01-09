@@ -1,0 +1,67 @@
+import 'dotenv/config';
+
+export default {
+  expo: {
+    name: 'Booky',
+    slug: 'booky',
+    version: '1.0.0',
+    orientation: 'portrait',
+    icon: './assets/logo.png',
+    userInterfaceStyle: 'light',
+    newArchEnabled: false,
+
+    splash: {
+      image: './assets/logo.png',
+      resizeMode: 'contain',
+      backgroundColor: '#ffffff',
+    },
+
+    ios: {
+      supportsTablet: true,
+      bundleIdentifier: 'com.felipelena8.booky',
+      infoPlist: {
+        NSCameraUsageDescription: 'Esta app usa la cámara para escanear códigos ISBN de libros.',
+        NSPhotoLibraryUsageDescription: 'Esta app accede a tus fotos para compartirlas.',
+        NSMicrophoneUsageDescription: 'Esta app usa el micrófono para videollamadas.',
+        NSLocationWhenInUseUsageDescription: 'Esta app usa tu ubicación para mostrar lectores cercanos.',
+      },
+    },
+
+    android: {
+      package: 'com.felipelena8.booky',
+      adaptiveIcon: {
+        foregroundImage: './assets/logo.png',
+        backgroundColor: '#ffffff',
+      },
+      edgeToEdgeEnabled: true,
+      permissions: [
+        'android.permission.CAMERA',
+        'android.permission.READ_EXTERNAL_STORAGE',
+        'android.permission.WRITE_EXTERNAL_STORAGE',
+        'android.permission.INTERNET',
+        'android.permission.ACCESS_NETWORK_STATE',
+        'android.permission.RECORD_AUDIO',
+        'android.permission.ACCESS_FINE_LOCATION',
+        'android.permission.ACCESS_COARSE_LOCATION',
+      ],
+      config: {
+        usesCleartextTraffic: true,
+        googleMaps: {
+          apiKey: process.env.GOOGLE_MAPS_API_KEY,
+        },
+      },
+    },
+
+    web: {
+      favicon: './assets/logo.png',
+    },
+
+    extra: {
+      eas: {
+        projectId: '77ce92b2-32eb-4315-a20f-76e98b477705',
+      },
+    },
+
+    owner: 'felipelena8',
+  },
+};

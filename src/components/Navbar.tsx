@@ -24,30 +24,30 @@ const navItems: NavItem[] = [
   { key: 'messages', icon: 'message-circle', label: strings.navigation.messages, iconFamily: 'Feather' },
 ];
 
-export const Navbar: React.FC<NavbarProps> = ({ 
-  activeTab = 'home', 
-  onTabPress = () => {} 
+export const Navbar: React.FC<NavbarProps> = ({
+  activeTab = 'home',
+  onTabPress = () => { }
 }) => {
   const insets = useSafeAreaInsets();
-  
+
   const renderIcon = (item: NavItem, isActive: boolean) => {
     const iconColor = isActive ? colors.primary.main : colors.neutral.gray500;
     const iconSize = 24;
 
     if (item.iconFamily === 'MaterialIcons') {
       return (
-        <MaterialIcons 
-          name={item.icon as any} 
-          size={iconSize} 
-          color={iconColor} 
+        <MaterialIcons
+          name={item.icon as any}
+          size={iconSize}
+          color={iconColor}
         />
       );
     } else {
       return (
-        <Feather 
-          name={item.icon as any} 
-          size={iconSize} 
-          color={iconColor} 
+        <Feather
+          name={item.icon as any}
+          size={iconSize}
+          color={iconColor}
         />
       );
     }
@@ -56,8 +56,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   // Get the correct padding for bottom navigation bar
   const getBottomPadding = () => {
     if (Platform.OS === 'android') {
-      // En Android, usamos un padding mínimo para evitar superposición con la barra del sistema
-      return 4;
+      // En Android, usamos un padding mayor para evitar superposición con la barra de gestos del sistema
+      return 12;
     }
     // iOS - reducir el padding del safe area
     return insets.bottom > 0 ? Math.max(insets.bottom - 20, 4) : 4;
@@ -67,7 +67,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     <View style={[styles.container, { paddingBottom: getBottomPadding() }]}>
       {navItems.map((item) => {
         const isActive = activeTab === item.key;
-        
+
         return (
           <TouchableOpacity
             key={item.key}

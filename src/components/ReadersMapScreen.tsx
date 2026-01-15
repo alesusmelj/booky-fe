@@ -64,7 +64,7 @@ export const ReadersMapScreen: React.FC<ReadersMapScreenProps> = ({
           longitude: user.address!.longitude!,
         },
       }));
-    
+
     setUserMarkers(markers);
     logger.info('🗺️ [ReadersMapScreen] Updated user markers:', markers.length);
   }, [users]);
@@ -90,7 +90,7 @@ export const ReadersMapScreen: React.FC<ReadersMapScreenProps> = ({
 
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Location permission is required.');
+        Alert.alert('Permiso Denegado', 'Se requiere permiso de ubicación.');
         return;
       }
 
@@ -109,7 +109,7 @@ export const ReadersMapScreen: React.FC<ReadersMapScreenProps> = ({
       logger.info('✅ [ReadersMapScreen] Current location set');
     } catch (error) {
       logger.error('📍 [ReadersMapScreen] Error getting current location:', error);
-      Alert.alert('Error', 'Failed to get current location. Please try again.');
+      Alert.alert('Error', 'No se pudo obtener la ubicación actual. Por favor intenta de nuevo.');
     } finally {
       setIsLoadingLocation(false);
     }
@@ -118,7 +118,7 @@ export const ReadersMapScreen: React.FC<ReadersMapScreenProps> = ({
   // Search location by query
   const searchLocation = async () => {
     if (!searchQuery.trim()) {
-      Alert.alert('Error', 'Please enter a location to search.');
+      Alert.alert('Error', 'Por favor ingresa una ubicación para buscar.');
       return;
     }
 
@@ -127,7 +127,7 @@ export const ReadersMapScreen: React.FC<ReadersMapScreenProps> = ({
       logger.info('🔍 [ReadersMapScreen] Searching for:', searchQuery);
 
       const geocode = await Location.geocodeAsync(searchQuery);
-      
+
       if (geocode.length > 0) {
         const result = geocode[0];
         const newRegion = {
@@ -140,11 +140,11 @@ export const ReadersMapScreen: React.FC<ReadersMapScreenProps> = ({
         setMapRegion(newRegion);
         logger.info('✅ [ReadersMapScreen] Location found and set');
       } else {
-        Alert.alert('No Results', 'No locations found for your search.');
+        Alert.alert('Sin Resultados', 'No se encontraron ubicaciones para tu búsqueda.');
       }
     } catch (error) {
       logger.error('🔍 [ReadersMapScreen] Error searching location:', error);
-      Alert.alert('Error', 'Failed to search location. Please try again.');
+      Alert.alert('Error', 'No se pudo buscar la ubicación. Por favor intenta de nuevo.');
     } finally {
       setIsLoadingLocation(false);
     }
@@ -160,8 +160,12 @@ export const ReadersMapScreen: React.FC<ReadersMapScreenProps> = ({
   const handleViewProfile = () => {
     if (selectedUser) {
       logger.info('👤 [ReadersMapScreen] Navigating to profile:', selectedUser.id);
-      onClose();
+      // Navegar primero
       navigate('profile', { userId: selectedUser.id });
+      // Cerrar el modal después con un pequeño delay para evitar crash del mapa
+      setTimeout(() => {
+        onClose();
+      }, 100);
     }
   };
 
@@ -201,7 +205,7 @@ export const ReadersMapScreen: React.FC<ReadersMapScreenProps> = ({
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <MaterialIcons name="close" size={24} color={colors.neutral.gray800} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Readers Map</Text>
+          <Text style={styles.headerTitle}>Mapa de Lectores</Text>
           <View style={styles.headerRight} />
         </View>
 
@@ -211,7 +215,7 @@ export const ReadersMapScreen: React.FC<ReadersMapScreenProps> = ({
             <MaterialIcons name="search" size={20} color={colors.neutral.gray400} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search for a location..."
+              placeholder="Buscar una ubicación..."
               placeholderTextColor={colors.neutral.gray400}
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -261,14 +265,14 @@ export const ReadersMapScreen: React.FC<ReadersMapScreenProps> = ({
           {loading && (
             <View style={styles.loadingOverlay}>
               <ActivityIndicator size="large" color={colors.primary.main} />
-              <Text style={styles.loadingText}>Searching readers...</Text>
+              <Text style={styles.loadingText}>Buscando lectores...</Text>
             </View>
           )}
 
           {/* Results count */}
           <View style={styles.resultsContainer}>
             <Text style={styles.resultsText}>
-              {userMarkers.length} readers found
+              {userMarkers.length} lectores encontrados
             </Text>
           </View>
         </View>
@@ -312,7 +316,7 @@ export const ReadersMapScreen: React.FC<ReadersMapScreenProps> = ({
                 style={styles.viewProfileButton}
                 onPress={handleViewProfile}
               >
-                <Text style={styles.viewProfileText}>View Profile</Text>
+                <Text style={styles.viewProfileText}>Ver Perfil</Text>
               </TouchableOpacity>
             </View>
           </View>

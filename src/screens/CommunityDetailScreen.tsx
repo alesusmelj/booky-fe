@@ -20,6 +20,7 @@ import { CreateReadingClubModal, SetMeetingModal, Post, CreatePost, VideoCallRoo
 import { useCommunity, usePosts, useReadingClubs } from '../hooks';
 import { CommunityDto } from '../types/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useAlert } from '../contexts/AlertContext';
 import { useNavigation } from '../contexts/NavigationContext';
 
 interface ReadingClubCardProps {
@@ -27,9 +28,10 @@ interface ReadingClubCardProps {
   onJoinRoom: (club: any) => void;
   onJoinClub: (clubId: string) => void;
   onSetMeeting: (club: any) => void;
+  onDelete: (clubId: string) => void;
 }
 
-const ReadingClubCard: React.FC<ReadingClubCardProps> = ({ club, onJoinRoom, onJoinClub, onSetMeeting }) => {
+const ReadingClubCard: React.FC<ReadingClubCardProps> = ({ club, onJoinRoom, onJoinClub, onSetMeeting, onDelete }) => {
   const { user } = useAuth();
   const isUserModerator = user?.id === club.moderator_id;
 
@@ -44,39 +46,48 @@ const ReadingClubCard: React.FC<ReadingClubCardProps> = ({ club, onJoinRoom, onJ
     currentChapter: club.current_chapter,
     fullClubObject: JSON.stringify(club, null, 2)
   });
-  
+
   // Calculate progress percentage
-  const progressPercentage = club.current_chapter && club.book?.pages 
-    ? Math.min((club.current_chapter / club.book.pages) * 100, 100) 
+  const progressPercentage = club.current_chapter && club.book?.pages
+    ? Math.min((club.current_chapter / club.book.pages) * 100, 100)
     : 0;
 
   // Format next meeting date
   const nextMeetingDate = new Date(club.next_meeting);
-  const formattedDate = nextMeetingDate.toLocaleDateString('en-US', { 
-    weekday: 'short', 
-    month: 'short', 
-    day: 'numeric' 
+  const formattedDate = nextMeetingDate.toLocaleDateString('es-ES', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric'
   });
-  const formattedTime = nextMeetingDate.toLocaleTimeString('en-US', { 
-    hour: 'numeric', 
+  const formattedTime = nextMeetingDate.toLocaleTimeString('es-ES', {
+    hour: 'numeric',
     minute: '2-digit',
-    hour12: true 
+    hour12: true
   });
-  
+
   return (
     <View style={styles.clubCard}>
       {/* Club Header with Name */}
       <View style={styles.clubHeader}>
         <Text style={styles.clubName} numberOfLines={1}>{club.name}</Text>
+        {isUserModerator && (
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={() => onDelete(club.id)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <MaterialIcons name="delete-outline" size={24} color={colors.status.error} />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Main Content - Horizontal Layout */}
       <View style={styles.clubContent}>
         {/* Book Image */}
         <View style={styles.bookImageContainer}>
-          <Image 
-            source={{ uri: club.book?.image || 'https://via.placeholder.com/80x120?text=No+Image' }} 
-            style={styles.bookImage} 
+          <Image
+            source={{ uri: club.book?.image || 'https://via.placeholder.com/80x120?text=No+Image' }}
+            style={styles.bookImage}
           />
         </View>
 
@@ -97,8 +108,8 @@ const ReadingClubCard: React.FC<ReadingClubCardProps> = ({ club, onJoinRoom, onJ
             <Text style={styles.progressLabel}>Progreso de Lectura</Text>
             <View style={styles.progressBarContainer}>
               <View style={styles.progressBarBackground}>
-                <View 
-                  style={[styles.progressBarFill, { width: `${progressPercentage}%` }]} 
+                <View
+                  style={[styles.progressBarFill, { width: `${progressPercentage}%` }]}
                 />
               </View>
             </View>
@@ -127,7 +138,7 @@ const ReadingClubCard: React.FC<ReadingClubCardProps> = ({ club, onJoinRoom, onJ
       {/* Action Buttons */}
       <View style={styles.actionButtons}>
         {club.join_available ? (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.primaryButton}
             onPress={() => onJoinClub(club.id)}
             activeOpacity={0.8}
@@ -135,7 +146,7 @@ const ReadingClubCard: React.FC<ReadingClubCardProps> = ({ club, onJoinRoom, onJ
             <Text style={styles.primaryButtonText}>Unirse al Club de Lectura</Text>
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.primaryButton}
             onPress={() => onJoinRoom(club)}
             activeOpacity={0.8}
@@ -143,9 +154,9 @@ const ReadingClubCard: React.FC<ReadingClubCardProps> = ({ club, onJoinRoom, onJ
             <Text style={styles.primaryButtonText}>Unirse a la Reunión</Text>
           </TouchableOpacity>
         )}
-        
+
         {isUserModerator && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.secondaryButton}
             onPress={() => onSetMeeting(club)}
             activeOpacity={0.8}
@@ -164,20 +175,21 @@ interface CommunityDetailScreenProps {
 
 export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ communityId }) => {
   const { navigate } = useNavigation();
+  const { showAlert } = useAlert();
   const [activeTab, setActiveTab] = useState<'posts' | 'reading-clubs'>('posts');
   const [showCreateClubModal, setShowCreateClubModal] = useState(false);
   const [showSetMeetingModal, setShowSetMeetingModal] = useState(false);
   const [selectedClub, setSelectedClub] = useState<any | null>(null);
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [videoCallClub, setVideoCallClub] = useState<any | null>(null);
-  
+
   // Use hooks to fetch real data
-  const { 
-    community, 
-    loading: communityLoading, 
-    error: communityError, 
-    joinCommunity: joinCommunityAction, 
-    leaveCommunity: leaveCommunityAction 
+  const {
+    community,
+    loading: communityLoading,
+    error: communityError,
+    joinCommunity: joinCommunityAction,
+    leaveCommunity: leaveCommunityAction
   } = useCommunity(communityId);
 
   const {
@@ -197,6 +209,7 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
     createReadingClub,
     joinReadingClub,
     updateMeeting,
+    deleteReadingClub,
     refresh: refreshClubs,
   } = useReadingClubs(communityId);
 
@@ -236,14 +249,14 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
 
   const handleJoinClub = async (clubId: string) => {
     console.log('🎯 Starting join reading club process for:', clubId);
-    
+
     try {
       const success = await joinReadingClub(clubId);
-      
+
       if (success) {
         console.log('✅ Successfully joined reading club:', clubId);
         Alert.alert('Success', 'You have successfully joined the reading club!');
-        
+
         // Refresh reading clubs to get updated data
         console.log('🔄 Refreshing reading clubs after join...');
         await refreshClubs();
@@ -268,15 +281,15 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
     if (content.trim() && communityId) {
       try {
         logger.info('📝 Creating new community post:', { content, communityId, hasImages: !!images?.length });
-        
+
         // Handle the first image if provided (backend supports single image for now)
         const imageUri = images && images.length > 0 ? images[0] : null;
-        
+
         const success = await createPost({
           body: content,
           community_id: communityId,
         }, imageUri);
-        
+
         if (!success) {
           Alert.alert('Error', 'No se pudo crear el post. Intenta de nuevo.');
         }
@@ -302,7 +315,7 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
     nextMeeting: string;
   }) => {
     if (!communityId) return;
-    
+
     try {
       const success = await createReadingClub({
         name: clubData.name,
@@ -311,7 +324,7 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
         book_id: clubData.selectedBook.id,
         next_meeting: clubData.nextMeeting,
       });
-      
+
       if (success) {
         setShowCreateClubModal(false);
         refreshClubs(); // Refresh the reading clubs list
@@ -327,13 +340,13 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
     nextMeeting: string;
   }) => {
     if (!selectedClub) return;
-    
+
     try {
       const success = await updateMeeting(selectedClub.id, {
         next_meeting: meetingData.nextMeeting,
         current_chapter: meetingData.chapter,
       });
-      
+
       if (success) {
         setShowSetMeetingModal(false);
         setSelectedClub(null);
@@ -343,6 +356,37 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
     } catch (error) {
       logger.error('Error updating meeting:', error);
     }
+  };
+
+  const handleDeleteReadingClub = (clubId: string) => {
+    showAlert({
+      title: 'Eliminar Club de Lectura',
+      message: '¿Estás seguro de que quieres eliminar este club de lectura? Esta acción no se puede deshacer.',
+      buttons: [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const success = await deleteReadingClub(clubId);
+              if (success) {
+                logger.info('Reading club deleted successfully');
+                // Optional: Show success toast/alert
+              } else {
+                showAlert({ title: 'Error', message: 'No se pudo eliminar el club de lectura.' });
+              }
+            } catch (error) {
+              logger.error('Error deleting reading club:', error);
+              showAlert({ title: 'Error', message: 'Ocurrió un error al eliminar el club.' });
+            }
+          },
+        },
+      ]
+    });
   };
 
   const handleLeaveVideoCall = () => {
@@ -375,19 +419,19 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
   // Prepare data for single FlatList
   const prepareFlatListData = () => {
     const data = [];
-    
+
     // Header section
     data.push({ type: 'header', data: community });
-    
+
     // Tabs section
     data.push({ type: 'tabs', activeTab });
-    
+
     if (activeTab === 'posts') {
       // Create post section
       data.push({ type: 'createPost' });
-      
+
       // Posts
-      logger.info('📄 [CommunityDetail] Preparing posts for render:', { 
+      logger.info('📄 [CommunityDetail] Preparing posts for render:', {
         postsCount: posts.length,
         communityId,
         firstPostPreview: posts[0] ? {
@@ -401,18 +445,18 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
           } : 'No user'
         } : 'No posts'
       });
-      
+
       posts.forEach(post => {
         data.push({ type: 'post', data: post });
       });
     } else if (activeTab === 'reading-clubs') {
       // Create club button
       data.push({ type: 'createClub' });
-      
+
       // All clubs title and clubs
       if (readingClubs.length > 0) {
         data.push({ type: 'allClubsTitle' });
-        
+
         // Reading clubs
         readingClubs.forEach(club => {
           data.push({ type: 'club', data: club });
@@ -421,7 +465,7 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
         data.push({ type: 'emptyClubs' });
       }
     }
-    
+
     return data;
   };
 
@@ -447,11 +491,11 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
             </View>
           </View>
         );
-      
+
       case 'tabs':
         return (
           <View style={styles.tabContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.tab, activeTab === 'posts' && styles.activeTab]}
               onPress={() => setActiveTab('posts')}
               activeOpacity={0.7}
@@ -460,7 +504,7 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
                 Posts
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.tab, activeTab === 'reading-clubs' && styles.activeTab]}
               onPress={() => setActiveTab('reading-clubs')}
               activeOpacity={0.7}
@@ -471,16 +515,16 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
             </TouchableOpacity>
           </View>
         );
-      
+
       case 'createPost':
         return (
-          <CreatePost 
+          <CreatePost
             onPost={handleCreatePost}
             maxLength={280}
             showCharacterCount={false}
           />
         );
-      
+
       case 'post': {
         // Pass the PostDto directly to the Post component
         logger.info('📄 [CommunityDetail] Rendering post:', {
@@ -494,7 +538,7 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
             lastname: item.data.user.lastname
           } : 'No user data'
         });
-        
+
         return (
           <Post
             post={item.data}
@@ -505,11 +549,11 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
           />
         );
       }
-      
+
       case 'createClub':
         return (
           <View style={styles.createClubContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.createClubButton}
               onPress={() => setShowCreateClubModal(true)}
               activeOpacity={0.8}
@@ -518,10 +562,10 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
             </TouchableOpacity>
           </View>
         );
-      
+
       case 'allClubsTitle':
         return <Text style={styles.allClubsTitle}>Todos los Clubes de Lectura</Text>;
-      
+
       case 'club':
         return (
           <View style={{ marginBottom: 16 }}>
@@ -530,10 +574,11 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
               onJoinRoom={handleJoinRoom}
               onJoinClub={handleJoinClub}
               onSetMeeting={handleSetMeetingClick}
+              onDelete={handleDeleteReadingClub}
             />
           </View>
         );
-      
+
       case 'emptyClubs':
         return (
           <View style={styles.emptyClubsContainer}>
@@ -542,7 +587,7 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
             <Text style={styles.emptyClubsText}>
               Crea un club de lectura para empezar a discutir libros con los miembros de la comunidad.
             </Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.createFirstClubButton}
               onPress={() => setShowCreateClubModal(true)}
               activeOpacity={0.8}
@@ -551,7 +596,7 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
             </TouchableOpacity>
           </View>
         );
-      
+
       default:
         return null;
     }
@@ -755,6 +800,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  deleteButton: {
+    padding: 4,
+    marginRight: -8,
   },
   clubName: {
     fontSize: 18,

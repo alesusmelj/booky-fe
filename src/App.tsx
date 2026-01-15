@@ -8,6 +8,7 @@ import CommerceScreen from './screens/CommerceScreen';
 import { strings, colors } from './constants';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NavigationProvider, useNavigation } from './contexts/NavigationContext';
+import { AlertProvider } from './contexts/AlertContext';
 import { logger } from './utils/logger';
 
 function AppContent() {
@@ -18,22 +19,22 @@ function AppContent() {
   const insets = useSafeAreaInsets();
 
   const handleTabPress = (tab: string) => {
-    logger.info('🔄 Tab pressed:', { 
-      tab, 
-      currentScreen: currentScreen.screen, 
+    logger.info('🔄 Tab pressed:', {
+      tab,
+      currentScreen: currentScreen.screen,
       canGoBack: canGoBack(),
-      activeTab: activeTab 
+      activeTab: activeTab
     });
-    
+
     setActiveTab(tab);
-    
+
     // If we're in a navigation screen (like profile), reset to main tab screens
     if (canGoBack()) {
       logger.info('📱 Resetting navigation to main screens...');
       resetToHome();
       logger.info('✅ Navigation reset completed');
     }
-    
+
     logger.info('🎯 Tab navigation completed for:', tab);
   };
 
@@ -52,11 +53,11 @@ function AppContent() {
     return (
       <AuthContainer style={styles.container}>
         {authScreen === 'login' ? (
-          <LoginScreen 
+          <LoginScreen
             onCreateAccountPress={() => setAuthScreen('signup')}
           />
         ) : (
-          <SignUpScreen 
+          <SignUpScreen
             onBackToLoginPress={() => setAuthScreen('login')}
           />
         )}
@@ -107,10 +108,10 @@ function AppContent() {
   const shouldShowNavbar = () => {
     // Always show navbar for main tab screens
     if (!canGoBack()) return true;
-    
+
     // Show navbar for profile screens (both own and other users)
     if (currentScreen.screen === 'profile') return true;
-    
+
     // Hide navbar for other navigation screens
     return false;
   };
@@ -120,21 +121,10 @@ function AppContent() {
     // If we're on a profile screen, don't highlight any specific tab
     // Let the user navigate freely
     if (currentScreen.screen === 'profile') return activeTab;
-    
+
     // Otherwise use the current active tab
     return activeTab;
   };
-
-  // Get the correct padding for back button
-  const getBackButtonTopPadding = () => {
-    if (Platform.OS === 'android') {
-      return (RNStatusBar.currentHeight || 0) + 8;
-    }
-    return insets.top > 0 ? Math.min(insets.top, 8) : 8;
-  };
-
-  // Use View for Android, SafeAreaView for iOS
-  const ContainerComponent = Platform.OS === 'android' ? View : SafeAreaView;
 
   // Determine if we should show the top header (back button + navbar)
   const shouldShowTopHeader = () => {
@@ -143,40 +133,27 @@ function AppContent() {
     return true;
   };
 
+  // Use View for Android, SafeAreaView for iOS
+  const ContainerComponent = Platform.OS === 'android' ? View : SafeAreaView;
+
   return (
     <ContainerComponent style={styles.container}>
       {shouldShowTopHeader() && (
-        <>
-          {canGoBack() ? (
-            <View style={styles.headerWithBack}>
-              <TouchableOpacity 
-                style={[styles.backButton, { paddingTop: getBackButtonTopPadding() }]}
-                onPress={goBack}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.backButtonText}>← Volver</Text>
-              </TouchableOpacity>
-              <TopNavbar 
-                hasNotifications={true}
-                onNotificationPress={() => {}}
-                disableSafeAreaTop={true}
-              />
-            </View>
-          ) : (
-            <TopNavbar 
-              hasNotifications={true}
-              onNotificationPress={() => {}}
-            />
-          )}
-        </>
+        <TopNavbar
+          hasNotifications={true}
+          onNotificationPress={() => { }}
+          disableSafeAreaTop={false}
+          showBackButton={canGoBack()}
+          onBackPress={canGoBack() ? goBack : undefined}
+        />
       )}
       <View style={styles.content}>
         {renderContent()}
       </View>
       {shouldShowNavbar() && (
-        <Navbar 
-          activeTab={getActiveTabForNavbar()} 
-          onTabPress={handleTabPress} 
+        <Navbar
+          activeTab={getActiveTabForNavbar()}
+          onTabPress={handleTabPress}
         />
       )}
       <StatusBar style="auto" />
@@ -189,7 +166,9 @@ export default function App() {
     <SafeAreaProvider>
       <AuthProvider>
         <NavigationProvider>
-          <AppContent />
+          <AlertProvider>
+            <AppContent />
+          </AlertProvider>
         </NavigationProvider>
       </AuthProvider>
     </SafeAreaProvider>
@@ -209,21 +188,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: colors.neutral.white,
-  },
-  headerWithBack: {
-    backgroundColor: colors.neutral.white,
-  },
-  backButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: colors.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral.gray200,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: colors.primary.indigo600,
-    fontWeight: '600',
   },
   placeholderContent: {
     flex: 1,

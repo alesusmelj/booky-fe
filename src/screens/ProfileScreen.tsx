@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
-  Alert,
   RefreshControl,
   Dimensions,
   Modal,
@@ -22,6 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons, Feather } from '@expo/vector-icons';
 import { colors } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
+import { useAlert } from '../contexts/AlertContext';
 import { useNavigation } from '../contexts/NavigationContext';
 import { useGamification } from '../hooks/useGamification';
 import { useBooks, useBarcodeHandler, useUserFollow, useChats, useRating } from '../hooks';
@@ -49,6 +49,7 @@ interface ProfileScreenProps {
 
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
   const { user, refreshUser } = useAuth();
+  const { showAlert } = useAlert();
   const { navigate } = useNavigation();
   const { createOrGetChat } = useChats();
   const userId = route?.params?.userId || user?.id;
@@ -60,19 +61,19 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
   const [libraryFilter, setLibraryFilter] = useState<'all' | 'READING' | 'READ' | 'TO_READ' | 'WISHLIST' | 'favorites'>('all');
   const [selectedAchievement, setSelectedAchievement] = useState<any>(null);
   const [refreshing, setRefreshing] = useState(false);
-  
+
   // State for other user's profile data
   const [profileUserData, setProfileUserData] = useState<any>(null);
   const [loadingProfileUser, setLoadingProfileUser] = useState(false);
-  
+
   // State to force image refresh
   const [imageRefreshKey, setImageRefreshKey] = useState(0);
-  
+
   // Add Book Modal states
 
   const [showAddBookModal, setShowAddBookModal] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
-  
+
   // Debug: Log when showBarcodeScanner changes
   useEffect(() => {
     logger.info('📱 [PROFILE] showBarcodeScanner state changed to:', showBarcodeScanner);
@@ -83,26 +84,26 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
   const [loadingBookData, setLoadingBookData] = useState(false);
   const [isbnScannedMessage, setIsbnScannedMessage] = useState<string | null>(null);
   const [lastFetchedISBN, setLastFetchedISBN] = useState<string | null>(null);
-  
+
   // Barcode handler with debounce protection
   const handleBarcodeScannedInternal = (scannedISBN: string) => {
     logger.info('📱 [PROFILE] Processing scanned ISBN:', scannedISBN);
-    
+
     // Fill the ISBN input field and auto-fetch book data
     setIsbn(scannedISBN);
     setShowBarcodeScanner(false);
-    
+
     // Show success message
     setIsbnScannedMessage(`📷 ISBN scanned: ${scannedISBN}`);
-    
+
     // Auto-fetch book data immediately (mark as from scanner to avoid duplicate alerts)
     fetchBookByISBN(scannedISBN, true);
-    
+
     // Reopen the Add Book modal so user can review and add manually
     setTimeout(() => {
       setShowAddBookModal(true);
       logger.info('📱 [PROFILE] Add Book modal reopened with scanned ISBN and book data');
-      
+
       // Clear the message after a few seconds
       setTimeout(() => {
         setIsbnScannedMessage(null);
@@ -114,7 +115,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
     debounceMs: 2000, // 2 second debounce
     onBarcodeProcessed: handleBarcodeScannedInternal
   });
-  
+
   // Edit Profile Modal State
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [editFormData, setEditFormData] = useState({
@@ -126,7 +127,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
   const [selectedAddress, setSelectedAddress] = useState<AddressDto | null>(null);
   const [showAddressPicker, setShowAddressPicker] = useState(false);
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
-  
+
   // Pan responder for swipe to close modal
   const panY = useRef(new Animated.Value(0)).current;
   const panResponder = useRef(
@@ -145,7 +146,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
       onPanResponderRelease: (_, gestureState) => {
         // If swiped down more than 150px or swiped quickly, close the modal
         const shouldClose = gestureState.dy > 150 || gestureState.vy > 0.5;
-        
+
         if (shouldClose) {
           Animated.timing(panY, {
             toValue: 1000,
@@ -166,7 +167,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
       },
     })
   ).current;
-  
+
   // Animate modal entrance
   useEffect(() => {
     if (showEditProfileModal) {
@@ -179,7 +180,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
       }).start();
     }
   }, [showEditProfileModal, panY]);
-  
+
   // Map states
   const [mapRegion, setMapRegion] = useState<Region>({
     latitude: -34.6037,
@@ -246,7 +247,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
 
   const loadUserReviews = useCallback(async () => {
     if (!userId) return;
-    
+
     setReviewsLoading(true);
     try {
       const reviews = await getUserRatings(userId);
@@ -277,14 +278,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
 
   const loadOtherUserData = useCallback(async (targetUserId: string) => {
     if (targetUserId === user?.id) return; // Skip if it's current user
-    
+
     try {
       setLoadingProfileUser(true);
       logger.info('👤 Loading other user data for:', targetUserId);
-      
+
       const userData = await UsersService.getUserById(targetUserId);
       setProfileUserData(userData);
-      
+
       logger.info('✅ Other user data loaded successfully');
     } catch (error) {
       logger.error('❌ Error loading other user data:', error);
@@ -305,7 +306,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
         getUserLibrary(userId),
         getUnnotifiedAchievements(userId),
       ]);
-      
+
       // If viewing another user's profile, load their basic data
       if (!isOwnProfile && userId) {
         await loadOtherUserData(userId);
@@ -343,15 +344,15 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
     try {
       logger.info('💬 [ProfileScreen] Starting chat with user:', { userId });
       const chat = await createOrGetChat(userId);
-      
+
       if (chat) {
-        logger.info('💬 [ProfileScreen] Chat created/retrieved, navigating to chat detail:', { 
+        logger.info('💬 [ProfileScreen] Chat created/retrieved, navigating to chat detail:', {
           chatId: chat.id,
-          otherUser: chat.other_user.name 
+          otherUser: chat.other_user.name
         });
-        navigate('ChatDetail', { 
-          chatId: chat.id, 
-          otherUser: chat.other_user 
+        navigate('ChatDetail', {
+          chatId: chat.id,
+          otherUser: chat.other_user
         });
       } else {
         Alert.alert('Error', 'No se pudo iniciar el chat');
@@ -380,10 +381,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
   // Add Book Modal Functions
   const handleScanISBN = () => {
     logger.info('📱 [PROFILE] User pressed Scan book ISBN button - USING DIRECT APPROACH');
-    
+
     // DIRECT SOLUTION: Close the add book modal and show scanner directly
     setShowAddBookModal(false);
-    
+
     // Small delay to ensure modal closes, then show scanner
     setTimeout(() => {
       logger.info('📱 [PROFILE] Opening scanner directly');
@@ -395,17 +396,17 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
   const updateBookStatus = async (bookId: string, newStatus: 'WISHLIST' | 'READING' | 'TO_READ' | 'READ') => {
     try {
       logger.info('📚 [PROFILE] Updating book status:', { bookId, newStatus });
-      
+
       // Map READ to read for backend compatibility
       const statusData: UpdateStatusDto = { status: newStatus };
-      
+
       await BooksService.updateBookStatus(bookId, statusData);
-      
+
       // Refresh user library
       if (userId) {
         await loadProfileData();
       }
-      
+
       logger.info('✅ [PROFILE] Book status updated successfully');
     } catch (error) {
       logger.error('❌ [PROFILE] Error updating book status:', error);
@@ -416,14 +417,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
   const toggleBookFavorite = async (bookId: string) => {
     try {
       logger.info('⭐ [PROFILE] Toggling book favorite:', { bookId });
-      
+
       await BooksService.toggleBookFavorite(bookId);
-      
+
       // Refresh user library
       if (userId) {
         await getUserLibrary(userId);
       }
-      
+
       logger.info('✅ [PROFILE] Book favorite toggled successfully');
     } catch (error) {
       logger.error('❌ [PROFILE] Error toggling book favorite:', error);
@@ -568,7 +569,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
       logger.info('📍 [ProfileScreen] Searching for:', addressSearchQuery);
 
       const geocode = await Location.geocodeAsync(addressSearchQuery);
-      
+
       if (geocode.length > 0) {
         const result = geocode[0];
         const newRegion = {
@@ -644,7 +645,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
     logger.info('🔄 [PROFILE] profileUser:', profileUser);
     logger.info('🔄 [PROFILE] editFormData:', editFormData);
     logger.info('🔄 [PROFILE] selectedImageUri:', selectedImageUri);
-    
+
     if (!profileUser) {
       logger.warn('⚠️ [PROFILE] No profileUser, returning early');
       return;
@@ -666,9 +667,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
       logger.info('🔄 [PROFILE] Calling UsersService.updateUserProfile...');
 
       const updatedUser = await UsersService.updateUserProfile(updateData, selectedImageUri || undefined);
-      
+
       logger.info('✅ [PROFILE] UsersService.updateUserProfile completed:', updatedUser);
-      
+
       // Close modal and reset form state
       setShowEditProfileModal(false);
       setSelectedImageUri(null);
@@ -678,7 +679,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
         lastname: '',
         description: '',
       });
-      
+
       // Refresh profile data to get updated information
       logger.info('🔄 [PROFILE] Refreshing profile data...');
       logger.info('🔄 [PROFILE] Current user before refresh:', {
@@ -687,30 +688,30 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
         hasImage: !!user?.image,
         imagePreview: user?.image ? user.image.substring(0, 50) + '...' : 'No image'
       });
-      
+
       await Promise.all([
         loadProfileData(), // Refresh gamification and library data
         refreshUser(),     // Refresh user basic info (name, lastname, description, image)
       ]);
-      
+
       logger.info('🔄 [PROFILE] Current user after refresh:', {
         id: user?.id,
         name: user?.name,
         hasImage: !!user?.image,
         imagePreview: user?.image ? user.image.substring(0, 50) + '...' : 'No image'
       });
-      
+
       // Force a small delay to ensure state updates have propagated
       await new Promise(resolve => setTimeout(resolve, 100));
-      
+
       // Force image refresh by updating the key
       setImageRefreshKey(prev => prev + 1);
-      
-      Alert.alert('Success', 'Profile updated successfully!');
+
+      showAlert({ title: 'Éxito', message: '¡Perfil actualizado correctamente!' });
       logger.info('✅ Profile updated successfully');
     } catch (error) {
       logger.error('❌ Error updating profile:', error);
-      Alert.alert('Error', 'Failed to update profile. Please try again.');
+      showAlert({ title: 'Error', message: 'No se pudo actualizar el perfil. Intenta de nuevo.' });
     } finally {
       setIsUpdatingProfile(false);
       logger.info('🔄 [PROFILE] handleSaveProfile completed, isUpdatingProfile set to false');
@@ -724,7 +725,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
     }
 
     const cleanISBN = isbnValue.trim();
-    
+
     // Prevent duplicate calls - if we just fetched this ISBN, skip
     if (lastFetchedISBN === cleanISBN && !fromScanner) {
       logger.info('📚 [PROFILE] Skipping duplicate fetch for ISBN:', cleanISBN);
@@ -739,11 +740,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
 
     setLastFetchedISBN(cleanISBN);
     setLoadingBookData(true);
-    
+
     try {
       logger.info('📚 [PROFILE] Fetching book data for ISBN:', cleanISBN);
       const bookData = await getBookByIsbn(cleanISBN);
-      
+
       if (bookData) {
         setBookPreview(bookData);
         logger.info('📚 [PROFILE] Book data fetched successfully:', bookData.title);
@@ -800,7 +801,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
         setIsbn('');
         setReadingStatus('READING');
         setBookPreview(null);
-        
+
         // Refresh user library, gamification profile, and achievements
         if (userId) {
           await Promise.all([
@@ -810,7 +811,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
             getUnnotifiedAchievements(userId), // Check for new achievement notifications
           ]);
         }
-        
+
         const bookTitle = bookPreview?.title || 'Book';
         Alert.alert('Success', `${bookTitle} added to your library!`);
       }
@@ -869,7 +870,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                   {profileUser.name} {profileUser.lastname}
                 </Text>
                 <Text style={styles.username}>@{profileUser.username}</Text>
-                
+
                 {/* Rating Stars */}
                 {userReviews && userReviews.length > 0 && (
                   <View style={styles.ratingContainer}>
@@ -891,7 +892,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                     </Text>
                   </View>
                 )}
-                
+
                 {profileUser.description && (
                   <Text style={styles.bio}>{profileUser.description}</Text>
                 )}
@@ -912,7 +913,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
               </TouchableOpacity>
             ) : (
               <View style={styles.actionButtons}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[
                     styles.followButton,
                     isFollowing && styles.followingButton,
@@ -940,7 +941,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                     </Text>
                   )}
                 </TouchableOpacity>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.messageButton}
                   onPress={handleStartChat}
                   activeOpacity={0.7}
@@ -959,8 +960,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                   <View style={styles.levelInfoEnhanced}>
                     {profile.user_level?.badge ? (
                       <View style={styles.levelBadgeContainer}>
-                        <Image 
-                          source={{ uri: profile.user_level.badge }} 
+                        <Image
+                          source={{ uri: profile.user_level.badge }}
                           style={styles.levelBadgeLarge}
                           resizeMode="contain"
                         />
@@ -985,18 +986,18 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                     <Text style={styles.pointsLabel}>puntos</Text>
                   </View>
                 </View>
-                
+
                 {/* Enhanced Progress Bar */}
                 {profile.user_level && (
                   <View style={styles.progressSectionEnhanced}>
                     <View style={styles.progressBarEnhanced}>
-                      <View 
+                      <View
                         style={[
-                          styles.progressFillEnhanced, 
-                          { 
-                            width: `${Math.min(100, ((profile.total_points - profile.user_level.min_points) / (profile.user_level.max_points - profile.user_level.min_points)) * 100)}%` 
+                          styles.progressFillEnhanced,
+                          {
+                            width: `${Math.min(100, ((profile.total_points - profile.user_level.min_points) / (profile.user_level.max_points - profile.user_level.min_points)) * 100)}%`
                           }
-                        ]} 
+                        ]}
                       />
                       <View style={styles.progressGlow} />
                     </View>
@@ -1070,7 +1071,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                     </TouchableOpacity>
                   </View>
                 )}
-                
+
                 {/* Library Filters */}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersContainer}>
                   {libraryFilters.map((filter) => (
@@ -1084,22 +1085,22 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                     >
                       <View style={styles.filterButtonContent}>
                         {filter.icon && filter.iconFamily === 'MaterialIcons' ? (
-                          <MaterialIcons 
-                            name={filter.icon as any} 
-                            size={16} 
-                            color={libraryFilter === filter.id ? colors.neutral.white : colors.neutral.gray600} 
+                          <MaterialIcons
+                            name={filter.icon as any}
+                            size={16}
+                            color={libraryFilter === filter.id ? colors.neutral.white : colors.neutral.gray600}
                           />
                         ) : filter.icon && filter.iconFamily === 'Feather' ? (
-                          <Feather 
-                            name={filter.icon as any} 
-                            size={16} 
-                            color={libraryFilter === filter.id ? colors.neutral.white : colors.neutral.gray600} 
+                          <Feather
+                            name={filter.icon as any}
+                            size={16}
+                            color={libraryFilter === filter.id ? colors.neutral.white : colors.neutral.gray600}
                           />
                         ) : filter.id === 'READ' ? (
-                          <MaterialIcons 
-                            name="check-circle" 
-                            size={16} 
-                            color={libraryFilter === filter.id ? colors.neutral.white : colors.neutral.gray600} 
+                          <MaterialIcons
+                            name="check-circle"
+                            size={16}
+                            color={libraryFilter === filter.id ? colors.neutral.white : colors.neutral.gray600}
                           />
                         ) : null}
                         <Text
@@ -1117,14 +1118,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
 
                 {/* Books Grid */}
                 <View style={styles.booksGrid}>
-                {filteredBooks.map((book) => (
-                  <UserLibraryBookCard
-                    key={book.id}
-                    book={book}
-                    onStatusChange={isOwnProfile ? (newStatus) => updateBookStatus(book.book.id, newStatus) : undefined}
-                    onFavoritePress={isOwnProfile ? () => toggleBookFavorite(book.book.id) : undefined}
-                  />
-                ))}
+                  {filteredBooks.map((book) => (
+                    <UserLibraryBookCard
+                      key={book.id}
+                      book={book}
+                      onStatusChange={isOwnProfile ? (newStatus) => updateBookStatus(book.book.id, newStatus) : undefined}
+                      onFavoritePress={isOwnProfile ? () => toggleBookFavorite(book.book.id) : undefined}
+                    />
+                  ))}
                 </View>
 
                 {filteredBooks.length === 0 && (
@@ -1152,9 +1153,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                   <View style={styles.emptyState}>
                     <MaterialIcons name="rate-review" size={48} color={colors.neutral.gray400} style={styles.emptyStateIcon} />
                     <Text style={styles.emptyStateTitle}>
-                    No han dejado reseñas</Text>
+                      No han dejado reseñas</Text>
                     <Text style={styles.emptyStateText}>
-                      {isOwnProfile 
+                      {isOwnProfile
                         ? 'Las reseñas aparecerán aquí después de completar intercambios de libros.'
                         : 'Las reseñas de intercambios aparecerán aquí cuando estén disponibles.'
                       }
@@ -1262,116 +1263,116 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
         animationType="slide"
         onRequestClose={() => setShowAddBookModal(false)}
       >
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           style={styles.modalOverlay}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <View style={styles.modalContent}>
             <View style={styles.modalHandle} />
-            <ScrollView 
+            <ScrollView
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={styles.modalScrollContent}
             >
               <Text style={styles.modalTitle}>Agregar Nuevo Libro</Text>
-            
-            <TouchableOpacity style={styles.scanButton} onPress={handleScanISBN}>
-              <View style={styles.scanButtonContent}>
-                <MaterialIcons name="qr-code-scanner" size={20} color={colors.neutral.gray600} />
-                <Text style={styles.scanButtonText}>Escanear ISBN del libro</Text>
-              </View>
-            </TouchableOpacity>
-            
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>ISBN</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="Ingresa el número ISBN"
-                value={isbn}
-                onChangeText={handleISBNChange}
-              />
-              <Text style={styles.inputHelp}>
-                El título y autor del libro se obtendrán automáticamente según el ISBN
-              </Text>
-              
-              {/* Scanned ISBN Success Message */}
-              {isbnScannedMessage && (
-                <View style={styles.scannedMessageContainer}>
-                  <Text style={styles.scannedMessageText}>{isbnScannedMessage}</Text>
+
+              <TouchableOpacity style={styles.scanButton} onPress={handleScanISBN}>
+                <View style={styles.scanButtonContent}>
+                  <MaterialIcons name="qr-code-scanner" size={20} color={colors.neutral.gray600} />
+                  <Text style={styles.scanButtonText}>Escanear ISBN del libro</Text>
                 </View>
-              )}
-              
-              {/* Loading indicator */}
-              {loadingBookData && (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="small" color={colors.primary.main} />
-                  <Text style={styles.loadingText}>Obteniendo datos del libro...</Text>
-                </View>
-              )}
-              
-              {/* Book preview */}
-              {bookPreview && (
-                <View style={styles.bookPreview}>
-                  <View style={styles.previewTitleContainer}>
-                    <Feather name="book-open" size={16} color={colors.status.success} />
-                    <Text style={styles.previewTitle}>Libro Encontrado:</Text>
+              </TouchableOpacity>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>ISBN</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="Ingresa el número ISBN"
+                  value={isbn}
+                  onChangeText={handleISBNChange}
+                />
+                <Text style={styles.inputHelp}>
+                  El título y autor del libro se obtendrán automáticamente según el ISBN
+                </Text>
+
+                {/* Scanned ISBN Success Message */}
+                {isbnScannedMessage && (
+                  <View style={styles.scannedMessageContainer}>
+                    <Text style={styles.scannedMessageText}>{isbnScannedMessage}</Text>
                   </View>
-                  <Text style={styles.previewBookTitle}>{bookPreview.title}</Text>
-                  {bookPreview.author && (
-                    <Text style={styles.previewAuthor}>por {bookPreview.author}</Text>
-                  )}
-                  {bookPreview.genre && (
-                    <Text style={styles.previewGenre}>Género: {bookPreview.genre}</Text>
-                  )}
-                </View>
-              )}
-            </View>
-            
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Estado de Lectura</Text>
-              <View style={styles.statusButtons}>
-                {[
-                  { value: 'WISHLIST' as const, label: 'Lista de Deseos' },
-                  { value: 'TO_READ' as const, label: 'Por Leer' },
-                  { value: 'READING' as const, label: 'Leyendo' },
-                  { value: 'READ' as const, label: 'Leído' },
-                ].map((status) => (
-                  <TouchableOpacity
-                    key={status.value}
-                    style={[
-                      styles.statusButton,
-                      readingStatus === status.value && styles.activeStatusButton,
-                    ]}
-                    onPress={() => setReadingStatus(status.value)}
-                  >
-                    <Text
-                      style={[
-                        styles.statusButtonText,
-                        readingStatus === status.value && styles.activeStatusButtonText,
-                      ]}
-                    >
-                      {status.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                )}
+
+                {/* Loading indicator */}
+                {loadingBookData && (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="small" color={colors.primary.main} />
+                    <Text style={styles.loadingText}>Obteniendo datos del libro...</Text>
+                  </View>
+                )}
+
+                {/* Book preview */}
+                {bookPreview && (
+                  <View style={styles.bookPreview}>
+                    <View style={styles.previewTitleContainer}>
+                      <Feather name="book-open" size={16} color={colors.status.success} />
+                      <Text style={styles.previewTitle}>Libro Encontrado:</Text>
+                    </View>
+                    <Text style={styles.previewBookTitle}>{bookPreview.title}</Text>
+                    {bookPreview.author && (
+                      <Text style={styles.previewAuthor}>por {bookPreview.author}</Text>
+                    )}
+                    {bookPreview.genre && (
+                      <Text style={styles.previewGenre}>Género: {bookPreview.genre}</Text>
+                    )}
+                  </View>
+                )}
               </View>
-            </View>
-            
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setShowAddBookModal(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.addBookButtonModal, (!isbn.trim() || !readingStatus) && styles.disabledButton]}
-                onPress={handleAddBook}
-                disabled={!isbn.trim() || !readingStatus}
-              >
-                <Text style={styles.addBookButtonModalText}>Agregar Libro</Text>
-              </TouchableOpacity>
-            </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Estado de Lectura</Text>
+                <View style={styles.statusButtons}>
+                  {[
+                    { value: 'WISHLIST' as const, label: 'Lista de Deseos' },
+                    { value: 'TO_READ' as const, label: 'Por Leer' },
+                    { value: 'READING' as const, label: 'Leyendo' },
+                    { value: 'READ' as const, label: 'Leído' },
+                  ].map((status) => (
+                    <TouchableOpacity
+                      key={status.value}
+                      style={[
+                        styles.statusButton,
+                        readingStatus === status.value && styles.activeStatusButton,
+                      ]}
+                      onPress={() => setReadingStatus(status.value)}
+                    >
+                      <Text
+                        style={[
+                          styles.statusButtonText,
+                          readingStatus === status.value && styles.activeStatusButtonText,
+                        ]}
+                      >
+                        {status.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={() => setShowAddBookModal(false)}
+                >
+                  <Text style={styles.cancelButtonText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.addBookButtonModal, (!isbn.trim() || !readingStatus) && styles.disabledButton]}
+                  onPress={handleAddBook}
+                  disabled={!isbn.trim() || !readingStatus}
+                >
+                  <Text style={styles.addBookButtonModalText}>Agregar Libro</Text>
+                </TouchableOpacity>
+              </View>
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
@@ -1384,15 +1385,15 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
         animationType="fade"
         onRequestClose={closeEditProfileModal}
       >
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           style={styles.modalOverlay}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-          <Pressable 
+          <Pressable
             style={styles.modalBackdrop}
             onPress={closeEditProfileModal}
           />
-          <Animated.View 
+          <Animated.View
             style={[
               styles.modalContent,
               {
@@ -1400,26 +1401,26 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
               },
             ]}
           >
-            <View 
+            <View
               style={styles.modalHandleContainer}
               {...panResponder.panHandlers}
             >
               <View style={styles.modalHandle} />
             </View>
-            <ScrollView 
+            <ScrollView
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={styles.modalScrollContent}
             >
               <Text style={styles.modalTitle}>Editar Perfil</Text>
-              
+
               {/* Profile Image Section */}
               <View style={styles.imageSection}>
                 <TouchableOpacity style={styles.imageContainer} onPress={handleImagePicker}>
                   <Image
                     key={`modal-image-${profileUser?.id}-${imageRefreshKey}-${selectedImageUri ? 'selected' : 'original'}`}
-                    source={{ 
-                      uri: selectedImageUri || profileUser?.image || 'https://via.placeholder.com/120' 
+                    source={{
+                      uri: selectedImageUri || profileUser?.image || 'https://via.placeholder.com/120'
                     }}
                     style={styles.profileImage}
                   />
@@ -1470,7 +1471,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
               {/* Address Section with Map */}
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Dirección</Text>
-                
+
                 {/* Search Bar */}
                 <View style={styles.searchContainer}>
                   <View style={styles.searchInputContainer}>
@@ -1526,7 +1527,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                         {selectedAddress.latitude.toFixed(4)}, {selectedAddress.longitude.toFixed(4)}
                       </Text>
                     </View>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.removeAddressButton}
                       onPress={handleRemoveAddress}
                     >
@@ -1556,7 +1557,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[
-                    styles.addBookButtonModal, 
+                    styles.addBookButtonModal,
                     (!editFormData.name.trim() || !editFormData.lastname.trim() || isUpdatingProfile) && styles.disabledButton
                   ]}
                   onPress={() => {
@@ -2070,6 +2071,7 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     backgroundColor: colors.neutral.white,
+    color: colors.neutral.gray900,
   },
   inputHelp: {
     fontSize: 12,

@@ -23,7 +23,7 @@ const isExpoCameraAvailable = () => {
     // Try to import the main components directly (no require.resolve in RN)
     const expoCameraModule = require('expo-camera');
     const { CameraView, useCameraPermissions } = expoCameraModule;
-    
+
     // Check if it has the expected API
     if (CameraView && useCameraPermissions) {
       logger.info('📷 [CAMERA] expo-camera is available and functional');
@@ -52,12 +52,12 @@ const FallbackScanner: React.FC<BarcodeScannerWrapperProps> = ({
       if (cleanedISBN.length === 10 || cleanedISBN.length === 13) {
         onBarcodeScanned(cleanedISBN);
         Alert.alert(
-          'ISBN Entered',
+          'ISBN Ingresado',
           `ISBN: ${manualISBN}`,
           [{ text: 'OK', onPress: onClose }]
         );
       } else {
-        Alert.alert('Invalid ISBN', 'Please enter a valid 10 or 13 digit ISBN');
+        Alert.alert('ISBN Inválido', 'Por favor ingresa un ISBN válido de 10 o 13 dígitos');
       }
     }
   };
@@ -67,8 +67,8 @@ const FallbackScanner: React.FC<BarcodeScannerWrapperProps> = ({
     setManualISBN(demoISBN);
     onBarcodeScanned(demoISBN);
     Alert.alert(
-      'Demo ISBN Scanned',
-      `ISBN: ${demoISBN}\n(1984 by George Orwell)`,
+      'ISBN de Demostración Escaneado',
+      `ISBN: ${demoISBN}\n(1984 de George Orwell)`,
       [{ text: 'OK', onPress: onClose }]
     );
   };
@@ -76,17 +76,17 @@ const FallbackScanner: React.FC<BarcodeScannerWrapperProps> = ({
   return (
     <View style={styles.fallbackContainer}>
       <View style={styles.fallbackContent}>
-        <Text style={styles.fallbackTitle}>📱 Scanner Not Available</Text>
+        <Text style={styles.fallbackTitle}>📱 Escáner No Disponible</Text>
         <Text style={styles.fallbackMessage}>
-          The camera scanner is not available in Expo Go. You can:
+          El escáner de cámara no está disponible en Expo Go. Puedes:
         </Text>
 
         {/* Manual ISBN Entry */}
         <View style={styles.manualEntrySection}>
-          <Text style={styles.sectionTitle}>Enter ISBN Manually:</Text>
+          <Text style={styles.sectionTitle}>Ingresa el ISBN Manualmente:</Text>
           <TextInput
             style={styles.isbnInput}
-            placeholder="Enter 10 or 13 digit ISBN"
+            placeholder="Ingresa un ISBN de 10 o 13 dígitos"
             value={manualISBN}
             onChangeText={setManualISBN}
             keyboardType="numeric"
@@ -97,24 +97,24 @@ const FallbackScanner: React.FC<BarcodeScannerWrapperProps> = ({
             onPress={handleManualEntry}
             disabled={!manualISBN.trim()}
           >
-            <Text style={styles.primaryButtonText}>Add Book</Text>
+            <Text style={styles.primaryButtonText}>Agregar Libro</Text>
           </TouchableOpacity>
         </View>
 
         {/* Demo Option */}
         <View style={styles.demoSection}>
-          <Text style={styles.sectionTitle}>Or try a demo book:</Text>
+          <Text style={styles.sectionTitle}>O prueba un libro de demostración:</Text>
           <TouchableOpacity
             style={[styles.actionButton, styles.demoButton]}
             onPress={handleDemoScan}
           >
-            <Text style={styles.demoButtonText}>📚 Use Demo ISBN (1984)</Text>
+            <Text style={styles.demoButtonText}>📚 Usar ISBN de Demostración (1984)</Text>
           </TouchableOpacity>
         </View>
 
         {/* Debug Section */}
         <View style={styles.debugSection}>
-          <Text style={styles.sectionTitle}>🔧 Debug Options:</Text>
+          <Text style={styles.sectionTitle}>🔧 Opciones de Depuración:</Text>
           <TouchableOpacity
             style={[styles.actionButton, styles.debugButton]}
             onPress={() => {
@@ -126,9 +126,9 @@ const FallbackScanner: React.FC<BarcodeScannerWrapperProps> = ({
               }, 100);
             }}
           >
-            <Text style={styles.debugButtonText}>📷 Try Camera Scanner</Text>
+            <Text style={styles.debugButtonText}>📷 Probar Escáner de Cámara</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[styles.actionButton, styles.debugButton]}
             onPress={() => {
@@ -155,9 +155,9 @@ const FallbackScanner: React.FC<BarcodeScannerWrapperProps> = ({
               }, 100);
             }}
           >
-            <Text style={styles.debugButtonText}>🧪 Test Permissions Only</Text>
+            <Text style={styles.debugButtonText}>🧪 Probar Solo Permisos</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[styles.actionButton, styles.debugButton]}
             onPress={() => {
@@ -183,21 +183,21 @@ const FallbackScanner: React.FC<BarcodeScannerWrapperProps> = ({
               }, 100);
             }}
           >
-            <Text style={styles.debugButtonText}>📱 Test iOS Camera</Text>
+            <Text style={styles.debugButtonText}>📱 Probar Cámara iOS</Text>
           </TouchableOpacity>
         </View>
 
         {/* Info Section */}
         <View style={styles.infoSection}>
-          <Text style={styles.infoTitle}>💡 For Real Scanning:</Text>
+          <Text style={styles.infoTitle}>💡 Para Escaneo Real:</Text>
           <Text style={styles.infoText}>
-            To use the camera scanner, you need to create a development build or use EAS Build.
+            Para usar el escáner de cámara, necesitas crear una compilación de desarrollo o usar EAS Build.
           </Text>
         </View>
 
         {/* Close Button */}
         <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-          <Text style={styles.closeButtonText}>Close</Text>
+          <Text style={styles.closeButtonText}>Cerrar</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -213,13 +213,13 @@ const SafeCameraScanner: React.FC<BarcodeScannerWrapperProps> = (props) => {
     const initializeScanner = async () => {
       try {
         logger.info('📷 [CAMERA] Initializing safe camera scanner...');
-        
+
         // Check if expo-camera is available without dynamic import
         const expoCameraModule = require('expo-camera');
         if (!expoCameraModule || !expoCameraModule.CameraView || !expoCameraModule.useCameraPermissions) {
           throw new Error('expo-camera components not available');
         }
-        
+
         logger.info('📷 [CAMERA] expo-camera verified successfully');
         setIsReady(true);
       } catch (error) {
@@ -242,7 +242,7 @@ const SafeCameraScanner: React.FC<BarcodeScannerWrapperProps> = (props) => {
     return (
       <View style={styles.fallbackContainer}>
         <View style={styles.fallbackContent}>
-          <Text style={styles.fallbackMessage}>Initializing camera...</Text>
+          <Text style={styles.fallbackMessage}>Inicializando cámara...</Text>
         </View>
       </View>
     );
@@ -268,19 +268,19 @@ const SimpleCameraScanner: React.FC<BarcodeScannerWrapperProps> = ({
         logger.info('📷 [SIMPLE-CAMERA] Requesting camera permissions...');
         const expoCameraModule = require('expo-camera');
         const { CameraView: CameraComponent, useCameraPermissions } = expoCameraModule;
-        
+
         if (!CameraComponent) {
           throw new Error('CameraView component not available');
         }
-        
+
         // Check actual permissions
         logger.info('📷 [SIMPLE-CAMERA] Checking camera permissions...');
-        const { status } = await expoCameraModule.Camera?.requestCameraPermissionsAsync() || 
-                           await expoCameraModule.requestCameraPermissionsAsync?.() ||
-                           { status: 'granted' }; // Fallback for testing
-        
+        const { status } = await expoCameraModule.Camera?.requestCameraPermissionsAsync() ||
+          await expoCameraModule.requestCameraPermissionsAsync?.() ||
+          { status: 'granted' }; // Fallback for testing
+
         logger.info('📷 [SIMPLE-CAMERA] Permission status:', status);
-        
+
         if (status === 'granted') {
           setCameraView(() => CameraComponent);
           setHasPermission(true);
@@ -300,27 +300,27 @@ const SimpleCameraScanner: React.FC<BarcodeScannerWrapperProps> = ({
 
   const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
     if (scanned) return;
-    
+
     // Validate data before processing
     if (!data || typeof data !== 'string') {
       logger.warn('📷 [SIMPLE-CAMERA] Invalid barcode data received:', data);
       return;
     }
-    
+
     setScanned(true);
     const cleanedData = data.replace(/[-\s]/g, '');
-    
+
     if (cleanedData.length === 10 || cleanedData.length === 13) {
       logger.info('📷 [SIMPLE-CAMERA] Valid ISBN scanned:', cleanedData);
       onBarcodeScanned(cleanedData);
       onClose();
     } else {
       Alert.alert(
-        'Invalid ISBN',
-        'The scanned code does not appear to be a valid ISBN. Please try again.',
+        'ISBN Inválido',
+        'El código escaneado no parece ser un ISBN válido. Por favor intenta de nuevo.',
         [
-          { text: 'Try Again', onPress: () => setScanned(false) },
-          { text: 'Cancel', onPress: onClose },
+          { text: 'Intentar de Nuevo', onPress: () => setScanned(false) },
+          { text: 'Cancelar', onPress: onClose },
         ]
       );
     }
@@ -330,8 +330,8 @@ const SimpleCameraScanner: React.FC<BarcodeScannerWrapperProps> = ({
     return (
       <View style={styles.container}>
         <View style={styles.messageContainer}>
-          <Text style={styles.messageTitle}>📷 Setting up Camera...</Text>
-          <Text style={styles.message}>Please wait while we prepare the camera scanner.</Text>
+          <Text style={styles.messageTitle}>📷 Configurando Cámara...</Text>
+          <Text style={styles.message}>Por favor espera mientras preparamos el escáner de cámara.</Text>
         </View>
       </View>
     );
@@ -341,9 +341,9 @@ const SimpleCameraScanner: React.FC<BarcodeScannerWrapperProps> = ({
     return (
       <View style={styles.container}>
         <View style={styles.messageContainer}>
-          <Text style={styles.messageTitle}>📷 Camera Permission Required</Text>
+          <Text style={styles.messageTitle}>📷 Permiso de Cámara Requerido</Text>
           <Text style={styles.message}>
-            Please enable camera access in your device settings to scan barcodes.
+            Por favor habilita el acceso a la cámara en la configuración de tu dispositivo para escanear códigos de barras.
           </Text>
           <TouchableOpacity style={styles.button} onPress={onClose}>
             <Text style={styles.buttonText}>Close</Text>
@@ -375,21 +375,21 @@ const SimpleCameraScanner: React.FC<BarcodeScannerWrapperProps> = ({
             <View style={styles.bottomOverlay}>
               <View style={styles.controlsContainer}>
                 <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                  <Text style={styles.closeButtonText}>✕ Close</Text>
+                  <Text style={styles.closeButtonText}>✕ Cerrar</Text>
                 </TouchableOpacity>
-                
+
                 {scanned && (
-                  <TouchableOpacity 
-                    style={styles.button} 
+                  <TouchableOpacity
+                    style={styles.button}
                     onPress={() => setScanned(false)}
                   >
-                    <Text style={styles.buttonText}>Scan Again</Text>
+                    <Text style={styles.buttonText}>Escanear de Nuevo</Text>
                   </TouchableOpacity>
                 )}
               </View>
-              
+
               <Text style={styles.instructionText}>
-                Point your camera at a barcode to scan
+                Apunta tu cámara a un código de barras para escanear
               </Text>
             </View>
           </View>
@@ -402,13 +402,13 @@ const SimpleCameraScanner: React.FC<BarcodeScannerWrapperProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.messageContainer}>
-        <Text style={styles.messageTitle}>📷 Camera Scanner (Demo Mode)</Text>
+        <Text style={styles.messageTitle}>📷 Escáner de Cámara (Modo Demo)</Text>
         <Text style={styles.message}>
-          Camera not available. Use the demo scan button below.
+          Cámara no disponible. Usa el botón de escaneo de demostración abajo.
         </Text>
-        
-        <TouchableOpacity 
-          style={styles.button} 
+
+        <TouchableOpacity
+          style={styles.button}
           onPress={() => {
             // Simulate a successful scan for testing
             const testISBN = '9780451524935';
@@ -417,9 +417,9 @@ const SimpleCameraScanner: React.FC<BarcodeScannerWrapperProps> = ({
             onClose();
           }}
         >
-          <Text style={styles.buttonText}>📚 Test Scan (Demo)</Text>
+          <Text style={styles.buttonText}>📚 Escaneo de Prueba (Demo)</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={styles.closeButton} onPress={onClose}>
           <Text style={styles.closeButtonText}>Close</Text>
         </TouchableOpacity>
@@ -467,7 +467,7 @@ export const BarcodeScannerWrapper: React.FC<BarcodeScannerWrapperProps> = (prop
     return (
       <View style={styles.fallbackContainer}>
         <View style={styles.fallbackContent}>
-          <Text style={styles.fallbackMessage}>Initializing scanner...</Text>
+          <Text style={styles.fallbackMessage}>Inicializando escáner...</Text>
         </View>
       </View>
     );

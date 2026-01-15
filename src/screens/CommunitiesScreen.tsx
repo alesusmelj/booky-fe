@@ -10,8 +10,7 @@ import {
   Dimensions,
   RefreshControl,
   ActivityIndicator,
-  Alert,
-  Modal,
+  SafeAreaView,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../constants';
@@ -19,23 +18,29 @@ import { logger } from '../utils/logger';
 import { useNavigation } from '../contexts/NavigationContext';
 import { useCommunities } from '../hooks';
 import { CommunityDto, CreateCommunityDto } from '../types/api';
+import { CustomModal } from '../components';
+import { useAlert } from '../contexts/AlertContext';
+import { useAuth } from '../contexts/AuthContext';
 
 interface CommunityCardProps {
   community: CommunityDto;
   onPress: (communityId: string) => void;
   onJoin: (communityId: string) => void;
+  onDelete: (communityId: string) => void;
+  currentUserId?: string;
 }
 
-const CommunityCard: React.FC<CommunityCardProps> = ({ community, onPress, onJoin }) => {
+const CommunityCard: React.FC<CommunityCardProps> = ({ community, onPress, onJoin, onDelete, currentUserId }) => {
   // Si join_available es true: usuario NO es miembro, mostrar botón "Join", NO permitir entrar
   // Si join_available es false: usuario YA es miembro, NO mostrar botón "Join", SÍ permitir entrar
   const isUserMember = !community.join_available;
   const canEnterCommunity = isUserMember;
   const showJoinButton = community.join_available;
+  const isAdmin = currentUserId === community.admin_id;
 
   return (
-    <TouchableOpacity 
-      style={styles.communityCard} 
+    <TouchableOpacity
+      style={styles.communityCard}
       onPress={canEnterCommunity ? () => onPress(community.id) : undefined}
       activeOpacity={canEnterCommunity ? 0.7 : 1}
       disabled={!canEnterCommunity}
@@ -66,7 +71,7 @@ const CommunityCard: React.FC<CommunityCardProps> = ({ community, onPress, onJoi
             </Text>
           </View>
           {showJoinButton ? (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.joinButton}
               onPress={(e) => {
                 e.stopPropagation();
@@ -81,6 +86,18 @@ const CommunityCard: React.FC<CommunityCardProps> = ({ community, onPress, onJoi
               <Text style={styles.memberBadgeText}>Miembro</Text>
             </View>
           )}
+          {isAdmin && (
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={(e) => {
+                e.stopPropagation();
+                onDelete(community.id);
+              }}
+              activeOpacity={0.8}
+            >
+              <MaterialIcons name="delete" size={20} color={colors.status.error} />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -93,8 +110,10 @@ export const CommunitiesScreen: React.FC = () => {
   const [newCommunityName, setNewCommunityName] = useState('');
   const [newCommunityDescription, setNewCommunityDescription] = useState('');
   const [isCreating, setIsCreating] = useState(false);
-  
+
   const { navigate } = useNavigation();
+  const { showAlert } = useAlert();
+  const { user } = useAuth();
   const {
     communities,
     loading,
@@ -103,6 +122,7 @@ export const CommunitiesScreen: React.FC = () => {
     searchCommunities,
     createCommunity,
     joinCommunity,
+    deleteCommunity,
     refresh,
     fetchCommunities,
     clearError,
@@ -136,25 +156,25 @@ export const CommunitiesScreen: React.FC = () => {
 
   const handleJoinCommunity = async (communityId: string) => {
     console.log('🚀 Starting join process for community:', communityId);
-    
+
     try {
       // Step 1: Join community
       console.log('📝 Step 1: Calling joinCommunity API...');
       const success = await joinCommunity(communityId);
       console.log('✅ Join result:', success);
-      
+
       if (!success) {
-        Alert.alert('Error', 'No se pudo unir a la comunidad. Intenta de nuevo.');
+        showAlert({ title: 'Error', message: 'No se pudo unir a la comunidad. Intenta de nuevo.' });
         return;
       }
 
       // Step 2: Clear search to show all communities
       console.log('🔍 Step 2: Clearing search query...');
       setSearchQuery('');
-      
+
       // Step 3: Force refresh communities
       console.log('🔄 Step 3: Fetching fresh communities...');
-      
+
       try {
         console.log('📡 Making GET request to fetch communities...');
         await fetchCommunities();
@@ -162,18 +182,18 @@ export const CommunitiesScreen: React.FC = () => {
       } catch (refreshError) {
         console.error('❌ Refresh failed:', refreshError);
       }
-      
-      Alert.alert('Éxito', '¡Te has unido a la comunidad exitosamente!');
-      
+
+      showAlert({ title: 'Éxito', message: '¡Te has unido a la comunidad exitosamente!' });
+
     } catch (error) {
       console.error('❌ Join process failed:', error);
-      Alert.alert('Error', 'No se pudo unir a la comunidad. Intenta de nuevo.');
+      showAlert({ title: 'Error', message: 'No se pudo unir a la comunidad. Intenta de nuevo.' });
     }
   };
 
   const handleCreateCommunity = async () => {
     if (!newCommunityName.trim() || !newCommunityDescription.trim()) {
-      Alert.alert('Error', 'Por favor completa todos los campos');
+      showAlert({ title: 'Error', message: 'Por favor completa todos los campos' });
       return;
     }
 
@@ -185,20 +205,41 @@ export const CommunitiesScreen: React.FC = () => {
       };
 
       const newCommunity = await createCommunity(communityData);
-      
+
       if (newCommunity) {
-        Alert.alert('Éxito', '¡Comunidad creada exitosamente!');
+        showAlert({ title: 'Éxito', message: '¡Comunidad creada exitosamente!' });
         setShowCreateModal(false);
         setNewCommunityName('');
         setNewCommunityDescription('');
       } else {
-        Alert.alert('Error', 'No se pudo crear la comunidad. Intenta de nuevo.');
+        showAlert({ title: 'Error', message: 'No se pudo crear la comunidad. Intenta de nuevo.' });
       }
     } catch (error) {
-      Alert.alert('Error', 'No se pudo crear la comunidad. Intenta de nuevo.');
+      showAlert({ title: 'Error', message: 'No se pudo crear la comunidad. Intenta de nuevo.' });
     } finally {
       setIsCreating(false);
     }
+  };
+
+  const handleDeleteCommunity = async (communityId: string) => {
+    showAlert({
+      title: 'Eliminar Comunidad',
+      message: '¿Estás seguro de que quieres eliminar esta comunidad? Esta acción no se puede deshacer.',
+      buttons: [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            const success = await deleteCommunity(communityId);
+            if (!success) {
+              showAlert({ title: 'Error', message: 'No se pudo eliminar la comunidad. Intenta de nuevo.' });
+            }
+            // Si fue exitoso, simplemente se cierra el modal y la comunidad desaparece de la lista
+          },
+        },
+      ],
+    });
   };
 
   const renderCommunity = ({ item }: { item: CommunityDto }) => (
@@ -206,6 +247,8 @@ export const CommunitiesScreen: React.FC = () => {
       community={item}
       onPress={handleCommunityPress}
       onJoin={handleJoinCommunity}
+      onDelete={handleDeleteCommunity}
+      currentUserId={user?.id}
     />
   );
 
@@ -215,13 +258,13 @@ export const CommunitiesScreen: React.FC = () => {
         {searchQuery ? 'No se encontraron comunidades' : 'No hay comunidades disponibles'}
       </Text>
       <Text style={styles.emptyStateText}>
-        {searchQuery 
+        {searchQuery
           ? 'Intenta ajustar los términos de búsqueda'
           : '¡Sé el primero en crear una comunidad!'
         }
       </Text>
       {!searchQuery && (
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.createFirstButton}
           onPress={() => setShowCreateModal(true)}
         >
@@ -259,7 +302,7 @@ export const CommunitiesScreen: React.FC = () => {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Comunidades</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.createButton}
           onPress={() => setShowCreateModal(true)}
         >
@@ -299,61 +342,51 @@ export const CommunitiesScreen: React.FC = () => {
       />
 
       {/* Create Community Modal */}
-      <Modal
+      <CustomModal
         visible={showCreateModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowCreateModal(false)}
+        onClose={() => setShowCreateModal(false)}
+        title="Crear Comunidad"
+        closeButtonText="Cancelar"
+        headerRight={
+          <TouchableOpacity
+            onPress={handleCreateCommunity}
+            style={[styles.modalSaveButton, isCreating && styles.modalSaveButtonDisabled]}
+            disabled={isCreating}
+          >
+            {isCreating ? (
+              <ActivityIndicator size="small" color={colors.neutral.white} />
+            ) : (
+              <Text style={styles.modalSaveText}>Crear</Text>
+            )}
+          </TouchableOpacity>
+        }
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity 
-              onPress={() => setShowCreateModal(false)}
-              style={styles.modalCloseButton}
-            >
-              <Text style={styles.modalCloseText}>Cancelar</Text>
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>Crear Comunidad</Text>
-            <TouchableOpacity 
-              onPress={handleCreateCommunity}
-              style={[styles.modalSaveButton, isCreating && styles.modalSaveButtonDisabled]}
-              disabled={isCreating}
-            >
-              {isCreating ? (
-                <ActivityIndicator size="small" color={colors.neutral.white} />
-              ) : (
-                <Text style={styles.modalSaveText}>Crear</Text>
-              )}
-            </TouchableOpacity>
+        <View style={styles.modalContent}>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Nombre de la Comunidad</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={newCommunityName}
+              onChangeText={setNewCommunityName}
+              placeholder="Ingresa el nombre de la comunidad"
+              maxLength={50}
+            />
           </View>
 
-          <View style={styles.modalContent}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Nombre de la Comunidad</Text>
-              <TextInput
-                style={styles.modalInput}
-                value={newCommunityName}
-                onChangeText={setNewCommunityName}
-                placeholder="Ingresa el nombre de la comunidad"
-                maxLength={50}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Descripción</Text>
-              <TextInput
-                style={[styles.modalInput, styles.modalTextArea]}
-                value={newCommunityDescription}
-                onChangeText={setNewCommunityDescription}
-                placeholder="Describe tu comunidad"
-                multiline
-                numberOfLines={4}
-                maxLength={200}
-              />
-            </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Descripción</Text>
+            <TextInput
+              style={[styles.modalInput, styles.modalTextArea]}
+              value={newCommunityDescription}
+              onChangeText={setNewCommunityDescription}
+              placeholder="Describe tu comunidad"
+              multiline
+              numberOfLines={4}
+              maxLength={200}
+            />
           </View>
         </View>
-      </Modal>
+      </CustomModal>
     </View>
   );
 };
@@ -469,6 +502,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.primary.main,
     fontWeight: '600',
+  },
+  memberBadge: {
+    backgroundColor: colors.green[100],
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.green[600],
+  },
+  memberBadgeText: {
+    fontSize: 12,
+    color: colors.primary.indigo600,
+    fontWeight: '600',
+  },
+  deleteButton: {
+    padding: 8,
+    marginLeft: 8,
   },
   communityDescription: {
     fontSize: 14,
@@ -625,6 +675,9 @@ const styles = StyleSheet.create({
   modalContent: {
     flex: 1,
     padding: 20,
+  },
+  modalContent: {
+    // El padding ya está en el CustomModal, no necesitamos agregarlo aquí
   },
   inputGroup: {
     marginBottom: 24,

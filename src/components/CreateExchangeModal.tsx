@@ -95,7 +95,7 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
     if (isVisible) {
       // If both book and user are pre-selected, skip to step 3
       const hasPreSelection = preSelectedBook && preSelectedUser;
-      
+
       if (hasPreSelection) {
         logger.info('📚 Pre-selected book and user detected, skipping to step 3');
         setCurrentStep(3);
@@ -176,7 +176,7 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
       const bookIds = step1.selectedBooks.map(book => book.id);
       const users = await userApi.searchUsersByBooks({ book_ids: bookIds });
       setStep2(prev => ({ ...prev, users, isSearching: false }));
-      
+
       // Log users found with their complete information
       logger.info('👤 [CreateExchangeModal] Users found:', users.map(user => ({
         id: user.id,
@@ -272,11 +272,11 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
       };
 
       const exchange = await exchangeApi.createExchange(exchangeData);
-      
+
       // Close modal immediately and trigger success callback
       onSuccess?.(exchange);
       onClose();
-      
+
       // Show success message after modal is closed
       setTimeout(() => {
         Alert.alert('Éxito', 'Intercambio creado exitosamente');
@@ -315,8 +315,8 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
           <View style={[
             styles.stepCircle,
             currentStep > step ? styles.stepCircleCompleted :
-            currentStep === step ? styles.stepCircleActive : 
-            styles.stepCircleInactive
+              currentStep === step ? styles.stepCircleActive :
+                styles.stepCircleInactive
           ]}>
             {currentStep > step ? (
               <MaterialIcons name="check" size={16} color={colors.neutral.white} />
@@ -330,10 +330,10 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
             )}
           </View>
           <Text style={styles.stepLabel}>
-            {step === 1 ? 'Buscar libros' : 
-             step === 2 ? 'Seleccionar usuario' : 
-             step === 3 ? 'Mis libros' : 
-             'Confirmar'}
+            {step === 1 ? 'Buscar libros' :
+              step === 2 ? 'Seleccionar usuario' :
+                step === 3 ? 'Mis libros' :
+                  'Confirmar'}
           </Text>
         </View>
       ))}
@@ -349,7 +349,7 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
           Busca los libros que te gustaría recibir en el intercambio
         </Text>
       </View>
-      
+
       <View style={styles.searchContainer}>
         <MaterialIcons name="search" size={20} color={colors.neutral.gray400} />
         <TextInput
@@ -385,10 +385,10 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
             <Text style={styles.bookTitle} numberOfLines={2}>{book.title}</Text>
             <Text style={styles.bookAuthor} numberOfLines={1}>{book.author}</Text>
             {step1.selectedBooks.some(b => b.id === book.id) && (
-              <MaterialIcons 
-                name="check-circle" 
-                size={24} 
-                color={colors.primary.main} 
+              <MaterialIcons
+                name="check-circle"
+                size={24}
+                color={colors.primary.main}
                 style={styles.checkIcon}
               />
             )}
@@ -399,8 +399,8 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
       {step1.selectedBooks.length > 0 && (
         <View style={styles.selectedSection}>
           <Text style={styles.selectedTitle}>Libros seleccionados ({step1.selectedBooks.length})</Text>
-          <ScrollView 
-            horizontal 
+          <ScrollView
+            horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.selectedBooksScrollView}
           >
@@ -411,7 +411,7 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
                   style={styles.removeButton}
                   onPress={() => toggleBookSelection(book)}
                 >
-                  <MaterialIcons name="close" size={16} color={colors.neutral.white} />
+                  <MaterialIcons name="close" size={16} color={colors.neutral.white} zIndex={1000} />
                 </TouchableOpacity>
               </View>
             ))}
@@ -423,16 +423,26 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
 
   const renderStep2 = () => (
     <ScrollView style={styles.stepContent}>
-      <View style={styles.stepHeader}>
-        <MaterialIcons name="people" size={28} color={colors.primary.main} />
-        <Text style={styles.stepTitle}>Seleccionar usuario</Text>
-        <Text style={styles.stepDescription}>
-          Usuarios que tienen los libros que buscas disponibles para intercambio
-        </Text>
-      </View>
-      
+      {step2.users.length > 0 && !step2.isSearching && (
+        <View style={styles.stepHeader}>
+          <MaterialIcons name="people" size={28} color={colors.primary.main} />
+          <Text style={styles.stepTitle}>Seleccionar usuario</Text>
+          <Text style={styles.stepDescription}>
+            Usuarios que tienen los libros que buscas disponibles para intercambio
+          </Text>
+        </View>
+      )}
+
       {step2.isSearching ? (
         <ActivityIndicator style={styles.loader} size="large" color={colors.primary.main} />
+      ) : step2.users.length === 0 ? (
+        <View style={styles.emptyState}>
+          <MaterialIcons name="search-off" size={64} color={colors.neutral.gray300} />
+          <Text style={styles.emptyStateTitle}>No se encontraron resultados</Text>
+          <Text style={styles.emptyStateDescription}>
+            No hay usuarios con los libros que buscas disponibles para intercambio en este momento.
+          </Text>
+        </View>
       ) : (
         <View style={styles.userList}>
           {step2.users.map((user) => (
@@ -497,7 +507,7 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
           Elige los libros de tu biblioteca que quieres ofrecer en el intercambio
         </Text>
       </View>
-      
+
       {step3.isLoading ? (
         <ActivityIndicator style={styles.loader} size="large" color={colors.primary.main} />
       ) : (
@@ -515,10 +525,10 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
               <Text style={styles.bookTitle} numberOfLines={2}>{userBook.book.title}</Text>
               <Text style={styles.bookAuthor} numberOfLines={1}>{userBook.book.author}</Text>
               {step3.selectedMyBooks.some(b => b.id === userBook.id) && (
-                <MaterialIcons 
-                  name="check-circle" 
-                  size={24} 
-                  color={colors.primary.main} 
+                <MaterialIcons
+                  name="check-circle"
+                  size={24}
+                  color={colors.primary.main}
                   style={styles.checkIcon}
                 />
               )}
@@ -546,12 +556,17 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
           <Text style={styles.backButtonText}>Anterior</Text>
         </TouchableOpacity>
       )}
-      
+
       <View style={styles.spacer} />
-      
+
       {currentStep < 4 ? (
         <TouchableOpacity
-          style={styles.nextButton}
+          style={[
+            styles.nextButton,
+            ((currentStep === 1 && step1.selectedBooks.length === 0) ||
+              (currentStep === 2 && !step2.selectedUser) ||
+              (currentStep === 3 && step3.selectedMyBooks.length === 0)) && styles.nextButtonDisabled
+          ]}
           onPress={currentStep === 1 ? goToStep2 : currentStep === 2 ? goToStep3 : () => setCurrentStep(4)}
           disabled={
             (currentStep === 1 && step1.selectedBooks.length === 0) ||
@@ -782,10 +797,14 @@ const styles = StyleSheet.create({
   },
   selectedBooksScrollView: {
     maxHeight: 100,
+    overflow: 'visible',
   },
   selectedBook: {
     position: 'relative',
     marginRight: 12,
+    overflow: 'visible',
+    paddingTop: 8,
+    paddingRight: 8,
   },
   selectedBookImage: {
     width: 60,
@@ -928,6 +947,10 @@ const styles = StyleSheet.create({
     color: colors.neutral.white,
     marginRight: 4,
   },
+  nextButtonDisabled: {
+    backgroundColor: colors.neutral.gray300,
+    opacity: 0.6,
+  },
   createButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1025,6 +1048,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
     paddingHorizontal: 20,
+    lineHeight: 20,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.neutral.gray600,
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptyStateDescription: {
+    fontSize: 14,
+    color: colors.neutral.gray500,
+    textAlign: 'center',
     lineHeight: 20,
   },
 });

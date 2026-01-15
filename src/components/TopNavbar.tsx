@@ -10,12 +10,16 @@ interface TopNavbarProps {
   onNotificationPress?: () => void;
   hasNotifications?: boolean;
   disableSafeAreaTop?: boolean;
+  showBackButton?: boolean;
+  onBackPress?: () => void;
 }
 
-export const TopNavbar: React.FC<TopNavbarProps> = ({ 
-  onNotificationPress = () => {},
+export const TopNavbar: React.FC<TopNavbarProps> = ({
+  onNotificationPress = () => { },
   hasNotifications = false,
   disableSafeAreaTop = false,
+  showBackButton = false,
+  onBackPress,
 }) => {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
@@ -38,11 +42,11 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
   // Get the correct padding for Android status bar
   const getTopPadding = () => {
     if (disableSafeAreaTop) return 6;
-    
+
     if (Platform.OS === 'android') {
       return (StatusBar.currentHeight || 0) + 6;
     }
-    
+
     // iOS - limit the notch padding
     return insets.top > 0 ? Math.min(insets.top, 8) : 6;
   };
@@ -50,16 +54,29 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
   return (
     <View style={[styles.container, { paddingTop: getTopPadding() }]}>
       <View style={styles.leftSection}>
-        <Image 
-          source={require('../../assets/logo.png')} 
-          style={styles.logoImage}
-          resizeMode="contain"
-        />
-        <Text style={styles.brandText}>{strings.app.name}</Text>
+        {showBackButton ? (
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={onBackPress}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name="arrow-back" size={24} color={colors.primary.indigo600} />
+            <Text style={styles.backButtonText}>Volver</Text>
+          </TouchableOpacity>
+        ) : (
+          <>
+            <Image
+              source={require('../../assets/logo.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
+            <Text style={styles.brandText}>{strings.app.name}</Text>
+          </>
+        )}
       </View>
-      
+
       <View style={styles.rightSection}>
-      
+
         <TouchableOpacity
           ref={profileButtonRef}
           style={styles.profileButton}
@@ -159,5 +176,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.primary.border,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  backButtonText: {
+    fontSize: 16,
+    color: colors.primary.indigo600,
+    fontWeight: '600',
   },
 });

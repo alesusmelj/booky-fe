@@ -1,12 +1,11 @@
 import React from 'react';
-import { 
-  View, 
-  FlatList, 
-  StyleSheet, 
-  Text, 
+import {
+  View,
+  FlatList,
+  StyleSheet,
+  Text,
   ActivityIndicator,
   RefreshControl,
-  Alert,
   ListRenderItem
 } from 'react-native';
 import { CreatePost, Post } from '../components';
@@ -15,42 +14,44 @@ import { logger } from '../utils/logger';
 import { useNavigation } from '../contexts/NavigationContext';
 import { useFeed } from '../hooks/useFeed';
 import { PostDto } from '../types/api';
+import { useAlert } from '../contexts/AlertContext';
 
 export const HomeScreen: React.FC = () => {
   const { navigate } = useNavigation();
-  const { 
-    posts, 
-    loading, 
-    refreshing, 
-    loadingMore, 
-    error, 
-    hasMore, 
-    refreshFeed, 
-    loadMorePosts, 
+  const { showAlert } = useAlert();
+  const {
+    posts,
+    loading,
+    refreshing,
+    loadingMore,
+    error,
+    hasMore,
+    refreshFeed,
+    loadMorePosts,
     createPost,
     deletePost,
     toggleLike,
-    clearError 
+    clearError
   } = useFeed({ enableMockData: false });
 
   const handleCreatePost = async (content: string, images?: string[]) => {
     try {
       logger.info('📝 Creating new post:', content);
       logger.info('📝 Images provided:', images);
-      
+
       // Get the first image URI if provided (backend supports single image for now)
       const imageUri = images && images.length > 0 ? images[0] : null;
-      
-      const success = await createPost({ 
-        body: content 
+
+      const success = await createPost({
+        body: content
       }, imageUri);
-      
+
       if (!success) {
-        Alert.alert('Error', 'No se pudo crear el post. Intenta de nuevo.');
+        showAlert({ title: 'Error', message: 'No se pudo crear el post. Intenta de nuevo.' });
       }
     } catch (err) {
       logger.error('❌ Error creating post:', err);
-      Alert.alert('Error', 'No se pudo crear el post. Intenta de nuevo.');
+      showAlert({ title: 'Error', message: 'No se pudo crear el post. Intenta de nuevo.' });
     }
   };
 
@@ -60,7 +61,7 @@ export const HomeScreen: React.FC = () => {
       await toggleLike(postId);
     } catch (error) {
       logger.error('❌ Error toggling like:', error);
-      Alert.alert('Error', 'No se pudo dar/quitar like. Intenta de nuevo.');
+      showAlert({ title: 'Error', message: 'No se pudo dar/quitar like. Intenta de nuevo.' });
     }
   };
 
@@ -82,7 +83,7 @@ export const HomeScreen: React.FC = () => {
   const handleDelete = async (postId: string) => {
     const success = await deletePost(postId);
     if (!success) {
-      Alert.alert('Error', 'No se pudo eliminar la publicación. Intenta de nuevo.');
+      showAlert({ title: 'Error', message: 'No se pudo eliminar la publicación. Intenta de nuevo.' });
     }
   };
 
@@ -98,7 +99,7 @@ export const HomeScreen: React.FC = () => {
 
   const renderHeader = () => (
     <View style={styles.headerContainer}>
-      <CreatePost 
+      <CreatePost
         onPost={handleCreatePost}
         showCharacterCount={true}
         maxLength={280}
@@ -110,22 +111,29 @@ export const HomeScreen: React.FC = () => {
   const renderFooter = () => {
     if (loadingMore) {
       return (
-        <View style={styles.loadingMore}>
-          <ActivityIndicator size="small" color={colors.primary.main} />
-          <Text style={styles.loadingMoreText}>Cargando más posts...</Text>
-        </View>
+        <>
+          <View style={styles.loadingMore}>
+            <ActivityIndicator size="small" color={colors.primary.main} />
+            <Text style={styles.loadingMoreText}>Cargando más posts...</Text>
+          </View>
+          <View style={styles.footerSpacer} />
+        </>
       );
     }
 
     if (!hasMore && posts.length > 0) {
       return (
-        <View style={styles.endOfFeed}>
-          <Text style={styles.endOfFeedText}>¡Has visto todos los posts!</Text>
-        </View>
+        <>
+          <View style={styles.endOfFeed}>
+            <Text style={styles.endOfFeedText}>¡Has visto todos los posts!</Text>
+          </View>
+          <View style={styles.footerSpacer} />
+        </>
       );
     }
 
-    return null;
+    // Siempre retornar un espaciador para separar del navbar
+    return <View style={styles.footerSpacer} />;
   };
 
   const renderEmptyState = () => {
@@ -196,7 +204,7 @@ export const HomeScreen: React.FC = () => {
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.1}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={posts.length === 0 ? styles.emptyContainer : undefined}
+        contentContainerStyle={posts.length === 0 ? styles.emptyContainer : styles.contentContainer}
       />
     </View>
   );
@@ -209,6 +217,9 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     flex: 1,
+  },
+  contentContainer: {
+    marginBottom: 32,
   },
   headerContainer: {
     backgroundColor: colors.neutral.gray50,
@@ -302,5 +313,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.text.secondary,
     fontStyle: 'italic',
+  },
+  footerSpacer: {
+    height: 32,
   },
 });

@@ -32,7 +32,7 @@ export const LibraryScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddBookModal, setShowAddBookModal] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
-  
+
   // Debug: Log when showBarcodeScanner changes
   useEffect(() => {
     logger.info('📱 [LIBRARY] showBarcodeScanner state changed to:', showBarcodeScanner);
@@ -46,26 +46,26 @@ export const LibraryScreen: React.FC = () => {
   const [loadingBookData, setLoadingBookData] = useState(false);
   const [isbnScannedMessage, setIsbnScannedMessage] = useState<string | null>(null);
   const [lastFetchedISBN, setLastFetchedISBN] = useState<string | null>(null);
-  
+
   // Barcode handler with debounce protection
   const handleBarcodeScannedInternal = (scannedISBN: string) => {
     logger.info('📱 [LIBRARY] Processing scanned ISBN:', scannedISBN);
-    
+
     // Fill the ISBN input field and auto-fetch book data
     setIsbn(scannedISBN);
     setShowBarcodeScanner(false);
-    
+
     // Show success message
     setIsbnScannedMessage(`📷 ISBN scanned: ${scannedISBN}`);
-    
+
     // Auto-fetch book data immediately (mark as from scanner to avoid duplicate alerts)
     fetchBookByISBN(scannedISBN, true);
-    
+
     // Reopen the Add Book modal so user can review and add manually
     setTimeout(() => {
       setShowAddBookModal(true);
       logger.info('📱 [LIBRARY] Add Book modal reopened with scanned ISBN and book data');
-      
+
       // Clear the message after a few seconds
       setTimeout(() => {
         setIsbnScannedMessage(null);
@@ -103,7 +103,7 @@ export const LibraryScreen: React.FC = () => {
       await getUserLibrary(user.id);
     } catch (error) {
       logger.error('❌ Error loading library:', error);
-      Alert.alert('Error', 'Failed to load library');
+      Alert.alert('Error', 'No se pudo cargar la biblioteca');
     }
   }, [user?.id, getUserLibrary]);
 
@@ -115,7 +115,7 @@ export const LibraryScreen: React.FC = () => {
 
   const getTabCounts = () => {
     if (!userBooks) return {};
-    
+
     return {
       all: userBooks.length,
       READING: userBooks.filter(b => b.status === 'READING').length,
@@ -171,10 +171,10 @@ export const LibraryScreen: React.FC = () => {
 
   const handleScanISBN = () => {
     logger.info('📱 [LIBRARY] User pressed Scan book ISBN button - USING DIRECT APPROACH');
-    
+
     // DIRECT SOLUTION: Close the add book modal and show scanner directly
     setShowAddBookModal(false);
-    
+
     // Small delay to ensure modal closes, then show scanner
     setTimeout(() => {
       logger.info('📱 [LIBRARY] Opening scanner directly');
@@ -194,7 +194,7 @@ export const LibraryScreen: React.FC = () => {
     }
 
     const cleanISBN = isbnValue.trim();
-    
+
     // Prevent duplicate calls - if we just fetched this ISBN, skip
     if (lastFetchedISBN === cleanISBN && !fromScanner) {
       logger.info('📚 [LIBRARY] Skipping duplicate fetch for ISBN:', cleanISBN);
@@ -209,11 +209,11 @@ export const LibraryScreen: React.FC = () => {
 
     setLastFetchedISBN(cleanISBN);
     setLoadingBookData(true);
-    
+
     try {
       logger.info('📚 [LIBRARY] Fetching book data for ISBN:', cleanISBN);
       const bookData = await getBookByIsbn(cleanISBN);
-      
+
       if (bookData) {
         setBookPreview(bookData);
         logger.info('📚 [LIBRARY] Book data fetched successfully:', bookData.title);
@@ -223,7 +223,7 @@ export const LibraryScreen: React.FC = () => {
         if (fromScanner) {
           // Use setTimeout to ensure only one alert shows
           setTimeout(() => {
-            Alert.alert('Book Not Found', 'No book found with this ISBN. You can still add it manually.');
+            Alert.alert('Libro No Encontrado', 'No se encontró ningún libro con este ISBN. Aún puedes agregarlo manualmente.');
           }, 100);
         }
       }
@@ -234,7 +234,7 @@ export const LibraryScreen: React.FC = () => {
       if (fromScanner) {
         // Use setTimeout to ensure only one alert shows
         setTimeout(() => {
-          Alert.alert('Error', 'Failed to fetch book data. You can still add the book manually.');
+          Alert.alert('Error', 'No se pudieron obtener los datos del libro. Aún puedes agregar el libro manualmente.');
         }, 100);
       }
     } finally {
@@ -254,7 +254,7 @@ export const LibraryScreen: React.FC = () => {
 
   const handleAddBook = async () => {
     if (!isbn.trim() || !readingStatus) {
-      Alert.alert('Error', 'Please enter ISBN and select reading status');
+      Alert.alert('Error', 'Por favor ingresa el ISBN y selecciona el estado de lectura');
       return;
     }
 
@@ -270,13 +270,13 @@ export const LibraryScreen: React.FC = () => {
         setIsbn('');
         setReadingStatus('READING');
         setBookPreview(null);
-        
+
         const bookTitle = bookPreview?.title || 'Book';
-        Alert.alert('Success', `${bookTitle} added to your library!`);
+        Alert.alert('Éxito', `${bookTitle} agregado a tu biblioteca!`);
       }
     } catch (error) {
       logger.error('❌ Error adding book:', error);
-      Alert.alert('Error', 'Failed to add book to library');
+      Alert.alert('Error', 'No se pudo agregar el libro a la biblioteca');
     }
   };
 
@@ -290,7 +290,7 @@ export const LibraryScreen: React.FC = () => {
       await toggleBookFavorite(book.book.id);
     } catch (error) {
       logger.error('❌ Error toggling favorite:', error);
-      Alert.alert('Error', 'Failed to update favorite status');
+      Alert.alert('Error', 'No se pudo actualizar el estado de favorito');
     }
   };
 
@@ -302,20 +302,20 @@ export const LibraryScreen: React.FC = () => {
       await updateExchangePreference(book.id, preferenceData);
     } catch (error) {
       logger.error('❌ Error updating exchange preference:', error);
-      Alert.alert('Error', 'Failed to update exchange preference');
+      Alert.alert('Error', 'No se pudo actualizar la preferencia de intercambio');
     }
   };
 
   const handleStatusPress = (book: UserBookDto) => {
     Alert.alert(
-      'Update Status',
-      'Select new reading status:',
+      'Actualizar Estado',
+      'Selecciona el nuevo estado de lectura:',
       [
-        { text: 'Wishlist', onPress: () => updateStatus(book.book.id, 'WISHLIST') },
-        { text: 'To Read', onPress: () => updateStatus(book.book.id, 'TO_READ') },
-        { text: 'Reading', onPress: () => updateStatus(book.book.id, 'READING') },
-        { text: 'Read', onPress: () => updateStatus(book.book.id, 'READ') },
-        { text: 'Cancel', style: 'cancel' },
+        { text: 'Lista de Deseos', onPress: () => updateStatus(book.book.id, 'WISHLIST') },
+        { text: 'Por Leer', onPress: () => updateStatus(book.book.id, 'TO_READ') },
+        { text: 'Leyendo', onPress: () => updateStatus(book.book.id, 'READING') },
+        { text: 'Leído', onPress: () => updateStatus(book.book.id, 'READ') },
+        { text: 'Cancelar', style: 'cancel' },
       ]
     );
   };
@@ -326,7 +326,7 @@ export const LibraryScreen: React.FC = () => {
       await updateBookStatus(bookId, statusData);
     } catch (error) {
       logger.error('❌ Error updating book status:', error);
-      Alert.alert('Error', 'Failed to update book status');
+      Alert.alert('Error', 'No se pudo actualizar el estado del libro');
     }
   };
 
@@ -334,25 +334,25 @@ export const LibraryScreen: React.FC = () => {
   const filteredBooks = getFilteredBooks();
 
   const tabs = [
-    { id: 'all' as const, label: '📚 All Books', count: tabCounts.all || 0 },
-    { id: 'READING' as const, label: '📖 Reading', count: tabCounts.READING || 0 },
-    { id: 'READ' as const, label: '✅ Read', count: tabCounts.read || 0 },
-    { id: 'TO_READ' as const, label: '📋 To Read', count: tabCounts.TO_READ || 0 },
-    { id: 'WISHLIST' as const, label: '⭐ Wishlist', count: tabCounts.WISHLIST || 0 },
-    { id: 'favorites' as const, label: '❤️ Favorites', count: tabCounts.favorites || 0 },
-    { id: 'exchange' as const, label: '🔄 Exchange', count: tabCounts.exchange || 0 },
+    { id: 'all' as const, label: '📚 Todos los Libros', count: tabCounts.all || 0 },
+    { id: 'READING' as const, label: '📖 Leyendo', count: tabCounts.READING || 0 },
+    { id: 'READ' as const, label: '✅ Leídos', count: tabCounts.read || 0 },
+    { id: 'TO_READ' as const, label: '📋 Por Leer', count: tabCounts.TO_READ || 0 },
+    { id: 'WISHLIST' as const, label: '⭐ Lista de Deseos', count: tabCounts.WISHLIST || 0 },
+    { id: 'favorites' as const, label: '❤️ Favoritos', count: tabCounts.favorites || 0 },
+    { id: 'exchange' as const, label: '🔄 Intercambio', count: tabCounts.exchange || 0 },
   ];
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Library</Text>
+        <Text style={styles.headerTitle}>Mi Biblioteca</Text>
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => setShowAddBookModal(true)}
         >
-          <Text style={styles.addButtonText}>+ Add Book</Text>
+          <Text style={styles.addButtonText}>+ Agregar Libro</Text>
         </TouchableOpacity>
       </View>
 
@@ -360,7 +360,7 @@ export const LibraryScreen: React.FC = () => {
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
-          placeholder="Search in library..."
+          placeholder="Buscar en biblioteca..."
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
@@ -407,7 +407,7 @@ export const LibraryScreen: React.FC = () => {
         {loading && !refreshing && (
           <View style={styles.originalLoadingContainer}>
             <ActivityIndicator size="large" color={colors.primary.main} />
-            <Text style={styles.originalLoadingText}>Loading library...</Text>
+            <Text style={styles.originalLoadingText}>Cargando biblioteca...</Text>
           </View>
         )}
 
@@ -430,19 +430,19 @@ export const LibraryScreen: React.FC = () => {
         {!loading && filteredBooks.length === 0 && (
           <View style={styles.emptyState}>
             <Text style={styles.emptyStateIcon}>📚</Text>
-            <Text style={styles.emptyStateTitle}>No books found</Text>
+            <Text style={styles.emptyStateTitle}>No se encontraron libros</Text>
             <Text style={styles.emptyStateText}>
               {activeTab === 'WISHLIST'
-                ? 'Add books to your wishlist to see them here.'
+                ? 'Agrega libros a tu lista de deseos para verlos aquí.'
                 : searchQuery.trim()
-                ? 'No books match your search.'
-                : 'Add some books to your library to get started.'}
+                  ? 'Ningún libro coincide con tu búsqueda.'
+                  : 'Agrega algunos libros a tu biblioteca para comenzar.'}
             </Text>
             <TouchableOpacity
               style={styles.emptyStateButton}
               onPress={() => setShowAddBookModal(true)}
             >
-              <Text style={styles.emptyStateButtonText}>Add your first book</Text>
+              <Text style={styles.emptyStateButtonText}>Agrega tu primer libro</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -455,110 +455,110 @@ export const LibraryScreen: React.FC = () => {
         animationType="slide"
         onRequestClose={() => setShowAddBookModal(false)}
       >
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           style={styles.modalOverlay}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <View style={styles.modalContent}>
             <View style={styles.modalHandle} />
-            <ScrollView 
+            <ScrollView
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={styles.modalScrollContent}
             >
-              <Text style={styles.modalTitle}>Add New Book</Text>
-            
-            <TouchableOpacity style={styles.scanButton} onPress={handleScanISBN}>
-              <Text style={styles.scanButtonText}>📷 Scan book ISBN</Text>
-            </TouchableOpacity>
-            
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>ISBN</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="Enter ISBN number"
-                value={isbn}
-                onChangeText={handleISBNChange}
-              />
-              <Text style={styles.inputHelp}>
-                Book title and author will be automatically fetched based on ISBN
-              </Text>
-              
-              {/* Scanned ISBN Success Message */}
-              {isbnScannedMessage && (
-                <View style={styles.scannedMessageContainer}>
-                  <Text style={styles.scannedMessageText}>{isbnScannedMessage}</Text>
-                </View>
-              )}
-              
-              {/* Loading indicator */}
-              {loadingBookData && (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="small" color={colors.primary.main} />
-                  <Text style={styles.loadingText}>Fetching book data...</Text>
-                </View>
-              )}
-              
-              {/* Book preview */}
-              {bookPreview && (
-                <View style={styles.bookPreview}>
-                  <Text style={styles.previewTitle}>📖 Book Found:</Text>
-                  <Text style={styles.previewBookTitle}>{bookPreview.title}</Text>
-                  {bookPreview.author && (
-                    <Text style={styles.previewAuthor}>by {bookPreview.author}</Text>
-                  )}
-                  {bookPreview.genre && (
-                    <Text style={styles.previewGenre}>Genre: {bookPreview.genre}</Text>
-                  )}
-                </View>
-              )}
-            </View>
-            
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Reading Status</Text>
-              <View style={styles.statusButtons}>
-                {[
-                  { value: 'WISHLIST' as const, label: 'Wishlist' },
-                  { value: 'TO_READ' as const, label: 'To Read' },
-                  { value: 'READING' as const, label: 'Reading' },
-                  { value: 'READ' as const, label: 'Read' },
-                ].map((status) => (
-                  <TouchableOpacity
-                    key={status.value}
-                    style={[
-                      styles.statusButton,
-                      readingStatus === status.value && styles.activeStatusButton,
-                    ]}
-                    onPress={() => setReadingStatus(status.value)}
-                  >
-                    <Text
-                      style={[
-                        styles.statusButtonText,
-                        readingStatus === status.value && styles.activeStatusButtonText,
-                      ]}
-                    >
-                      {status.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+              <Text style={styles.modalTitle}>Agregar Nuevo Libro</Text>
+
+              <TouchableOpacity style={styles.scanButton} onPress={handleScanISBN}>
+                <Text style={styles.scanButtonText}>📷 Escanear ISBN del libro</Text>
+              </TouchableOpacity>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>ISBN</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="Ingresa el número ISBN"
+                  value={isbn}
+                  onChangeText={handleISBNChange}
+                />
+                <Text style={styles.inputHelp}>
+                  El título y autor del libro se obtendrán automáticamente según el ISBN
+                </Text>
+
+                {/* Scanned ISBN Success Message */}
+                {isbnScannedMessage && (
+                  <View style={styles.scannedMessageContainer}>
+                    <Text style={styles.scannedMessageText}>{isbnScannedMessage}</Text>
+                  </View>
+                )}
+
+                {/* Loading indicator */}
+                {loadingBookData && (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="small" color={colors.primary.main} />
+                    <Text style={styles.loadingText}>Obteniendo datos del libro...</Text>
+                  </View>
+                )}
+
+                {/* Book preview */}
+                {bookPreview && (
+                  <View style={styles.bookPreview}>
+                    <Text style={styles.previewTitle}>📖 Libro Encontrado:</Text>
+                    <Text style={styles.previewBookTitle}>{bookPreview.title}</Text>
+                    {bookPreview.author && (
+                      <Text style={styles.previewAuthor}>por {bookPreview.author}</Text>
+                    )}
+                    {bookPreview.genre && (
+                      <Text style={styles.previewGenre}>Género: {bookPreview.genre}</Text>
+                    )}
+                  </View>
+                )}
               </View>
-            </View>
-            
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setShowAddBookModal(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.addBookButton, (!isbn.trim() || !readingStatus) && styles.disabledButton]}
-                onPress={handleAddBook}
-                disabled={!isbn.trim() || !readingStatus}
-              >
-                <Text style={styles.addBookButtonText}>Add Book</Text>
-              </TouchableOpacity>
-            </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Estado de Lectura</Text>
+                <View style={styles.statusButtons}>
+                  {[
+                    { value: 'WISHLIST' as const, label: 'Lista de Deseos' },
+                    { value: 'TO_READ' as const, label: 'Por Leer' },
+                    { value: 'READING' as const, label: 'Leyendo' },
+                    { value: 'READ' as const, label: 'Leído' },
+                  ].map((status) => (
+                    <TouchableOpacity
+                      key={status.value}
+                      style={[
+                        styles.statusButton,
+                        readingStatus === status.value && styles.activeStatusButton,
+                      ]}
+                      onPress={() => setReadingStatus(status.value)}
+                    >
+                      <Text
+                        style={[
+                          styles.statusButtonText,
+                          readingStatus === status.value && styles.activeStatusButtonText,
+                        ]}
+                      >
+                        {status.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={() => setShowAddBookModal(false)}
+                >
+                  <Text style={styles.cancelButtonText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.addBookButton, (!isbn.trim() || !readingStatus) && styles.disabledButton]}
+                  onPress={handleAddBook}
+                  disabled={!isbn.trim() || !readingStatus}
+                >
+                  <Text style={styles.addBookButtonText}>Agregar Libro</Text>
+                </TouchableOpacity>
+              </View>
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
@@ -576,24 +576,24 @@ export const LibraryScreen: React.FC = () => {
             {selectedBook && (
               <>
                 <Text style={styles.modalTitle}>{selectedBook.book.title}</Text>
-                <Text style={styles.modalAuthor}>by {selectedBook.book.author}</Text>
+                <Text style={styles.modalAuthor}>por {selectedBook.book.author}</Text>
                 {selectedBook.book.synopsis && (
                   <Text style={styles.modalSynopsis}>{selectedBook.book.synopsis}</Text>
                 )}
                 <View style={styles.bookDetails}>
-                  <Text style={styles.bookDetailText}>Status: {selectedBook.status}</Text>
+                  <Text style={styles.bookDetailText}>Estado: {selectedBook.status}</Text>
                   <Text style={styles.bookDetailText}>
-                    Favorite: {selectedBook.favorite ? 'Yes' : 'No'}
+                    Favorito: {selectedBook.favorite ? 'Sí' : 'No'}
                   </Text>
                   <Text style={styles.bookDetailText}>
-                    Available for exchange: {selectedBook.wants_to_exchange ? 'Yes' : 'No'}
+                    Disponible para intercambio: {selectedBook.wants_to_exchange ? 'Sí' : 'No'}
                   </Text>
                 </View>
                 <TouchableOpacity
                   style={styles.closeModalButton}
                   onPress={() => setShowBookModal(false)}
                 >
-                  <Text style={styles.closeModalButtonText}>Close</Text>
+                  <Text style={styles.closeModalButtonText}>Cerrar</Text>
                 </TouchableOpacity>
               </>
             )}

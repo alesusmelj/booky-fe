@@ -35,7 +35,6 @@ export function SearchFilters({ activeFilters, onFilterChange }: SearchFiltersPr
             style={[
               styles.filterButton,
               isActive && styles.activeFilterButton,
-              index === filters.length - 1 && { marginRight: 0 },
             ]}
             onPress={() => handleFilterPress(filter.key)}
             testID={`filter-${filter.key}`}
@@ -47,6 +46,7 @@ export function SearchFilters({ activeFilters, onFilterChange }: SearchFiltersPr
                 styles.filterText,
                 isActive && styles.activeFilterText,
               ]}
+              numberOfLines={1}
             >
               {filter.label}
             </Text>
@@ -60,17 +60,22 @@ export function SearchFilters({ activeFilters, onFilterChange }: SearchFiltersPr
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     paddingHorizontal: 16,
     marginBottom: 24,
+    gap: 8,
   },
   filterButton: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    flexGrow: 1,
+    flexShrink: 0,
+    flexBasis: 'auto',
+    minWidth: 100,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
     borderRadius: 20,
-    marginRight: 8,
     backgroundColor: colors.neutral.gray100,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   activeFilterButton: {
     backgroundColor: colors.primary.main,

@@ -16,6 +16,7 @@ interface UseCommunitiesActions {
   createCommunity: (data: CreateCommunityDto) => Promise<CommunityDto | null>;
   joinCommunity: (communityId: string) => Promise<boolean>;
   leaveCommunity: (communityId: string) => Promise<boolean>;
+  deleteCommunity: (communityId: string) => Promise<boolean>;
   refresh: () => Promise<void>;
   clearError: () => void;
 }
@@ -41,11 +42,11 @@ export const useCommunities = (): UseCommunitiesState & UseCommunitiesActions =>
   };
 
   const setCommunities = (communitiesOrUpdater: CommunityDto[] | ((prev: CommunityDto[]) => CommunityDto[])) => {
-    setState(prev => ({ 
-      ...prev, 
-      communities: typeof communitiesOrUpdater === 'function' 
-        ? communitiesOrUpdater(prev.communities) 
-        : communitiesOrUpdater 
+    setState(prev => ({
+      ...prev,
+      communities: typeof communitiesOrUpdater === 'function'
+        ? communitiesOrUpdater(prev.communities)
+        : communitiesOrUpdater
     }));
   };
 
@@ -57,17 +58,17 @@ export const useCommunities = (): UseCommunitiesState & UseCommunitiesActions =>
     try {
       setLoading(true);
       setError(null);
-      
+
       console.log('🌐 [HOOK] Fetching communities from server...');
       const communities = await CommunitiesService.getAllCommunities();
-      
+
       console.log('✅ [HOOK] Communities fetched successfully:', communities.length);
-      console.log('📋 [HOOK] Communities data:', communities.map(c => ({ 
-        id: c.id, 
-        name: c.name, 
-        join_available: c.join_available 
+      console.log('📋 [HOOK] Communities data:', communities.map(c => ({
+        id: c.id,
+        name: c.name,
+        join_available: c.join_available
       })));
-      
+
       setCommunities(communities);
       console.log('🔄 [HOOK] State updated with new communities');
     } catch (error) {
@@ -89,10 +90,10 @@ export const useCommunities = (): UseCommunitiesState & UseCommunitiesActions =>
     try {
       setLoading(true);
       setError(null);
-      
+
       const communities = await CommunitiesService.searchCommunities(query);
       setCommunities(communities);
-      
+
       logger.info(`Communities search completed for "${query}":`, communities.length);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to search communities';
@@ -106,12 +107,12 @@ export const useCommunities = (): UseCommunitiesState & UseCommunitiesActions =>
   const createCommunity = useCallback(async (data: CreateCommunityDto): Promise<CommunityDto | null> => {
     try {
       setError(null);
-      
+
       const newCommunity = await CommunitiesService.createCommunity(data);
-      
+
       // Add the new community to the list
       setCommunities((prev: CommunityDto[]) => [newCommunity, ...prev]);
-      
+
       logger.info('Community created successfully:', newCommunity);
       return newCommunity;
     } catch (error) {
@@ -125,14 +126,14 @@ export const useCommunities = (): UseCommunitiesState & UseCommunitiesActions =>
   const joinCommunity = useCallback(async (communityId: string): Promise<boolean> => {
     try {
       setError(null);
-      
+
       console.log('🔗 [HOOK] Attempting to join community:', communityId);
       const result = await CommunitiesService.joinCommunity(communityId);
       console.log('📋 [HOOK] Join service result:', result);
-      
+
       // Note: We don't update locally here anymore, 
       // the calling component should refresh to get updated data from server
-      
+
       console.log('✅ [HOOK] Successfully joined community:', communityId);
       return true;
     } catch (error) {
@@ -146,18 +147,38 @@ export const useCommunities = (): UseCommunitiesState & UseCommunitiesActions =>
   const leaveCommunity = useCallback(async (communityId: string): Promise<boolean> => {
     try {
       setError(null);
-      
+
       await CommunitiesService.leaveCommunity(communityId);
-      
+
       // Note: We don't update locally here anymore, 
       // the calling component should refresh to get updated data from server
-      
+
       logger.info('Successfully left community:', communityId);
       return true;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to leave community';
       setError(errorMessage);
       logger.error('Error leaving community:', error);
+      return false;
+    }
+  }, []);
+
+  const deleteCommunity = useCallback(async (communityId: string): Promise<boolean> => {
+    try {
+      setError(null);
+
+      logger.info('🗑️ [HOOK] Attempting to delete community:', communityId);
+      await CommunitiesService.deleteCommunity(communityId);
+
+      // Remove the community from local state
+      setCommunities((prev: CommunityDto[]) => prev.filter(c => c.id !== communityId));
+
+      logger.info('✅ [HOOK] Successfully deleted community:', communityId);
+      return true;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete community';
+      setError(errorMessage);
+      logger.error('❌ [HOOK] Error deleting community:', error);
       return false;
     }
   }, []);
@@ -183,6 +204,7 @@ export const useCommunities = (): UseCommunitiesState & UseCommunitiesActions =>
     createCommunity,
     joinCommunity,
     leaveCommunity,
+    deleteCommunity,
     refresh,
     clearError,
   };

@@ -193,6 +193,24 @@ export const useReadingClubs = (communityId?: string) => {
     }
   }, []);
 
+  const deleteReadingClub = useCallback(async (clubId: string): Promise<boolean> => {
+    try {
+      await ReadingClubsService.deleteReadingClub(clubId);
+
+      // Remove the club from the local state
+      setReadingClubs(prev => prev.filter(club => club.id !== clubId));
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting reading club:', error);
+      setState(prev => ({
+        ...prev,
+        error: error instanceof Error ? error.message : 'Failed to delete reading club'
+      }));
+      return false;
+    }
+  }, []);
+
   const clearError = useCallback(() => {
     setState(prev => ({ ...prev, error: null }));
   }, []);
@@ -212,6 +230,7 @@ export const useReadingClubs = (communityId?: string) => {
     createReadingClub,
     joinReadingClub,
     leaveReadingClub,
+    deleteReadingClub,
     updateMeeting,
     clearError,
   };

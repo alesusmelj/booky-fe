@@ -289,7 +289,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
       logger.info('✅ Other user data loaded successfully');
     } catch (error) {
       logger.error('❌ Error loading other user data:', error);
-      Alert.alert('Error', 'Failed to load user profile');
+      showAlert({ title: 'Error', message: 'Failed to load user profile' });
     } finally {
       setLoadingProfileUser(false);
     }
@@ -313,7 +313,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
       }
     } catch (error) {
       logger.error('❌ Error loading profile data:', error);
-      Alert.alert('Error', 'Failed to load profile data');
+      showAlert({ title: 'Error', message: 'Failed to load profile data' });
     }
   }, [userId, getUserProfile, getUserAchievements, getUserLibrary, getUnnotifiedAchievements, isOwnProfile, loadOtherUserData]);
 
@@ -355,11 +355,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
           otherUser: chat.other_user
         });
       } else {
-        Alert.alert('Error', 'No se pudo iniciar el chat');
+        showAlert({ title: 'Error', message: 'No se pudo iniciar el chat' });
       }
     } catch (error) {
       logger.error('❌ [ProfileScreen] Error starting chat:', error);
-      Alert.alert('Error', 'No se pudo iniciar el chat');
+      showAlert({ title: 'Error', message: 'No se pudo iniciar el chat' });
     }
   };
 
@@ -410,7 +410,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
       logger.info('✅ [PROFILE] Book status updated successfully');
     } catch (error) {
       logger.error('❌ [PROFILE] Error updating book status:', error);
-      Alert.alert('Error', 'Failed to update book status. Please try again.');
+      showAlert({ title: 'Error', message: 'Failed to update book status. Please try again.' });
     }
   };
 
@@ -428,7 +428,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
       logger.info('✅ [PROFILE] Book favorite toggled successfully');
     } catch (error) {
       logger.error('❌ [PROFILE] Error toggling book favorite:', error);
-      Alert.alert('Error', 'Failed to update favorite status. Please try again.');
+      showAlert({ title: 'Error', message: 'Failed to update favorite status. Please try again.' });
     }
   };
 
@@ -450,26 +450,35 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
     }
   };
 
+  const handleImageResult = (result: ImagePicker.ImagePickerResult) => {
+    if (!result.canceled && result.assets[0]) {
+      setSelectedImageUri(result.assets[0].uri);
+    }
+  };
+
   const handleImagePicker = async () => {
     try {
       // Request permissions
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Sorry, we need camera roll permissions to select a profile picture.');
+        showAlert({ title: 'Permiso necesario', message: 'Lo sentimos, necesitamos permisos para acceder a la galería y seleccionar una foto de perfil.' });
         return;
       }
 
       // Show action sheet
-      Alert.alert(
-        'Select Profile Picture',
-        'Choose how you want to select your profile picture',
-        [
+      showAlert({
+        title: 'Seleccionar Foto de Perfil',
+        message: 'Elige cómo quieres seleccionar tu foto de perfil',
+        layout: 'grid',
+        buttons: [
           {
-            text: 'Camera',
+            text: 'Cámara',
+            icon: 'camera-alt',
+            iconFamily: 'MaterialIcons',
             onPress: async () => {
               const cameraPermission = await ImagePicker.requestCameraPermissionsAsync();
               if (cameraPermission.status !== 'granted') {
-                Alert.alert('Permission needed', 'Sorry, we need camera permissions to take a picture.');
+                showAlert({ title: 'Permiso necesario', message: 'Lo sentimos, necesitamos permisos de cámara para tomar una foto.' });
                 return;
               }
 
@@ -479,14 +488,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                 aspect: [1, 1],
                 quality: 0.8,
               });
-
-              if (!result.canceled && result.assets[0]) {
-                setSelectedImageUri(result.assets[0].uri);
-              }
-            },
+              handleImageResult(result);
+            }
           },
           {
-            text: 'Photo Library',
+            text: 'Galería',
+            icon: 'photo-library',
+            iconFamily: 'MaterialIcons',
             onPress: async () => {
               const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -494,18 +502,18 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                 aspect: [1, 1],
                 quality: 0.8,
               });
-
-              if (!result.canceled && result.assets[0]) {
-                setSelectedImageUri(result.assets[0].uri);
-              }
-            },
+              handleImageResult(result);
+            }
           },
-          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Cancelar',
+            style: 'cancel'
+          }
         ]
-      );
+      });
     } catch (error) {
       logger.error('❌ Error selecting image:', error);
-      Alert.alert('Error', 'Failed to select image. Please try again.');
+      showAlert({ title: 'Error', message: 'Failed to select image. Please try again.' });
     }
   };
 
@@ -527,7 +535,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
 
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Location permission is required.');
+        showAlert({ title: 'Permiso Denegado', message: 'Se requiere permiso de ubicación para esta función.' });
         return;
       }
 
@@ -552,7 +560,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
       await getAddressFromCoordinates(location.coords.latitude, location.coords.longitude);
     } catch (error) {
       logger.error('📍 [ProfileScreen] Error getting current location:', error);
-      Alert.alert('Error', 'Failed to get current location. Please try again.');
+      showAlert({ title: 'Error', message: 'Failed to get current location. Please try again.' });
     } finally {
       setIsLoadingLocation(false);
     }
@@ -560,7 +568,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
 
   const searchLocation = async () => {
     if (!addressSearchQuery.trim()) {
-      Alert.alert('Error', 'Please enter a location to search.');
+      showAlert({ title: 'Error', message: 'Please enter a location to search.' });
       return;
     }
 
@@ -588,11 +596,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
         // Get detailed address
         await getAddressFromCoordinates(result.latitude, result.longitude);
       } else {
-        Alert.alert('No Results', 'No locations found for your search.');
+        showAlert({ title: 'Sin Resultados', message: 'No locations found for your search.' });
       }
     } catch (error) {
       logger.error('📍 [ProfileScreen] Error searching location:', error);
-      Alert.alert('Error', 'Failed to search location. Please try again.');
+      showAlert({ title: 'Error', message: 'Failed to search location. Please try again.' });
     } finally {
       setIsLoadingLocation(false);
     }
@@ -754,7 +762,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
         if (fromScanner) {
           // Use setTimeout to ensure only one alert shows
           setTimeout(() => {
-            Alert.alert('Book Not Found', 'No book found with this ISBN. You can still add it manually.');
+            showAlert({ title: 'Libro no encontrado', message: 'No book found with this ISBN. You can still add it manually.' });
           }, 100);
         }
       }
@@ -765,7 +773,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
       if (fromScanner) {
         // Use setTimeout to ensure only one alert shows
         setTimeout(() => {
-          Alert.alert('Error', 'Failed to fetch book data. You can still add the book manually.');
+          showAlert({ title: 'Error', message: 'Failed to fetch book data. You can still add the book manually.' });
         }, 100);
       }
     } finally {
@@ -785,7 +793,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
 
   const handleAddBook = async () => {
     if (!isbn.trim() || !readingStatus) {
-      Alert.alert('Error', 'Please enter ISBN and select reading status');
+      showAlert({ title: 'Error', message: 'Please enter ISBN and select reading status' });
       return;
     }
 
@@ -813,11 +821,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
         }
 
         const bookTitle = bookPreview?.title || 'Book';
-        Alert.alert('Success', `${bookTitle} added to your library!`);
+        showAlert({ title: 'Éxito', message: `${bookTitle} added to your library!` });
       }
     } catch (error) {
       logger.error('❌ [PROFILE] Error adding book:', error);
-      Alert.alert('Error', 'Failed to add book to library');
+      showAlert({ title: 'Error', message: 'Failed to add book to library' });
     }
   };
 

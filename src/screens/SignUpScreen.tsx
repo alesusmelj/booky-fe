@@ -179,7 +179,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
       logger.info('User signed up successfully');
     } catch (err: any) {
       logger.error('Sign up failed:', err);
-      
+
       // Handle specific error messages
       if (err.message?.includes('email')) {
         setErrors(prev => ({ ...prev, email: strings.errors.emailAlreadyExists }));
@@ -197,6 +197,32 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
       strings.placeholders.comingSoon,
       [{ text: 'OK' }]
     );
+  };
+
+  // Check if form is valid in real-time
+  const isFormValid = (): boolean => {
+    // Check if all fields are filled
+    if (!formData.username.trim() ||
+      !formData.firstName.trim() ||
+      !formData.lastName.trim() ||
+      !formData.email.trim() ||
+      !formData.password.trim() ||
+      !formData.confirmPassword.trim()) {
+      return false;
+    }
+
+    // Check if all validations pass
+    if (!validateUsername(formData.username.trim())) return false;
+    if (!validateName(formData.firstName.trim())) return false;
+    if (!validateName(formData.lastName.trim())) return false;
+    if (!validateEmail(formData.email.trim())) return false;
+    if (!validatePassword(formData.password)) return false;
+    if (formData.password !== formData.confirmPassword) return false;
+
+    // Check if terms are accepted
+    if (!acceptedTerms) return false;
+
+    return true;
   };
 
   return (
@@ -383,10 +409,10 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
           <TouchableOpacity
             style={[
               styles.signUpButton,
-              (isLoading || !acceptedTerms) && styles.signUpButtonDisabled,
+              (isLoading || !isFormValid()) && styles.signUpButtonDisabled,
             ]}
             onPress={handleSignUp}
-            disabled={isLoading || !acceptedTerms}
+            disabled={isLoading || !isFormValid()}
             testID="sign-up-button"
             accessible={true}
             accessibilityLabel={strings.auth.signUp}

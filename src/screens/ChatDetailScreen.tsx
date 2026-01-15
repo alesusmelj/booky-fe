@@ -40,7 +40,7 @@ export const ChatDetailScreen: React.FC<ChatDetailScreenProps> = ({ route }) => 
   const { navigate, goBack } = useNavigation();
   const insets = useSafeAreaInsets();
   const { messages, loading, error, sending, sendMessage, markAsRead } = useMessages(chatId);
-  
+
   const [messageText, setMessageText] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [showImageViewer, setShowImageViewer] = useState(false);
@@ -87,25 +87,31 @@ export const ChatDetailScreen: React.FC<ChatDetailScreenProps> = ({ route }) => 
   }, []);
 
   const formatMessageTime = (dateString: string) => {
-    const date = new Date(dateString);
+    // Append 'Z' to indicate UTC if timezone is missing, to force local time conversion
+    // This fixes the issue where UTC times from backend are interpreted as local time
+    const normalizedDateString = (dateString.endsWith('Z') || dateString.includes('+'))
+      ? dateString
+      : `${dateString}Z`;
+
+    const date = new Date(normalizedDateString);
     const now = new Date();
     const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
 
     if (diffInHours < 24) {
-      return date.toLocaleTimeString('es-ES', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
+      return date.toLocaleTimeString('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit'
       });
     } else {
       const diffInDays = Math.floor(diffInHours / 24);
       if (diffInDays === 1) {
-        return `Ayer ${date.toLocaleTimeString('es-ES', { 
-          hour: '2-digit', 
-          minute: '2-digit' 
+        return `Ayer ${date.toLocaleTimeString('es-ES', {
+          hour: '2-digit',
+          minute: '2-digit'
         })}`;
       } else {
-        return date.toLocaleDateString('es-ES', { 
-          day: '2-digit', 
+        return date.toLocaleDateString('es-ES', {
+          day: '2-digit',
           month: '2-digit',
           hour: '2-digit',
           minute: '2-digit'
@@ -138,7 +144,7 @@ export const ChatDetailScreen: React.FC<ChatDetailScreenProps> = ({ route }) => 
   const handleImagePicker = async () => {
     try {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
+
       if (!permissionResult.granted) {
         Alert.alert(
           'Permisos requeridos',
@@ -155,8 +161,8 @@ export const ChatDetailScreen: React.FC<ChatDetailScreenProps> = ({ route }) => 
 
       if (!result.canceled && result.assets[0]) {
         setSelectedImage(result.assets[0].uri);
-        logger.info('💬 [ChatDetail] Image selected for message:', { 
-          uri: result.assets[0].uri.substring(0, 50) + '...' 
+        logger.info('💬 [ChatDetail] Image selected for message:', {
+          uri: result.assets[0].uri.substring(0, 50) + '...'
         });
       }
     } catch (error) {
@@ -223,7 +229,7 @@ export const ChatDetailScreen: React.FC<ChatDetailScreenProps> = ({ route }) => 
               />
             </TouchableOpacity>
           )}
-          
+
           {message.content && (
             <Text style={[
               styles.messageText,
@@ -232,7 +238,7 @@ export const ChatDetailScreen: React.FC<ChatDetailScreenProps> = ({ route }) => 
               {message.content}
             </Text>
           )}
-          
+
           <Text style={[
             styles.messageTime,
             isOwnMessage ? styles.ownMessageTime : styles.otherMessageTime
@@ -267,15 +273,15 @@ export const ChatDetailScreen: React.FC<ChatDetailScreenProps> = ({ route }) => 
     <View style={styles.container}>
       {/* Custom Header */}
       <View style={[styles.header, { paddingTop: getHeaderTopPadding() }]}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={goBack}
           activeOpacity={0.7}
         >
           <MaterialIcons name="arrow-back" size={24} color={colors.neutral.gray900} />
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.userInfo}
           onPress={handleProfilePress}
           activeOpacity={0.7}
@@ -321,7 +327,7 @@ export const ChatDetailScreen: React.FC<ChatDetailScreenProps> = ({ route }) => 
         {selectedImage && (
           <View style={styles.imagePreviewContainer}>
             <Image source={{ uri: selectedImage }} style={styles.imagePreview} />
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.removeImageButton}
               onPress={removeSelectedImage}
             >
@@ -333,7 +339,7 @@ export const ChatDetailScreen: React.FC<ChatDetailScreenProps> = ({ route }) => 
 
       {/* Message Input - Fixed at bottom */}
       <View style={[styles.inputContainer, { bottom: keyboardHeight }]}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.imageButton}
           onPress={handleImagePicker}
           disabled={sending}
@@ -352,7 +358,7 @@ export const ChatDetailScreen: React.FC<ChatDetailScreenProps> = ({ route }) => 
           editable={!sending}
         />
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[
             styles.sendButton,
             (!messageText.trim() && !selectedImage) && styles.sendButtonDisabled

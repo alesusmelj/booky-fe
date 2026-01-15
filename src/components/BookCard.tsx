@@ -35,12 +35,40 @@ export const UserLibraryBookCard: React.FC<BookCardProps> = ({
   compact = false,
 }) => {
   const [showStatusModal, setShowStatusModal] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  const renderBookCover = () => {
+    if (book.book?.image && !imageError) {
+      return (
+        <Image
+          source={{ uri: book.book.image }}
+          style={compact ? styles.compactImage : styles.image}
+          resizeMode="cover"
+          onError={() => setImageError(true)}
+        />
+      );
+    }
+
+    return (
+      <View style={[
+        compact ? styles.compactImage : styles.image,
+        styles.placeholderContainer
+      ]}>
+        <MaterialIcons
+          name="menu-book"
+          size={compact ? 24 : 48}
+          color={colors.primary.main}
+          style={{ opacity: 0.5 }}
+        />
+      </View>
+    );
+  };
 
   const statusOptions = [
-    { value: 'WISHLIST' as const, label: 'Wishlist', color: colors.status.warning, icon: 'star', iconFamily: 'Feather' as const },
-    { value: 'TO_READ' as const, label: 'To Read', color: colors.neutral.gray500, icon: 'bookmark', iconFamily: 'Feather' as const },
-    { value: 'READING' as const, label: 'Reading', color: colors.primary.main, icon: 'book-open', iconFamily: 'Feather' as const },
-    { value: 'READ' as const, label: 'Read', color: colors.green[600], icon: 'check-circle', iconFamily: 'MaterialIcons' as const },
+    { value: 'WISHLIST' as const, label: 'Lista de Deseos', color: colors.status.warning, icon: 'star', iconFamily: 'Feather' as const },
+    { value: 'TO_READ' as const, label: 'Por Leer', color: colors.neutral.gray500, icon: 'bookmark', iconFamily: 'Feather' as const },
+    { value: 'READING' as const, label: 'Leyendo', color: colors.primary.main, icon: 'book-open', iconFamily: 'Feather' as const },
+    { value: 'READ' as const, label: 'Leído', color: colors.green[600], icon: 'check-circle', iconFamily: 'MaterialIcons' as const },
   ];
 
   const getStatusColor = (status: string) => {
@@ -63,15 +91,15 @@ export const UserLibraryBookCard: React.FC<BookCardProps> = ({
   const getStatusText = (status: string) => {
     switch (status) {
       case 'READING':
-        return 'Reading';
+        return 'Leyendo';
       case 'READ':
-        return 'Read';
+        return 'Leído';
       case 'read':
-        return 'Read';
+        return 'Leído';
       case 'TO_READ':
-        return 'To Read';
+        return 'Por Leer';
       case 'WISHLIST':
-        return 'Wishlist';
+        return 'Lista de Deseos';
       default:
         return status;
     }
@@ -95,11 +123,7 @@ export const UserLibraryBookCard: React.FC<BookCardProps> = ({
   if (compact) {
     return (
       <TouchableOpacity style={styles.compactCard} onPress={onPress}>
-        <Image
-          source={{ uri: book.book?.image || 'https://via.placeholder.com/120x180' }}
-          style={styles.compactImage}
-          resizeMode="cover"
-        />
+        {renderBookCover()}
         <View style={styles.compactContent}>
           <Text style={styles.compactTitle} numberOfLines={2}>
             {book.book?.title || 'Unknown Title'}
@@ -108,7 +132,7 @@ export const UserLibraryBookCard: React.FC<BookCardProps> = ({
             {book.book?.author || 'Unknown Author'}
           </Text>
           <View style={styles.compactMeta}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.statusBadge, { backgroundColor: getStatusColor(book.status) }]}
               onPress={handleStatusPress}
             >
@@ -126,23 +150,19 @@ export const UserLibraryBookCard: React.FC<BookCardProps> = ({
   return (
     <TouchableOpacity style={styles.card} onPress={onPress}>
       <View style={styles.imageContainer}>
-        <Image
-          source={{ uri: book.book?.image || 'https://via.placeholder.com/120x180' }}
-          style={styles.image}
-          resizeMode="cover"
-        />
-        <TouchableOpacity 
+        {renderBookCover()}
+        <TouchableOpacity
           style={styles.favoriteIndicator}
           onPress={onFavoritePress}
         >
-          <MaterialIcons 
-            name={book.favorite ? "favorite" : "favorite-border"} 
-            size={20} 
-            color={book.favorite ? colors.status.error : colors.neutral.white} 
+          <MaterialIcons
+            name={book.favorite ? "favorite" : "favorite-border"}
+            size={20}
+            color={book.favorite ? colors.status.error : colors.neutral.white}
           />
         </TouchableOpacity>
       </View>
-      
+
       <View style={styles.content}>
         <Text style={styles.title} numberOfLines={2}>
           {book.book?.title || 'Unknown Title'}
@@ -150,9 +170,9 @@ export const UserLibraryBookCard: React.FC<BookCardProps> = ({
         <Text style={styles.author} numberOfLines={1}>
           {book.book?.author || 'Unknown Author'}
         </Text>
-        
-        
-        <TouchableOpacity 
+
+
+        <TouchableOpacity
           style={[styles.statusBadge, styles.statusBadgeLarge, { backgroundColor: getStatusColor(book.status) }]}
           onPress={handleStatusPress}
         >
@@ -167,13 +187,13 @@ export const UserLibraryBookCard: React.FC<BookCardProps> = ({
         animationType="fade"
         onRequestClose={() => setShowStatusModal(false)}
       >
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.modalOverlay}
           activeOpacity={1}
           onPress={() => setShowStatusModal(false)}
         >
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Change Status</Text>
+            <Text style={styles.modalTitle}>Cambiar Estado</Text>
             {statusOptions.map((option) => (
               <TouchableOpacity
                 key={option.value}
@@ -185,16 +205,16 @@ export const UserLibraryBookCard: React.FC<BookCardProps> = ({
               >
                 <View style={[styles.statusOptionColor, { backgroundColor: option.color }]} />
                 {option.iconFamily === 'MaterialIcons' ? (
-                  <MaterialIcons 
-                    name={option.icon as any} 
-                    size={16} 
-                    color={book.status === option.value ? colors.primary.main : colors.neutral.gray600} 
+                  <MaterialIcons
+                    name={option.icon as any}
+                    size={16}
+                    color={book.status === option.value ? colors.primary.main : colors.neutral.gray600}
                   />
                 ) : (
-                  <Feather 
-                    name={option.icon as any} 
-                    size={16} 
-                    color={book.status === option.value ? colors.primary.main : colors.neutral.gray600} 
+                  <Feather
+                    name={option.icon as any}
+                    size={16}
+                    color={book.status === option.value ? colors.primary.main : colors.neutral.gray600}
                   />
                 )}
                 <Text style={[
@@ -377,6 +397,13 @@ const styles = StyleSheet.create({
   statusOptionTextActive: {
     color: colors.primary.main,
     fontWeight: '700',
+  },
+  placeholderContainer: {
+    backgroundColor: colors.primary.light + '40', // 25% opacity
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.primary.light,
   },
 });
 

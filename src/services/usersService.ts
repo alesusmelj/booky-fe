@@ -29,7 +29,7 @@ export interface UserUpdateDto {
   name?: string;
   lastname?: string;
   description?: string;
-  address?: AddressDto;
+  address?: AddressDto | null;
   image?: string; // Base64 encoded image
 }
 

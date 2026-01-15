@@ -25,7 +25,7 @@ export const AchievementCard: React.FC<AchievementCardProps> = ({
 }) => {
   const isUserAchievement = 'date_earned' in achievement;
   const achievementData = isUserAchievement ? achievement.achievement : achievement;
-  
+
   const getCategoryColor = (category: string) => {
     switch (category.toLowerCase()) {
       case 'reading':
@@ -114,7 +114,7 @@ export const AchievementCard: React.FC<AchievementCardProps> = ({
           {getAchievementIcon(achievementData.category)}
         </Text>
       </View>
-      
+
       <View style={styles.content}>
         <Text style={[styles.title, { color: categoryColors.text }]} numberOfLines={2}>
           {achievementData.name}
@@ -122,38 +122,38 @@ export const AchievementCard: React.FC<AchievementCardProps> = ({
         <Text style={styles.description} numberOfLines={3}>
           {achievementData.description}
         </Text>
-        
+
         {achievementData.points_reward && (
           <View style={styles.points}>
             <Text style={styles.pointsText}>+{achievementData.points_reward} pts</Text>
           </View>
         )}
-        
+
         {progress !== undefined && progress < 100 && (
           <View style={styles.progressContainer}>
             <View style={styles.progressBar}>
               <View
                 style={[
                   styles.progressFill,
-                  { 
+                  {
                     width: `${progress}%`,
                     backgroundColor: categoryColors.icon,
                   },
                 ]}
               />
             </View>
-            <Text style={styles.progressText}>{progress}% Complete</Text>
+            <Text style={styles.progressText}>{progress}% Completado</Text>
           </View>
         )}
-        
+
         {isUserAchievement && (
           <View style={styles.earnedContainer}>
             <Text style={styles.earnedText}>
-              Earned {new Date(achievement.date_earned).toLocaleDateString()}
+              Obtenido el {new Date(achievement.date_earned).toLocaleDateString('es-ES')}
             </Text>
             {!achievement.notified && (
               <View style={styles.newBadge}>
-                <Text style={styles.newBadgeText}>NEW</Text>
+                <Text style={styles.newBadgeText}>NUEVO</Text>
               </View>
             )}
           </View>

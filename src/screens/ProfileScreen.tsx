@@ -16,6 +16,7 @@ import {
   PanResponder,
   Animated,
   Pressable,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons, Feather } from '@expo/vector-icons';
@@ -127,6 +128,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
   const [selectedAddress, setSelectedAddress] = useState<AddressDto | null>(null);
   const [showAddressPicker, setShowAddressPicker] = useState(false);
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  const [isLocationEnabled, setIsLocationEnabled] = useState(false);
 
   // Pan responder for swipe to close modal
   const panY = useRef(new Animated.Value(0)).current;
@@ -445,7 +447,15 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
         description: profileUser.description || '',
       });
       setSelectedImageUri(null);
-      setSelectedAddress(profileUser.address || null);
+
+      // Check if address exists and has valid coordinates (not null)
+      // Backend might return address object with null fields if it was "deleted"
+      const hasValidAddress = profileUser.address &&
+        profileUser.address.latitude !== null &&
+        profileUser.address.latitude !== undefined;
+
+      setSelectedAddress(hasValidAddress ? profileUser.address : null);
+      setIsLocationEnabled(!!hasValidAddress);
       setShowEditProfileModal(true);
     }
   };
@@ -668,7 +678,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
         name: editFormData.name.trim(),
         lastname: editFormData.lastname.trim(),
         description: editFormData.description.trim() || undefined,
-        address: selectedAddress || undefined,
+        // If location disabled, allow sending object with nulls to clear it on backend
+        address: isLocationEnabled ? (selectedAddress || undefined) : {
+          state: null,
+          city: null,
+          country: null,
+          latitude: null,
+          longitude: null
+        } as any,
       };
 
       logger.info('🔄 [PROFILE] Update data prepared:', updateData);
@@ -820,12 +837,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
           ]);
         }
 
-        const bookTitle = bookPreview?.title || 'Book';
-        showAlert({ title: 'Éxito', message: `${bookTitle} added to your library!` });
+        const bookTitle = bookPreview?.title || 'Libro';
+        showAlert({ title: 'Éxito', message: `¡${bookTitle} agregado a tu biblioteca!` });
       }
     } catch (error) {
       logger.error('❌ [PROFILE] Error adding book:', error);
-      showAlert({ title: 'Error', message: 'Failed to add book to library' });
+      showAlert({ title: 'Error', message: 'Error al agregar el libro a la biblioteca' });
     }
   };
 
@@ -846,7 +863,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
         <View style={styles.profileLoadingContainer}>
           <ActivityIndicator size="large" color={colors.primary.main} />
           <Text style={styles.profileLoadingText}>
-            {loadingProfileUser ? 'Cargando perfil...' : 'Loading profile...'}
+            {loadingProfileUser ? 'Cargando perfil...' : 'Cargando perfil...'}
           </Text>
         </View>
       </SafeAreaView>
@@ -904,14 +921,25 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                 {profileUser.description && (
                   <Text style={styles.bio}>{profileUser.description}</Text>
                 )}
-                {profileUser.address && (
-                  <View style={styles.locationContainer}>
-                    <MaterialIcons name="location-on" size={16} color={colors.neutral.gray500} />
-                    <Text style={styles.locationText}>
-                      {profileUser.address.city && `${profileUser.address.city}, `}{profileUser.address.state}, {profileUser.address.country}
-                    </Text>
-                  </View>
-                )}
+                {(() => {
+                  const address = profileUser.address;
+                  if (!address) return null;
+
+                  // Filter out null/undefined/empty parts
+                  const parts = [address.city, address.state, address.country]
+                    .filter(part => part && typeof part === 'string' && part.trim().length > 0);
+
+                  if (parts.length === 0) return null;
+
+                  return (
+                    <View style={styles.locationContainer}>
+                      <MaterialIcons name="location-on" size={16} color={colors.neutral.gray500} />
+                      <Text style={styles.locationText}>
+                        {parts.join(', ')}
+                      </Text>
+                    </View>
+                  );
+                })()}
               </View>
             </View>
 
@@ -1255,7 +1283,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                 </Text>
                 {selectedAchievement.date_earned && (
                   <Text style={styles.modalEarnedDate}>
-                    Earned on {new Date(selectedAchievement.date_earned).toLocaleDateString()}
+                    Conseguido el {new Date(selectedAchievement.date_earned).toLocaleDateString('es-ES')}
                   </Text>
                 )}
               </>
@@ -1478,81 +1506,100 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
 
               {/* Address Section with Map */}
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Dirección</Text>
-
-                {/* Search Bar */}
-                <View style={styles.searchContainer}>
-                  <View style={styles.searchInputContainer}>
-                    <MaterialIcons name="search" size={20} color={colors.neutral.gray400} />
-                    <TextInput
-                      style={styles.searchInput}
-                      placeholder="Buscar una dirección..."
-                      placeholderTextColor={colors.neutral.gray400}
-                      value={addressSearchQuery}
-                      onChangeText={setAddressSearchQuery}
-                      onSubmitEditing={searchLocation}
-                      editable={!isLoadingLocation}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <Text style={[styles.inputLabel, { marginBottom: 0 }]}>Dirección</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={{ fontSize: 14, color: colors.neutral.gray600 }}>Habilitar ubicación</Text>
+                    <Switch
+                      value={isLocationEnabled}
+                      onValueChange={setIsLocationEnabled}
+                      trackColor={{ false: colors.neutral.gray300, true: colors.primary.main }}
+                      thumbColor={colors.neutral.white}
                     />
-                    {isLoadingLocation && (
-                      <ActivityIndicator size="small" color={colors.primary.main} />
-                    )}
                   </View>
-                  <TouchableOpacity
-                    style={styles.currentLocationButton}
-                    onPress={getCurrentLocation}
-                    disabled={isLoadingLocation}
-                  >
-                    <MaterialIcons name="my-location" size={20} color={colors.primary.main} />
-                  </TouchableOpacity>
                 </View>
 
-                {/* Map */}
-                <View style={styles.mapContainer}>
-                  <MapView
-                    style={styles.map}
-                    region={mapRegion}
-                    onPress={onMapPress}
-                    showsUserLocation={true}
-                    showsMyLocationButton={false}
-                    toolbarEnabled={false}
-                  >
-                    <Marker
-                      coordinate={markerCoordinate}
-                      title="Ubicación Seleccionada"
-                      description={selectedAddress ? `${selectedAddress.city}, ${selectedAddress.state}, ${selectedAddress.country}` : 'Toca para seleccionar'}
-                    />
-                  </MapView>
-                </View>
-
-                {/* Selected Address Info */}
-                {selectedAddress ? (
-                  <View style={styles.selectedAddressInfo}>
-                    <MaterialIcons name="location-on" size={20} color={colors.primary.main} />
-                    <View style={styles.addressTextContainer}>
-                      <Text style={styles.addressCity}>{selectedAddress.city}</Text>
-                      <Text style={styles.addressState}>{selectedAddress.state}, {selectedAddress.country}</Text>
-                      <Text style={styles.addressCoords}>
-                        {selectedAddress.latitude.toFixed(4)}, {selectedAddress.longitude.toFixed(4)}
-                      </Text>
+                {isLocationEnabled ? (
+                  <>
+                    {/* Search Bar */}
+                    <View style={styles.searchContainer}>
+                      <View style={styles.searchInputContainer}>
+                        <MaterialIcons name="search" size={20} color={colors.neutral.gray400} />
+                        <TextInput
+                          style={styles.searchInput}
+                          placeholder="Buscar una dirección..."
+                          placeholderTextColor={colors.neutral.gray400}
+                          value={addressSearchQuery}
+                          onChangeText={setAddressSearchQuery}
+                          onSubmitEditing={searchLocation}
+                          editable={!isLoadingLocation}
+                        />
+                        {isLoadingLocation && (
+                          <ActivityIndicator size="small" color={colors.primary.main} />
+                        )}
+                      </View>
+                      <TouchableOpacity
+                        style={styles.currentLocationButton}
+                        onPress={getCurrentLocation}
+                        disabled={isLoadingLocation}
+                      >
+                        <MaterialIcons name="my-location" size={20} color={colors.primary.main} />
+                      </TouchableOpacity>
                     </View>
-                    <TouchableOpacity
-                      style={styles.removeAddressButton}
-                      onPress={handleRemoveAddress}
-                    >
-                      <MaterialIcons name="close" size={16} color={colors.status.error} />
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <View style={styles.noAddressSelected}>
-                    <Text style={styles.noAddressText}>
-                      📍 Toca en el mapa para seleccionar tu ubicación
-                    </Text>
-                  </View>
-                )}
 
-                <Text style={styles.inputHelp}>
-                  Busca tu dirección o toca en el mapa para seleccionar tu ubicación
-                </Text>
+                    {/* Map */}
+                    <View style={styles.mapContainer}>
+                      <MapView
+                        style={styles.map}
+                        region={mapRegion}
+                        onPress={onMapPress}
+                        showsUserLocation={true}
+                        showsMyLocationButton={false}
+                        toolbarEnabled={false}
+                      >
+                        <Marker
+                          coordinate={markerCoordinate}
+                          title="Ubicación Seleccionada"
+                          description={selectedAddress ? `${selectedAddress.city}, ${selectedAddress.state}, ${selectedAddress.country}` : 'Toca para seleccionar'}
+                        />
+                      </MapView>
+                    </View>
+
+                    {/* Selected Address Info */}
+                    {selectedAddress && selectedAddress.latitude != null && selectedAddress.longitude != null ? (
+                      <View style={styles.selectedAddressInfo}>
+                        <MaterialIcons name="location-on" size={20} color={colors.primary.main} />
+                        <View style={styles.addressTextContainer}>
+                          <Text style={styles.addressCity}>{selectedAddress.city}</Text>
+                          <Text style={styles.addressState}>{selectedAddress.state}, {selectedAddress.country}</Text>
+                          <Text style={styles.addressCoords}>
+                            {selectedAddress.latitude.toFixed(4)}, {selectedAddress.longitude.toFixed(4)}
+                          </Text>
+                        </View>
+                        <TouchableOpacity
+                          style={styles.removeAddressButton}
+                          onPress={handleRemoveAddress}
+                        >
+                          <MaterialIcons name="close" size={16} color={colors.status.error} />
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <View style={styles.noAddressSelected}>
+                        <Text style={styles.noAddressText}>
+                          📍 Toca en el mapa para seleccionar tu ubicación
+                        </Text>
+                      </View>
+                    )}
+
+                    <Text style={styles.inputHelp}>
+                      Habilitar la ubicación permite que otros usuarios vean tu ubicación aproximada en el mapa.
+                    </Text>
+                  </>
+                ) : (
+                  <Text style={{ fontSize: 14, color: colors.neutral.gray500, fontStyle: 'italic', marginBottom: 8 }}>
+                    La ubicación está deshabilitada. Habilítala para que otros usuarios puedan ver tu ubicación aproximada y facilitar los intercambios.
+                  </Text>
+                )}
               </View>
 
               <View style={styles.modalActions}>

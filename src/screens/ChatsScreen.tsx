@@ -21,7 +21,12 @@ export const ChatsScreen: React.FC = () => {
   const { chats, loading, error, refreshing, refresh } = useChats(true); // Enable polling for ChatsScreen
 
   const formatLastMessageTime = (dateString: string) => {
-    const date = new Date(dateString);
+    // Append 'Z' to indicate UTC if timezone is missing
+    const normalizedDateString = (dateString.endsWith('Z') || dateString.includes('+'))
+      ? dateString
+      : `${dateString}Z`;
+
+    const date = new Date(normalizedDateString);
     const now = new Date();
     const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
 
@@ -34,17 +39,17 @@ export const ChatsScreen: React.FC = () => {
       const diffInDays = Math.floor(diffInHours / 24);
       if (diffInDays === 1) return 'Ayer';
       if (diffInDays < 7) return `${diffInDays}d`;
-      return date.toLocaleDateString('es-ES', { 
-        day: '2-digit', 
-        month: '2-digit' 
+      return date.toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: '2-digit'
       });
     }
   };
 
   const handleChatPress = (chat: ChatWithMetadata) => {
-    logger.info('💬 [ChatsScreen] Opening chat:', { 
-      chatId: chat.id, 
-      otherUser: chat.other_user.name 
+    logger.info('💬 [ChatsScreen] Opening chat:', {
+      chatId: chat.id,
+      otherUser: chat.other_user.name
     });
     navigate('ChatDetail', { chatId: chat.id, otherUser: chat.other_user });
   };
@@ -93,7 +98,7 @@ export const ChatsScreen: React.FC = () => {
           </View>
 
           <View style={styles.messageRow}>
-            <Text 
+            <Text
               style={[
                 styles.lastMessage,
                 hasUnreadMessages && styles.lastMessageUnread

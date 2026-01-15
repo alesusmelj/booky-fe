@@ -8,6 +8,8 @@ import {
   ActivityIndicator,
   Dimensions,
   SafeAreaView,
+  StatusBar,
+  Platform,
 } from 'react-native';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { logger } from '../utils/logger';
@@ -30,23 +32,23 @@ const theme = {
     surface: '#161B22',         // Elevated surface
     surfaceElevated: '#21262D', // Cards and modals
     surfaceHover: '#30363D',    // Interactive hover
-    
+
     // Text hierarchy
     textPrimary: '#F0F6FC',     // Main text
     textSecondary: '#8B949E',   // Secondary text
     textMuted: '#484F58',       // Subtle text
-    
+
     // Accent colors
     accent: '#58A6FF',          // Primary blue accent
     accentMuted: '#388BFD26',   // Blue with transparency
-    
+
     // Status colors
     success: '#3FB950',
     successMuted: '#23863626',
     error: '#F85149',
     errorMuted: '#F8514926',
     warning: '#D29922',
-    
+
     // Borders
     border: '#30363D',
     borderSubtle: '#21262D',
@@ -84,7 +86,7 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
   // Mock LiveKit hooks for Expo managed workflow
   const [participants, setParticipants] = useState<any[]>([]);
   const [tracks, setTracks] = useState<any[]>([]);
-  
+
   // Mock connection state
   const [isConnected, setIsConnected] = useState(false);
 
@@ -122,10 +124,10 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
       // Mock connection for Expo managed workflow
       logger.info('Mock connection to LiveKit room:', tokenData.room_name);
       logger.warn('Using mock implementation - LiveKit native features not available in Expo managed workflow');
-      
+
       // Simulate connection delay
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       // Mock participants (including current user)
       const mockParticipants = [
         {
@@ -135,7 +137,7 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
         },
         // Add more mock participants if needed for testing
       ];
-      
+
       setParticipants(mockParticipants);
       setIsConnected(true);
       logger.info('Mock connection established with', mockParticipants.length, 'participants');
@@ -213,9 +215,9 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
           </View>
           <Text style={styles.loadingTitle}>Conectando a la reunión</Text>
           <Text style={styles.loadingSubtitle}>Preparando tu sesión del club...</Text>
-          <ActivityIndicator 
-            size="small" 
-            color={theme.colors.accent} 
+          <ActivityIndicator
+            size="small"
+            color={theme.colors.accent}
             style={styles.loadingSpinner}
           />
         </View>
@@ -258,16 +260,16 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.headerTitleContainer}>
-            <Ionicons 
-              name="book-outline" 
-              size={20} 
-              color={theme.colors.accent} 
+            <Ionicons
+              name="book-outline"
+              size={20}
+              color={theme.colors.accent}
               style={styles.headerIcon}
             />
             <Text style={styles.headerTitle}>Reunión del Club</Text>
           </View>
-          <TouchableOpacity 
-            onPress={handleLeave} 
+          <TouchableOpacity
+            onPress={handleLeave}
             style={styles.headerCloseButton}
             activeOpacity={0.7}
           >
@@ -295,23 +297,23 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
                 {isConnected ? 'Conectado' : 'Desconectado'}
               </Text>
             </View>
-            
+
             {/* Central icon */}
             <View style={styles.centralIconWrapper}>
-              <Ionicons 
-                name={isConnected ? "videocam" : "videocam-off"} 
-                size={64} 
-                color={theme.colors.textMuted} 
+              <Ionicons
+                name={isVideoEnabled ? "mic" : "mic-off"}
+                size={64}
+                color={theme.colors.textMuted}
               />
             </View>
-            
+
             {/* Status text */}
             <Text style={styles.connectionTitle}>
               {isConnected ? 'En sesión' : 'Sin conexión'}
             </Text>
             <Text style={styles.connectionSubtitle}>
-              {isConnected 
-                ? 'Estás participando en la reunión del club' 
+              {isConnected
+                ? 'Estás participando en la reunión del club'
                 : 'Intentando reconectar...'}
             </Text>
           </View>
@@ -327,12 +329,12 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
           <View style={styles.participantsList}>
             {participants.map((participant) => {
               const videoTrack = tracks.find(
-                (track) => 
+                (track) =>
                   track.participant.identity === participant.identity &&
                   track.source === Track.Source.Camera
               );
               const hasVideo = videoTrack && videoTrack.publication && !videoTrack.publication.isMuted;
-              
+
               return (
                 <View key={participant.identity} style={styles.participantCard}>
                   <View style={styles.participantAvatar}>
@@ -371,10 +373,10 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
             onPress={toggleMute}
             activeOpacity={0.8}
           >
-            <Ionicons 
-              name={isMuted ? "mic-off" : "mic"} 
-              size={24} 
-              color={isMuted ? theme.colors.textPrimary : theme.colors.textPrimary} 
+            <Ionicons
+              name={isMuted ? "mic-off" : "mic"}
+              size={24}
+              color={isMuted ? theme.colors.textPrimary : theme.colors.textPrimary}
             />
           </TouchableOpacity>
 
@@ -384,16 +386,16 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
             onPress={handleOpenPanoramaViewer}
             activeOpacity={0.8}
           >
-            <MaterialCommunityIcons 
-              name="panorama-sphere-outline" 
-              size={26} 
-              color={theme.colors.textPrimary} 
+            <MaterialCommunityIcons
+              name="panorama-sphere-outline"
+              size={26}
+              color={theme.colors.textPrimary}
             />
           </TouchableOpacity>
 
           {/* Leave meeting - Destructive action */}
-          <TouchableOpacity 
-            style={styles.leaveButton} 
+          <TouchableOpacity
+            style={styles.leaveButton}
             onPress={handleLeave}
             activeOpacity={0.8}
           >
@@ -407,10 +409,10 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
           PANORAMA VIEWER MODAL
           ════════════════════════════════════════════════════════════════════ */}
       {showPanoramaViewer && (
-<PanoramaViewer
-  uri="https://miro.medium.com/v2/resize:fit:1400/1*dgJ8el2wNtlICSCJwF4dbQ.jpeg"
-  onClose={() => setShowPanoramaViewer(false)}
-/>
+        <PanoramaViewer
+          uri="https://miro.medium.com/v2/resize:fit:1400/1*dgJ8el2wNtlICSCJwF4dbQ.jpeg"
+          onClose={() => setShowPanoramaViewer(false)}
+        />
       )}
     </SafeAreaView>
   );
@@ -524,7 +526,7 @@ const styles = StyleSheet.create({
   // HEADER
   // ════════════════════════════════════════════════════════════════════════
   header: {
-    paddingTop: theme.spacing.sm,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + theme.spacing.sm : theme.spacing.sm,
     paddingBottom: theme.spacing.md,
     paddingHorizontal: theme.spacing.md,
     backgroundColor: theme.colors.surface,

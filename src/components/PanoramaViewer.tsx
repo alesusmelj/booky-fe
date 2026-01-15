@@ -97,7 +97,7 @@ export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({ uri, onClose }) 
           console.log('[PANORAMA] restore portrait');
           await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
           await ScreenOrientation.unlockAsync();
-        } catch {}
+        } catch { }
       })();
     };
   }, []);
@@ -523,16 +523,6 @@ ${pannellumJs}
         androidLayerType={Platform.OS === 'android' ? 'hardware' : undefined}
       />
 
-      {/* Debug overlay */}
-      <View style={styles.debug}>
-        <Text style={styles.debugText}>webReady: {String(webReady)}</Text>
-        <Text style={styles.debugText}>has __setPose: {String(webHasSetPose)}</Text>
-        <Text style={styles.debugText}>invert yaw/pitch: {String(INVERT_YAW)}/{String(INVERT_PITCH)}</Text>
-        <Text style={styles.debugText}>gain yaw/pitch: {GAIN_YAW}/{GAIN_PITCH}</Text>
-        <Text style={styles.debugText}>ema: {EMA_ALPHA} sendFPS: {SEND_FPS}</Text>
-        <Text style={styles.debugText}>last msg: {lastWebMsg?.slice(0, 120)}</Text>
-      </View>
-
       {onClose && (
         <TouchableOpacity style={styles.closeButton} onPress={onClose} activeOpacity={0.85}>
           <Text style={styles.closeText}>✕</Text>
@@ -566,15 +556,4 @@ const styles = StyleSheet.create({
     zIndex: 50,
   },
   closeText: { color: '#fff', fontSize: 22, fontWeight: 'bold' },
-  debug: {
-    position: 'absolute',
-    bottom: 16,
-    left: 16,
-    right: 16,
-    padding: 10,
-    borderRadius: 10,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    zIndex: 60,
-  },
-  debugText: { color: '#fff', fontSize: 12 },
 });

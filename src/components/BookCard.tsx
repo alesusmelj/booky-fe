@@ -159,6 +159,7 @@ export const UserLibraryBookCard: React.FC<BookCardProps> = ({
             name={book.favorite ? "favorite" : "favorite-border"}
             size={20}
             color={book.favorite ? colors.status.error : colors.neutral.white}
+            style={styles.heartIcon}
           />
         </TouchableOpacity>
       </View>
@@ -294,6 +295,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 2,
     elevation: 3,
+  },
+  heartIcon: {
+    textShadowColor: '#000000',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 3,
   },
   content: {
     flex: 1,

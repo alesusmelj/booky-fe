@@ -61,46 +61,52 @@ function AppContent() {
             onBackToLoginPress={() => setAuthScreen('login')}
           />
         )}
-        <StatusBar style="auto" />
+        <StatusBar style="dark" />
       </AuthContainer>
     );
   }
 
   const renderContent = () => {
-    // Handle navigation screens first
-    switch (currentScreen.screen) {
-      case 'community-detail':
-        return <CommunityDetailScreen communityId={currentScreen.params?.communityId} />;
-      case 'reading-clubs':
-        return <ReadingClubsScreen />;
+    // Handle navigation screens (screens pushed onto the stack)
+    // These take priority over tab-based screens
+    if (currentScreen.screen !== 'home') {
+      switch (currentScreen.screen) {
+        case 'community-detail':
+          return <CommunityDetailScreen communityId={currentScreen.params?.communityId} />;
+        case 'reading-clubs':
+          return <ReadingClubsScreen />;
+        case 'profile':
+          return <ProfileScreen route={{ params: currentScreen.params }} />;
+        case 'ChatDetail':
+          return <ChatDetailScreen route={{ params: currentScreen.params as any }} />;
+        case 'book-owners':
+          return <BookOwnersScreen bookId={currentScreen.params?.bookId} bookTitle={currentScreen.params?.bookTitle} />;
+        case 'scene360':
+          return <Scene360Screen />;
+        default:
+          // If it's an unknown screen, fall back to home
+          return <HomeScreen />;
+      }
+    }
+
+    // Handle tab-based screens (when currentScreen.screen is 'home')
+    switch (activeTab) {
+      case 'home':
+        return <HomeScreen />;
+      case 'search':
+        return <SearchScreen />;
+      case 'community':
+        return <CommunitiesScreen />;
+      case 'commerce':
+        return <CommerceScreen />;
+      case 'messages':
+        return <ChatsScreen />;
+      case 'library':
+        return <LibraryScreen />;
       case 'profile':
-        return <ProfileScreen route={{ params: currentScreen.params }} />;
-      case 'ChatDetail':
-        return <ChatDetailScreen route={{ params: currentScreen.params }} />;
-      case 'book-owners':
-        return <BookOwnersScreen bookId={currentScreen.params?.bookId} bookTitle={currentScreen.params?.bookTitle} />;
-      case 'scene360':
-        return <Scene360Screen />;
+        return <ProfileScreen />;
       default:
-        // Handle tab-based screens
-        switch (activeTab) {
-          case 'home':
-            return <HomeScreen />;
-          case 'search':
-            return <SearchScreen />;
-          case 'community':
-            return <CommunitiesScreen />;
-          case 'commerce':
-            return <CommerceScreen />;
-          case 'messages':
-            return <ChatsScreen />;
-          case 'library':
-            return <LibraryScreen />;
-          case 'profile':
-            return <ProfileScreen />;
-          default:
-            return <HomeScreen />;
-        }
+        return <HomeScreen />;
     }
   };
 
@@ -156,7 +162,7 @@ function AppContent() {
           onTabPress={handleTabPress}
         />
       )}
-      <StatusBar style="auto" />
+      <StatusBar style="dark" />
     </ContainerComponent>
   );
 }

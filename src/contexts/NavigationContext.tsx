@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { BackHandler } from 'react-native';
 
 export interface NavigationState {
   screen: string;
@@ -20,9 +21,9 @@ interface NavigationProviderProps {
   initialScreen?: string;
 }
 
-export const NavigationProvider: React.FC<NavigationProviderProps> = ({ 
-  children, 
-  initialScreen = 'home' 
+export const NavigationProvider: React.FC<NavigationProviderProps> = ({
+  children,
+  initialScreen = 'home'
 }) => {
   const [navigationStack, setNavigationStack] = useState<NavigationState[]>([
     { screen: initialScreen }
@@ -48,6 +49,21 @@ export const NavigationProvider: React.FC<NavigationProviderProps> = ({
   const resetToHome = () => {
     setNavigationStack([{ screen: 'home' }]);
   };
+
+  // Handle Android back button
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (navigationStack.length > 1) {
+        // If we can go back, navigate back in our stack
+        setNavigationStack(prev => prev.slice(0, -1));
+        return true; // Prevent default behavior (exit app)
+      }
+      // If we're at the root, allow default behavior (exit app)
+      return false;
+    });
+
+    return () => backHandler.remove();
+  }, [navigationStack]);
 
   const value: NavigationContextType = {
     currentScreen,

@@ -514,16 +514,26 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
 
   const renderStep3 = () => (
     <ScrollView style={styles.stepContent}>
-      <View style={styles.stepHeader}>
-        <MaterialIcons name="library-books" size={28} color={colors.primary.main} />
-        <Text style={styles.stepTitle}>Seleccionar tus libros</Text>
-        <Text style={styles.stepDescription}>
-          Elige los libros de tu biblioteca que quieres ofrecer en el intercambio
-        </Text>
-      </View>
+      {step3.myBooks.length > 0 && !step3.isLoading && (
+        <View style={styles.stepHeader}>
+          <MaterialIcons name="library-books" size={28} color={colors.primary.main} />
+          <Text style={styles.stepTitle}>Seleccionar tus libros</Text>
+          <Text style={styles.stepDescription}>
+            Elige los libros de tu biblioteca que quieres ofrecer en el intercambio
+          </Text>
+        </View>
+      )}
 
       {step3.isLoading ? (
         <ActivityIndicator style={styles.loader} size="large" color={colors.primary.main} />
+      ) : step3.myBooks.length === 0 ? (
+        <View style={styles.emptyState}>
+          <MaterialIcons name="library-books" size={64} color={colors.neutral.gray300} />
+          <Text style={styles.emptyStateTitle}>No tienes libros para intercambiar</Text>
+          <Text style={styles.emptyStateDescription}>
+            Necesitas tener libros en tu biblioteca marcados como disponibles para el intercambio para poder ofrecerlos.
+          </Text>
+        </View>
       ) : (
         <View style={styles.bookGrid}>
           {step3.myBooks.map((userBook) => (

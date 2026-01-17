@@ -83,13 +83,13 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({ visible, postId, o
 
     if (diffInMinutes < 1) return 'Ahora';
     if (diffInMinutes < 60) return `${diffInMinutes}m`;
-    
+
     const diffInHours = Math.floor(diffInMinutes / 60);
     if (diffInHours < 24) return `${diffInHours}h`;
-    
+
     const diffInDays = Math.floor(diffInHours / 24);
     if (diffInDays < 7) return `${diffInDays}d`;
-    
+
     return commentDate.toLocaleDateString();
   };
 
@@ -106,7 +106,7 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({ visible, postId, o
               <MaterialIcons name="person" size={16} color={colors.primary.main} />
             </View>
           )}
-          
+
           <View style={styles.commentInfo}>
             <View style={styles.commentUserRow}>
               <Text style={styles.commentUserName}>
@@ -140,9 +140,10 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({ visible, postId, o
     >
       <StatusBar barStyle="dark-content" />
       <View style={styles.container}>
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           style={styles.keyboardAvoidingView}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior="padding"
+          keyboardVerticalOffset={0}
         >
           {/* Header */}
           <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
@@ -152,51 +153,51 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({ visible, postId, o
             </TouchableOpacity>
           </View>
 
-        {/* Comments List */}
-        {loading && comments.length === 0 ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary.main} />
-          </View>
-        ) : (
-          <FlatList
-            data={comments}
-            renderItem={renderComment}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.commentsList}
-            ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <MaterialIcons name="chat-bubble-outline" size={48} color={colors.neutral.gray300} />
-                <Text style={styles.emptyText}>No hay comentarios aún</Text>
-                <Text style={styles.emptySubtext}>Sé el primero en comentar</Text>
-              </View>
-            }
-          />
-        )}
+          {/* Comments List */}
+          {loading && comments.length === 0 ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.primary.main} />
+            </View>
+          ) : (
+            <FlatList
+              data={comments}
+              renderItem={renderComment}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.commentsList}
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <MaterialIcons name="chat-bubble-outline" size={48} color={colors.neutral.gray300} />
+                  <Text style={styles.emptyText}>No hay comentarios aún</Text>
+                  <Text style={styles.emptySubtext}>Sé el primero en comentar</Text>
+                </View>
+              }
+            />
+          )}
 
-        {/* Input Area */}
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Escribe un comentario..."
-            placeholderTextColor={colors.neutral.gray400}
-            value={commentText}
-            onChangeText={setCommentText}
-            multiline
-            maxLength={500}
-            editable={!creating}
-          />
-          <TouchableOpacity
-            style={[styles.sendButton, (!commentText.trim() || creating) && styles.sendButtonDisabled]}
-            onPress={handleSubmit}
-            disabled={!commentText.trim() || creating}
-          >
-            {creating ? (
-              <ActivityIndicator size="small" color={colors.neutral.white} />
-            ) : (
-              <MaterialIcons name="send" size={20} color={colors.neutral.white} />
-            )}
-          </TouchableOpacity>
-        </View>
+          {/* Input Area */}
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Escribe un comentario..."
+              placeholderTextColor={colors.neutral.gray400}
+              value={commentText}
+              onChangeText={setCommentText}
+              multiline
+              maxLength={500}
+              editable={!creating}
+            />
+            <TouchableOpacity
+              style={[styles.sendButton, (!commentText.trim() || creating) && styles.sendButtonDisabled]}
+              onPress={handleSubmit}
+              disabled={!commentText.trim() || creating}
+            >
+              {creating ? (
+                <ActivityIndicator size="small" color={colors.neutral.white} />
+              ) : (
+                <MaterialIcons name="send" size={20} color={colors.neutral.white} />
+              )}
+            </TouchableOpacity>
+          </View>
         </KeyboardAvoidingView>
       </View>
     </Modal>

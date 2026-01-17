@@ -2576,6 +2576,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 8,
+    paddingRight: 12,
   },
   locationText: {
     marginLeft: 4,

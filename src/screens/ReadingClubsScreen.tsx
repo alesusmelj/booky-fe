@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -7,56 +7,75 @@ import {
   FlatList,
   Dimensions,
   Modal,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { colors } from '../constants';
 import { logger } from '../utils/logger';
 import { VideoCallRoom } from '../components';
+import { ReadingClubsService } from '../services/readingClubsService';
+import { LiveKitService } from '../services/liveKitService';
+import { useAuth } from '../contexts/AuthContext';
 
-// Mock data - should be moved to a service later
-const readingClubs = [
-  {
-    id: '1',
-    name: 'Classic Literature Club',
-    currentBook: 'Pride and Prejudice',
-    members: 28,
-    meetingDay: 'Thursdays',
-    progress: 65,
-    join_available: true
-  },
-  {
-    id: '2',
-    name: 'Mystery Readers',
-    currentBook: 'The Silent Patient',
-    members: 42,
-    meetingDay: 'Tuesdays',
-    progress: 32,
-    join_available: false
-  },
-  {
-    id: '3',
-    name: 'Sci-Fi Explorers',
-    currentBook: 'Project Hail Mary',
-    members: 15,
-    meetingDay: 'Sundays',
-    progress: 78,
-    join_available: true
-  },
-];
-
-interface ReadingClubCardProps {
-  club: typeof readingClubs[0];
-  onPress: (clubId: string) => void;
-  onJoin: (clubId: string) => void;
-  onJoinRoom: (club: any) => void;
+interface ReadingClub {
+  id: string;
+  name: string;
+  description: string;
+  book?: {
+    id: string;
+    title: string;
+    author: string;
+    image?: string;
+    pages?: number;
+  };
+  book_id: string;
+  current_chapter?: number;
+  member_count: number;
+  next_meeting: string;
+  moderator?: {
+    id: string;
+    name: string;
+    lastname?: string;
+    image?: string;
+  };
+  moderator_id: string;
+  meetingActive?: boolean;
+  meetingParticipantCount?: number;
 }
 
-const ReadingClubCard: React.FC<ReadingClubCardProps> = ({ club, onPress, onJoin, onJoinRoom }) => {
+interface ReadingClubCardProps {
+  club: ReadingClub;
+  onPress: (clubId: string) => void;
+  onJoin: (clubId: string) => void;
+  onJoinRoom: (club: ReadingClub) => void;
+  onStartMeeting: (club: ReadingClub) => void;
+  isUserModerator: boolean;
+}
+
+const ReadingClubCard: React.FC<ReadingClubCardProps> = ({
+  club,
+  onPress,
+  onJoin,
+  onJoinRoom,
+  onStartMeeting,
+  isUserModerator
+}) => {
   return (
-    <TouchableOpacity 
-      style={styles.clubCard} 
+    <TouchableOpacity
+      style={styles.clubCard}
       onPress={() => onPress(club.id)}
       activeOpacity={0.7}
     >
+      {/* Live indicator */}
+      {club.meetingActive && (
+        <View style={styles.liveIndicator}>
+          <View style={styles.liveDot} />
+          <Text style={styles.liveText}>
+            🔴 EN VIVO • {club.meetingParticipantCount || 0} participantes
+          </Text>
+        </View>
+      )}
+
       <View style={styles.clubHeader}>
         <View style={styles.clubInfo}>
           <Text style={styles.clubName} numberOfLines={1}>
@@ -64,7 +83,7 @@ const ReadingClubCard: React.FC<ReadingClubCardProps> = ({ club, onPress, onJoin
           </Text>
           <View style={styles.membersContainer}>
             <Text style={styles.membersText}>
-              👥 {club.members} miembros
+              👥 {club.member_count} miembros
             </Text>
           </View>
         </View>
@@ -78,7 +97,7 @@ const ReadingClubCard: React.FC<ReadingClubCardProps> = ({ club, onPress, onJoin
         <View style={styles.bookInfo}>
           <Text style={styles.bookIcon}>📖</Text>
           <Text style={styles.bookTitle} numberOfLines={1}>
-            {club.currentBook}
+            {club.book?.title || 'Libro no disponible'}
           </Text>
         </View>
       </View>
@@ -88,7 +107,12 @@ const ReadingClubCard: React.FC<ReadingClubCardProps> = ({ club, onPress, onJoin
         <View style={styles.meetingInfo}>
           <Text style={styles.calendarIcon}>📅</Text>
           <Text style={styles.meetingDay}>
-            {club.meetingDay}s
+            {new Date(club.next_meeting).toLocaleDateString('es-ES', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            })}
           </Text>
         </View>
       </View>
@@ -96,33 +120,42 @@ const ReadingClubCard: React.FC<ReadingClubCardProps> = ({ club, onPress, onJoin
       <View style={styles.progressSection}>
         <Text style={styles.sectionLabel}>Progreso de Lectura</Text>
         <View style={styles.progressBar}>
-          <View 
+          <View
             style={[
-              styles.progressFill, 
-              { width: `${club.progress}%` }
-            ]} 
+              styles.progressFill,
+              { width: `${Math.min(100, ((club.current_chapter || 0) / (club.book?.pages || 1)) * 100)}%` }
+            ]}
           />
         </View>
         <Text style={styles.progressText}>
-          {club.progress}% completado
+          Página {club.current_chapter || 0} de {club.book?.pages || '?'}
         </Text>
       </View>
 
-      {club.join_available ? (
-        <TouchableOpacity 
+      {/* Action buttons */}
+      {club.meetingActive ? (
+        <TouchableOpacity
+          style={styles.joinMeetingButton}
+          onPress={() => onJoinRoom(club)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.joinMeetingButtonText}>Unirse a la Reunión</Text>
+        </TouchableOpacity>
+      ) : isUserModerator ? (
+        <TouchableOpacity
+          style={styles.startMeetingButton}
+          onPress={() => onStartMeeting(club)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.startMeetingButtonText}>Iniciar Reunión</Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
           style={styles.joinButton}
           onPress={() => onJoin(club.id)}
           activeOpacity={0.8}
         >
           <Text style={styles.joinButtonText}>Unirse al Club</Text>
-        </TouchableOpacity>
-      ) : (
-        <TouchableOpacity 
-          style={styles.joinButton}
-          onPress={() => onJoinRoom(club)}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.joinButtonText}>Unirse a la Reunión</Text>
         </TouchableOpacity>
       )}
     </TouchableOpacity>
@@ -130,28 +163,104 @@ const ReadingClubCard: React.FC<ReadingClubCardProps> = ({ club, onPress, onJoin
 };
 
 export const ReadingClubsScreen: React.FC = () => {
+  const { user } = useAuth();
   const [showVideoCall, setShowVideoCall] = useState(false);
-  const [videoCallClub, setVideoCallClub] = useState<any | null>(null);
+  const [videoCallClub, setVideoCallClub] = useState<ReadingClub | null>(null);
+  const [readingClubs, setReadingClubs] = useState<ReadingClub[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadReadingClubs = useCallback(async () => {
+    try {
+      logger.info('Loading reading clubs...');
+      const { data } = await ReadingClubsService.getAllReadingClubs();
+
+      // Fetch meeting status for each club
+      const clubsWithStatus = await Promise.all(
+        data.map(async (club: any) => {
+          try {
+            const status = await LiveKitService.getMeetingStatus(club.id);
+            return {
+              ...club,
+              meetingActive: status.active || false,
+              meetingParticipantCount: status.participant_count || 0,
+            };
+          } catch (err) {
+            logger.error('Error fetching meeting status for club:', club.id, err);
+            return {
+              ...club,
+              meetingActive: false,
+              meetingParticipantCount: 0,
+            };
+          }
+        })
+      );
+
+      setReadingClubs(clubsWithStatus);
+      logger.info('Loaded', clubsWithStatus.length, 'reading clubs');
+    } catch (error) {
+      logger.error('Error loading reading clubs:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadReadingClubs();
+
+    // Poll for meeting status updates every 30 seconds
+    const interval = setInterval(loadReadingClubs, 30000);
+
+    return () => clearInterval(interval);
+  }, [loadReadingClubs]);
+
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadReadingClubs();
+  }, [loadReadingClubs]);
 
   const handleClubPress = (clubId: string) => {
     // TODO: Navigate to club detail
     logger.info('Club pressed:', clubId);
   };
 
-  const handleJoinClub = (clubId: string) => {
-    // TODO: Implement join club functionality
-    logger.info('Join club:', clubId);
+  const handleJoinClub = async (clubId: string) => {
+    try {
+      logger.info('Joining club:', clubId);
+      await ReadingClubsService.joinReadingClub(clubId);
+      // Refresh clubs to update member count
+      loadReadingClubs();
+    } catch (error) {
+      logger.error('Error joining club:', error);
+    }
   };
 
-  const handleJoinRoom = (club: any) => {
+  const handleStartMeeting = async (club: ReadingClub) => {
+    try {
+      logger.info('Starting meeting for club:', club.id);
+      await LiveKitService.startMeeting(club.id);
+      // Open video call
+      setVideoCallClub(club);
+      setShowVideoCall(true);
+      // Refresh to show meeting as active
+      loadReadingClubs();
+    } catch (error) {
+      logger.error('Error starting meeting:', error);
+    }
+  };
+
+  const handleJoinRoom = (club: ReadingClub) => {
     logger.info('Join meeting for club:', club.id);
     setVideoCallClub(club);
     setShowVideoCall(true);
   };
 
-  const handleLeaveVideoCall = () => {
+  const handleLeaveVideoCall = async () => {
     setShowVideoCall(false);
     setVideoCallClub(null);
+    // Refresh to update meeting status
+    loadReadingClubs();
   };
 
 
@@ -160,21 +269,27 @@ export const ReadingClubsScreen: React.FC = () => {
     logger.info('Create club pressed');
   };
 
-  const renderClubCard = ({ item }: { item: typeof readingClubs[0] }) => (
-    <ReadingClubCard
-      club={item}
-      onPress={handleClubPress}
-      onJoin={handleJoinClub}
-      onJoinRoom={handleJoinRoom}
-    />
-  );
+  const renderClubCard = ({ item }: { item: ReadingClub }) => {
+    const isUserModerator = user?.id === item.moderator_id;
+
+    return (
+      <ReadingClubCard
+        club={item}
+        onPress={handleClubPress}
+        onJoin={handleJoinClub}
+        onJoinRoom={handleJoinRoom}
+        onStartMeeting={handleStartMeeting}
+        isUserModerator={isUserModerator}
+      />
+    );
+  };
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Clubes de Lectura</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.createButton}
           onPress={handleCreateClub}
           activeOpacity={0.8}
@@ -184,15 +299,29 @@ export const ReadingClubsScreen: React.FC = () => {
       </View>
 
       {/* Clubs List */}
-      <FlatList
-        data={readingClubs}
-        renderItem={renderClubCard}
-        keyExtractor={(item) => item.id}
-        numColumns={1}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listContainer}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-      />
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary.indigo600} />
+          <Text style={styles.loadingText}>Cargando clubes...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={readingClubs}
+          renderItem={renderClubCard}
+          keyExtractor={(item) => item.id}
+          numColumns={1}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContainer}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={[colors.primary.indigo600]}
+            />
+          }
+        />
+      )}
 
       {/* Video Call Modal */}
       {showVideoCall && videoCallClub && (
@@ -361,5 +490,60 @@ const styles = StyleSheet.create({
     color: colors.primary.indigo600,
     fontSize: 14,
     fontWeight: '600',
+  },
+  liveIndicator: {
+    backgroundColor: '#DC2626',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+    borderRadius: 8,
+  },
+  liveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.neutral.white,
+    marginRight: 8,
+  },
+  liveText: {
+    color: colors.neutral.white,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  joinMeetingButton: {
+    backgroundColor: '#DC2626',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  joinMeetingButtonText: {
+    color: colors.neutral.white,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  startMeetingButton: {
+    backgroundColor: colors.primary.indigo600,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  startMeetingButtonText: {
+    color: colors.neutral.white,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: colors.neutral.gray600,
   },
 });

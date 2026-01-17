@@ -1,6 +1,5 @@
 import { apiRequest } from './api';
 import { logger } from '../utils/logger';
-import { generateTestToken } from './liveKitTokenGenerator';
 
 export interface LiveKitToken {
   token: string;
@@ -15,35 +14,22 @@ export interface JoinMeetingRequest {
 
 export class LiveKitService {
   /**
-   * Get LiveKit token for joining a reading club meeting
+   * Get LiveKit token for joining a reading club meeting from the backend
    */
   static async getToken(request: JoinMeetingRequest): Promise<LiveKitToken> {
     try {
-      logger.info('Requesting LiveKit token for reading club:', request.reading_club_id);
-      
+      logger.info('📡 Requesting LiveKit token from backend for reading club:', request.reading_club_id);
+
       const response = await apiRequest('/api/reading-clubs/meetings/token', {
         method: 'POST',
         body: JSON.stringify(request),
       });
 
-      logger.info('🔍 Raw API response:', response);
-      logger.info('🔍 Full API response:', JSON.stringify(response, null, 2));
-      
-      logger.info('LiveKit token received successfully');
+      logger.info('✅ LiveKit token received successfully from backend');
       return response.data || response;
     } catch (error) {
       logger.error('❌ Backend token generation failed:', error);
-      logger.info('🔧 Falling back to local token generation for testing...');
-      
-      // Fallback to local token generation for testing
-      const testToken = generateTestToken(
-        request.reading_club_id,
-        request.participant_name,
-        `user-${Date.now()}` // Generate a unique user ID
-      );
-      
-      logger.info('✅ Generated test token locally');
-      return testToken;
+      throw error;
     }
   }
 
@@ -53,7 +39,7 @@ export class LiveKitService {
   static async startMeeting(readingClubId: string): Promise<{ success: boolean }> {
     try {
       logger.info('Starting meeting for reading club:', readingClubId);
-      
+
       const response = await apiRequest(`/api/reading-clubs/meetings/${readingClubId}/start`, {
         method: 'POST',
       });
@@ -72,7 +58,7 @@ export class LiveKitService {
   static async endMeeting(readingClubId: string): Promise<{ success: boolean }> {
     try {
       logger.info('Ending meeting for reading club:', readingClubId);
-      
+
       const response = await apiRequest(`/api/reading-clubs/meetings/${readingClubId}/end`, {
         method: 'POST',
       });
@@ -88,19 +74,19 @@ export class LiveKitService {
   /**
    * Check if a meeting is currently active for a reading club
    */
-  static async getMeetingStatus(readingClubId: string): Promise<{ 
-    participant_count: number; 
-    started_at?: string; 
-    room_name?: string; 
-    exists: boolean; 
-    active: boolean; 
+  static async getMeetingStatus(readingClubId: string): Promise<{
+    participant_count: number;
+    started_at?: string;
+    room_name?: string;
+    exists: boolean;
+    active: boolean;
     // Legacy compatibility
-    isActive?: boolean; 
-    participantCount?: number; 
+    isActive?: boolean;
+    participantCount?: number;
   }> {
     try {
       logger.info('Checking meeting status for reading club:', readingClubId);
-      
+
       const response = await apiRequest(`/api/reading-clubs/meetings/${readingClubId}/status`);
 
       return response.data;

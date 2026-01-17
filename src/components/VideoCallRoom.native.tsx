@@ -18,9 +18,25 @@ import { useAuth } from '../contexts/AuthContext';
 import { getLiveKitUrl } from '../config/livekit';
 import { PanoramaViewer } from './PanoramaViewer';
 
-// For Expo managed workflow, we'll use a mock implementation
-// In production, you'd need to eject to bare workflow or use EAS Build
-import { Room, Track } from 'livekit-client';
+// LiveKit React Native hooks
+import {
+  useRoom,
+  useParticipants,
+  useTracks,
+  VideoTrack,
+  AudioSession,
+  registerGlobals,
+} from '@livekit/react-native';
+
+// LiveKit core classes and enums
+import {
+  Room,
+  Track,
+  RoomEvent,
+  ParticipantEvent,
+  LocalParticipant,
+  RemoteParticipant,
+} from 'livekit-client';
 
 // ============================================================================
 // DESIGN SYSTEM - Premium dark theme for book club aesthetic
@@ -81,13 +97,15 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
   const [isConnecting, setIsConnecting] = useState(true);
   const [token, setToken] = useState<LiveKitToken | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Real LiveKit room
   const [room] = useState(() => new Room());
 
-  // Mock LiveKit hooks for Expo managed workflow
-  const [participants, setParticipants] = useState<any[]>([]);
-  const [tracks, setTracks] = useState<any[]>([]);
+  // Track participants manually through room events
+  const [participants, setParticipants] = useState<RemoteParticipant[]>([]);
+  const [localParticipant, setLocalParticipant] = useState<LocalParticipant | null>(null);
 
-  // Mock connection state
+  // Connection state
   const [isConnected, setIsConnected] = useState(false);
 
   const connectToRoom = useCallback(async () => {
@@ -99,9 +117,13 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
         throw new Error('User not authenticated');
       }
 
+      // Register WebRTC globals for React Native
+      registerGlobals();
+      logger.info('WebRTC globals registered');
+
       logger.info('Connecting to video call for reading club:', readingClubId);
 
-      // Get LiveKit token
+      // Get LiveKit token from backend
       const tokenData = await LiveKitService.getToken({
         reading_club_id: readingClubId,
         participant_name: `${user.name} ${user.lastname || ''}`.trim(),
@@ -119,66 +141,125 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
         tokenData.room_name = `reading-club-${readingClubId}`;
       }
 
+      // Log token details for debugging (without exposing full token)
+      logger.info('Token validation:', {
+        hasToken: !!tokenData.token,
+        tokenLength: tokenData.token?.length,
+        roomName: tokenData.room_name,
+        participantName: tokenData.participant_name,
+        participantId: tokenData.participant_id,
+        isModerator: tokenData.moderator,
+      });
+
       setToken(tokenData);
 
-      // Mock connection for Expo managed workflow
-      logger.info('Mock connection to LiveKit room:', tokenData.room_name);
-      logger.warn('Using mock implementation - LiveKit native features not available in Expo managed workflow');
+      // Get LiveKit server URL
+      const livekitUrl = getLiveKitUrl();
+      logger.info('Connecting to LiveKit server:', livekitUrl);
+      logger.info('Room name:', tokenData.room_name);
 
-      // Simulate connection delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Configure audio session for mobile
+      await AudioSession.startAudioSession();
 
-      // Mock participants (including current user)
-      const mockParticipants = [
-        {
-          identity: user.id,
-          name: `${user.name} ${user.lastname || ''}`.trim(),
-          isLocal: true,
-        },
-        // Add more mock participants if needed for testing
-      ];
-
-      setParticipants(mockParticipants);
+      // Connect to LiveKit room
+      logger.info('Attempting to connect to room...');
+      await room.connect(livekitUrl, tokenData.token);
+      logger.info('✅ Successfully connected to LiveKit room');
       setIsConnected(true);
-      logger.info('Mock connection established with', mockParticipants.length, 'participants');
       setIsConnecting(false);
+
+      // Set local participant and ensure microphone starts disabled
+      const local = room.localParticipant;
+      setLocalParticipant(local);
+      if (local) {
+        await local.setMicrophoneEnabled(false);
+        logger.info('🔇 Initial state: Microphone disabled');
+      }
+
+      // Set up room event listeners
+      room.on(RoomEvent.Disconnected, () => {
+        logger.info('Disconnected from room');
+        setIsConnected(false);
+        setParticipants([]);
+        setLocalParticipant(null);
+      });
+
+      room.on(RoomEvent.Reconnecting, () => {
+        logger.info('Reconnecting to room...');
+      });
+
+      room.on(RoomEvent.Reconnected, () => {
+        logger.info('Reconnected to room');
+        setIsConnected(true);
+      });
+
+      // Track participants
+      room.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
+        logger.info('Participant connected:', participant.identity);
+        setParticipants(prev => [...prev, participant]);
+      });
+
+      room.on(RoomEvent.ParticipantDisconnected, (participant: RemoteParticipant) => {
+        logger.info('Participant disconnected:', participant.identity);
+        setParticipants(prev => prev.filter(p => p.identity !== participant.identity));
+      });
+
+      // Initialize with current participants
+      setParticipants(Array.from(room.remoteParticipants.values()));
 
     } catch (err) {
       logger.error('Error connecting to video call:', err);
       setError(err instanceof Error ? err.message : 'Failed to connect');
       setIsConnecting(false);
-      Alert.alert('Connection Error', 'Failed to connect to video call');
+      Alert.alert('Connection Error', 'Failed to connect to video call. Please try again.');
     }
-  }, [readingClubId, user]);
+  }, [readingClubId, user, room]);
 
   const disconnectFromRoom = useCallback(async () => {
     try {
       logger.info('Disconnecting from video call');
+      await room.disconnect();
+      await AudioSession.stopAudioSession();
       setIsConnected(false);
-      setParticipants([]);
       setToken(null);
     } catch (err) {
       logger.error('Error disconnecting:', err);
     }
-  }, []);
+  }, [room]);
 
-  // Mock state for controls
-  const [isMuted, setIsMuted] = useState(false);
+  // Real state for controls
+  const [isMuted, setIsMuted] = useState(true);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [showPanoramaViewer, setShowPanoramaViewer] = useState(false);
 
   // URL de imagen panorámica por defecto
   const PANORAMA_URL = 'https://res.cloudinary.com/dfsfkyyx7/image/upload/v1758152482/descarga_1_emrail.png';
 
-  const toggleMute = useCallback(() => {
-    setIsMuted(!isMuted);
-    logger.info('Microphone toggled:', !isMuted ? 'muted' : 'unmuted');
-  }, [isMuted]);
+  const toggleMute = useCallback(async () => {
+    try {
+      if (localParticipant) {
+        await localParticipant.setMicrophoneEnabled(isMuted);
+        setIsMuted(!isMuted);
+        logger.info('Microphone toggled:', !isMuted ? 'muted' : 'unmuted');
+      }
+    } catch (err) {
+      logger.error('Error toggling microphone:', err);
+      Alert.alert('Error', 'Failed to toggle microphone');
+    }
+  }, [isMuted, localParticipant]);
 
-  const toggleVideo = useCallback(() => {
-    setIsVideoEnabled(!isVideoEnabled);
-    logger.info('Camera toggled:', !isVideoEnabled ? 'disabled' : 'enabled');
-  }, [isVideoEnabled]);
+  const toggleVideo = useCallback(async () => {
+    try {
+      if (localParticipant) {
+        await localParticipant.setCameraEnabled(isVideoEnabled);
+        setIsVideoEnabled(!isVideoEnabled);
+        logger.info('Camera toggled:', !isVideoEnabled ? 'disabled' : 'enabled');
+      }
+    } catch (err) {
+      logger.error('Error toggling camera:', err);
+      Alert.alert('Error', 'Failed to toggle camera');
+    }
+  }, [isVideoEnabled, localParticipant]);
 
   const handleLeave = useCallback(async () => {
     await disconnectFromRoom();
@@ -324,16 +405,33 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
             ════════════════════════════════════════════════════════════════════ */}
         <View style={styles.participantsSection}>
           <Text style={styles.participantsTitle}>
-            Participantes ({participants.length})
+            Participantes ({participants.length + (localParticipant ? 1 : 0)})
           </Text>
           <View style={styles.participantsList}>
+            {/* Local participant */}
+            {localParticipant && (
+              <View key="local" style={styles.participantCard}>
+                <View style={styles.participantAvatar}>
+                  <Ionicons
+                    name={isVideoEnabled ? "videocam" : "videocam-off"}
+                    size={20}
+                    color={isVideoEnabled ? theme.colors.success : theme.colors.textSecondary}
+                  />
+                </View>
+                <Text style={styles.participantName} numberOfLines={1}>
+                  {user?.name || 'You'}
+                </Text>
+                <View style={styles.youBadge}>
+                  <Text style={styles.youBadgeText}>Tú</Text>
+                </View>
+              </View>
+            )}
+
+            {/* Remote participants */}
             {participants.map((participant) => {
-              const videoTrack = tracks.find(
-                (track) =>
-                  track.participant.identity === participant.identity &&
-                  track.source === Track.Source.Camera
-              );
-              const hasVideo = videoTrack && videoTrack.publication && !videoTrack.publication.isMuted;
+              // Check if participant has camera enabled
+              const cameraPublication = participant.getTrackPublication(Track.Source.Camera);
+              const hasVideo = cameraPublication && !cameraPublication.isMuted;
 
               return (
                 <View key={participant.identity} style={styles.participantCard}>
@@ -347,11 +445,6 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
                   <Text style={styles.participantName} numberOfLines={1}>
                     {participant.name || participant.identity}
                   </Text>
-                  {participant.isLocal && (
-                    <View style={styles.youBadge}>
-                      <Text style={styles.youBadgeText}>Tú</Text>
-                    </View>
-                  )}
                 </View>
               );
             })}

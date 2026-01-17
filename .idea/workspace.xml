@@ -5,7 +5,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2337bd11-929d-4805-b383-6359b7023a9e" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/VideoCallRoom.native.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/VideoCallRoom.native.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/config/livekit.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/config/livekit.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/screens/ReadingClubsScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/screens/ReadingClubsScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/services/liveKitService.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/services/liveKitService.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/services/liveKitTokenGenerator.ts" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -36,7 +42,7 @@
     "RunOnceActivity.readMode.enableVisualFormatting": "true",
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
-    "git-widget-placeholder": "main",
+    "git-widget-placeholder": "feature/calls",
     "junie.onboarding.icon.badge.shown": "true",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "/Users/felipcosta/Documents/Personal/PFI/booky-fe",

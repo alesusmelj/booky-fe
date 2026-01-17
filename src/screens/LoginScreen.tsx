@@ -169,16 +169,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
               <Text style={styles.rememberMeText}>{strings.auth.rememberMe}</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={handleForgotPassword}
-              testID="forgot-password-link"
-              accessible={true}
-              accessibilityLabel={strings.auth.forgotPassword}
-            >
-              <Text style={styles.forgotPasswordText}>
-                {strings.auth.forgotPassword}
-              </Text>
-            </TouchableOpacity>
           </View>
 
           <TouchableOpacity

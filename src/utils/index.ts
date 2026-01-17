@@ -1,6 +1,7 @@
 export * from './testUtils';
 export * from './logger';
 export * from './exchangeUtils';
+export * from './imageUtils';
 
 import * as FileSystem from 'expo-file-system';
 

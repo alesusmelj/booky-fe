@@ -11,6 +11,7 @@ import {
 import { MaterialIcons, Feather } from '@expo/vector-icons';
 import { colors } from '../constants';
 import { UserBookDto } from '../services/booksService';
+import { ensureHttps } from '../utils';
 
 interface BookCardProps {
   book: UserBookDto;
@@ -41,7 +42,7 @@ export const UserLibraryBookCard: React.FC<BookCardProps> = ({
     if (book.book?.image && !imageError) {
       return (
         <Image
-          source={{ uri: book.book.image }}
+          source={{ uri: ensureHttps(book.book.image) }}
           style={compact ? styles.compactImage : styles.image}
           resizeMode="cover"
           onError={() => setImageError(true)}
@@ -122,7 +123,7 @@ export const UserLibraryBookCard: React.FC<BookCardProps> = ({
 
   if (compact) {
     return (
-      <TouchableOpacity style={styles.compactCard} onPress={onPress}>
+      <View style={styles.compactCard}>
         {renderBookCover()}
         <View style={styles.compactContent}>
           <Text style={styles.compactTitle} numberOfLines={2}>
@@ -132,36 +133,53 @@ export const UserLibraryBookCard: React.FC<BookCardProps> = ({
             {book.book?.author || 'Unknown Author'}
           </Text>
           <View style={styles.compactMeta}>
-            <TouchableOpacity
-              style={[styles.statusBadge, { backgroundColor: getStatusColor(book.status) }]}
-              onPress={handleStatusPress}
-            >
-              <Text style={styles.statusText}>{getStatusText(book.status)}</Text>
-            </TouchableOpacity>
+            {(onStatusChange || onStatusPress) ? (
+              <TouchableOpacity
+                style={[styles.statusBadge, { backgroundColor: getStatusColor(book.status) }]}
+                onPress={handleStatusPress}
+              >
+                <Text style={styles.statusText}>{getStatusText(book.status)}</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={[styles.statusBadge, { backgroundColor: getStatusColor(book.status) }]}>
+                <Text style={styles.statusText}>{getStatusText(book.status)}</Text>
+              </View>
+            )}
             {book.favorite && (
               <MaterialIcons name="favorite" size={16} color={colors.status.error} />
             )}
           </View>
         </View>
-      </TouchableOpacity>
+      </View>
     );
   }
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress}>
+    <View style={styles.card}>
       <View style={styles.imageContainer}>
         {renderBookCover()}
-        <TouchableOpacity
-          style={styles.favoriteIndicator}
-          onPress={onFavoritePress}
-        >
-          <MaterialIcons
-            name={book.favorite ? "favorite" : "favorite-border"}
-            size={20}
-            color={book.favorite ? colors.status.error : colors.neutral.white}
-            style={styles.heartIcon}
-          />
-        </TouchableOpacity>
+        {onFavoritePress ? (
+          <TouchableOpacity
+            style={styles.favoriteIndicator}
+            onPress={onFavoritePress}
+          >
+            <MaterialIcons
+              name={book.favorite ? "favorite" : "favorite-border"}
+              size={20}
+              color={book.favorite ? colors.status.error : colors.neutral.white}
+              style={styles.heartIcon}
+            />
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.favoriteIndicator}>
+            <MaterialIcons
+              name={book.favorite ? "favorite" : "favorite-border"}
+              size={20}
+              color={book.favorite ? colors.status.error : colors.neutral.white}
+              style={styles.heartIcon}
+            />
+          </View>
+        )}
       </View>
 
       <View style={styles.content}>
@@ -173,12 +191,18 @@ export const UserLibraryBookCard: React.FC<BookCardProps> = ({
         </Text>
 
 
-        <TouchableOpacity
-          style={[styles.statusBadge, styles.statusBadgeLarge, { backgroundColor: getStatusColor(book.status) }]}
-          onPress={handleStatusPress}
-        >
-          <Text style={[styles.statusText, styles.statusTextLarge]}>{getStatusText(book.status)}</Text>
-        </TouchableOpacity>
+        {(onStatusChange || onStatusPress) ? (
+          <TouchableOpacity
+            style={[styles.statusBadge, styles.statusBadgeLarge, { backgroundColor: getStatusColor(book.status) }]}
+            onPress={handleStatusPress}
+          >
+            <Text style={[styles.statusText, styles.statusTextLarge]}>{getStatusText(book.status)}</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={[styles.statusBadge, styles.statusBadgeLarge, { backgroundColor: getStatusColor(book.status) }]}>
+            <Text style={[styles.statusText, styles.statusTextLarge]}>{getStatusText(book.status)}</Text>
+          </View>
+        )}
       </View>
 
       {/* Status Selection Modal */}
@@ -229,7 +253,7 @@ export const UserLibraryBookCard: React.FC<BookCardProps> = ({
           </View>
         </TouchableOpacity>
       </Modal>
-    </TouchableOpacity>
+    </View>
   );
 };
 

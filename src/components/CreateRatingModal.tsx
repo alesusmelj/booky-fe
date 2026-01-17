@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  StyleSheet, 
-  Modal, 
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Modal,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -25,12 +25,12 @@ interface CreateRatingModalProps {
   onSuccess?: () => void;
 }
 
-export function CreateRatingModal({ 
-  isVisible, 
-  onClose, 
-  exchangeId, 
+export function CreateRatingModal({
+  isVisible,
+  onClose,
+  exchangeId,
   otherUserName,
-  onSuccess 
+  onSuccess
 }: CreateRatingModalProps) {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
@@ -48,10 +48,10 @@ export function CreateRatingModal({
     };
 
     const result = await createRating(exchangeId, ratingData);
-    
+
     if (result) {
       Alert.alert(
-        'Éxito', 
+        'Éxito',
         'Tu reseña ha sido enviada correctamente',
         [
           {
@@ -101,14 +101,14 @@ export function CreateRatingModal({
       transparent={true}
       onRequestClose={handleClose}
     >
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.overlay}>
-            <TouchableWithoutFeedback onPress={() => {}}>
-              <ScrollView 
+            <TouchableWithoutFeedback onPress={() => { }}>
+              <ScrollView
                 contentContainerStyle={styles.scrollContainer}
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
@@ -218,6 +218,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.text.secondary,
     paddingHorizontal: 20,
+    paddingTop: 16,
     paddingBottom: 20,
     textAlign: 'center',
   },

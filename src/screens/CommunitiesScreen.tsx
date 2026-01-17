@@ -346,19 +346,27 @@ export const CommunitiesScreen: React.FC = () => {
         visible={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         title="Crear Comunidad"
-        closeButtonText="Cancelar"
-        headerRight={
-          <TouchableOpacity
-            onPress={handleCreateCommunity}
-            style={[styles.modalSaveButton, isCreating && styles.modalSaveButtonDisabled]}
-            disabled={isCreating}
-          >
-            {isCreating ? (
-              <ActivityIndicator size="small" color={colors.neutral.white} />
-            ) : (
-              <Text style={styles.modalSaveText}>Crear</Text>
-            )}
-          </TouchableOpacity>
+        showCloseButton={false}
+        footerButtons={
+          <>
+            <TouchableOpacity
+              onPress={() => setShowCreateModal(false)}
+              style={styles.modalCancelButton}
+            >
+              <Text style={styles.modalCancelText}>Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleCreateCommunity}
+              style={[styles.modalSaveButton, isCreating && styles.modalSaveButtonDisabled]}
+              disabled={isCreating}
+            >
+              {isCreating ? (
+                <ActivityIndicator size="small" color={colors.neutral.white} />
+              ) : (
+                <Text style={styles.modalSaveText}>Crear</Text>
+              )}
+            </TouchableOpacity>
+          </>
         }
       >
         <View style={styles.modalContent}>
@@ -549,19 +557,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  memberBadge: {
-    backgroundColor: colors.green[100],
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.green[600],
-  },
-  memberBadgeText: {
-    color: colors.green[600],
-    fontSize: 14,
-    fontWeight: '600',
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -672,9 +667,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  modalContent: {
-    flex: 1,
-    padding: 20,
+  modalCancelButton: {
+    backgroundColor: colors.neutral.gray100,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    color: colors.neutral.gray700,
+    fontSize: 14,
+    fontWeight: '600',
   },
   modalContent: {
     // El padding ya está en el CustomModal, no necesitamos agregarlo aquí

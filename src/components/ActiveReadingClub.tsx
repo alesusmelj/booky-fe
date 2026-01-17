@@ -10,6 +10,7 @@ import {
 import { colors } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 import { logger } from '../utils/logger';
+import { ensureHttps } from '../utils';
 
 interface ActiveReadingClubProps {
   club: {
@@ -65,9 +66,9 @@ export const ActiveReadingClub: React.FC<ActiveReadingClubProps> = ({
       <View style={styles.content}>
         {/* Book Cover */}
         <View style={styles.imageContainer}>
-          <Image 
-            source={{ uri: club.book?.image || 'https://via.placeholder.com/120x160?text=No+Image' }} 
-            style={styles.bookCover} 
+          <Image
+            source={{ uri: ensureHttps(club.book?.image) || 'https://via.placeholder.com/120x160?text=No+Image' }}
+            style={styles.bookCover}
           />
           <View style={styles.chapterOverlay}>
             <Text style={styles.chapterText}>
@@ -106,9 +107,9 @@ export const ActiveReadingClub: React.FC<ActiveReadingClubProps> = ({
           </View>
 
           <View style={styles.moderatorContainer}>
-            <Image 
-              source={{ uri: club.moderator?.image || 'https://via.placeholder.com/24x24?text=M' }} 
-              style={styles.moderatorAvatar} 
+            <Image
+              source={{ uri: club.moderator?.image || 'https://via.placeholder.com/24x24?text=M' }}
+              style={styles.moderatorAvatar}
             />
             <Text style={styles.moderatorText}>
               Moderado por {club.moderator?.name || 'Moderador'} {club.moderator?.lastname || ''}
@@ -116,16 +117,16 @@ export const ActiveReadingClub: React.FC<ActiveReadingClubProps> = ({
           </View>
 
           <View style={styles.buttonsContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.joinButton}
               onPress={() => onJoin(club.id)}
               activeOpacity={0.8}
             >
               <Text style={styles.joinButtonText}>Unirse al Club</Text>
             </TouchableOpacity>
-            
+
             {isUserModerator && onSetMeeting && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.setMeetingButton}
                 onPress={() => onSetMeeting(club)}
                 activeOpacity={0.8}

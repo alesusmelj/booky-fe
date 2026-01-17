@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
-  Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { strings, colors, theme } from '../constants';
@@ -14,6 +13,7 @@ import { logger } from '../utils/logger';
 import { ImageViewer } from './ImageViewer';
 import { CommentsModal } from './CommentsModal';
 import { useAuth } from '../contexts/AuthContext';
+import { useAlert } from '../contexts/AlertContext';
 
 export interface PostData {
   id: string;
@@ -40,12 +40,13 @@ interface PostProps {
 
 export const Post: React.FC<PostProps> = ({
   post,
-  onLike = () => {},
-  onComment = () => {},
-  onUserPress = () => {},
+  onLike = () => { },
+  onComment = () => { },
+  onUserPress = () => { },
   onDelete,
 }) => {
   const { user: currentUser } = useAuth();
+  const { showAlert } = useAlert();
   const [isLiked, setIsLiked] = useState(post.is_liked_by_user || false);
   const [likesCount, setLikesCount] = useState(post.likes_count || 0);
   const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
@@ -87,11 +88,11 @@ export const Post: React.FC<PostProps> = ({
       logger.warn('⚠️ Post user is undefined, cannot handle user press');
       return;
     }
-    
-    logger.info('🔵 Post handleUserPress called:', { 
-      userId: post.user.id, 
+
+    logger.info('🔵 Post handleUserPress called:', {
+      userId: post.user.id,
       userName: post.user.name,
-      onUserPressType: typeof onUserPress 
+      onUserPressType: typeof onUserPress
     });
     onUserPress(post.user.id);
   };
@@ -99,8 +100,8 @@ export const Post: React.FC<PostProps> = ({
   const getUserAvatar = () => {
     if (post.user?.image) {
       return (
-        <Image 
-          source={{ uri: post.user.image }} 
+        <Image
+          source={{ uri: post.user.image }}
           style={styles.avatar}
           testID="post-user-avatar"
         />
@@ -121,13 +122,13 @@ export const Post: React.FC<PostProps> = ({
 
     if (diffInMinutes < 1) return 'Ahora';
     if (diffInMinutes < 60) return `${diffInMinutes}m`;
-    
+
     const diffInHours = Math.floor(diffInMinutes / 60);
     if (diffInHours < 24) return `${diffInHours}h`;
-    
+
     const diffInDays = Math.floor(diffInHours / 24);
     if (diffInDays < 7) return `${diffInDays}d`;
-    
+
     return postDate.toLocaleDateString();
   };
 
@@ -141,10 +142,10 @@ export const Post: React.FC<PostProps> = ({
   const isOwnPost = currentUser?.id === post.user_id;
 
   const handleDelete = () => {
-    Alert.alert(
-      'Eliminar publicación',
-      '¿Estás seguro de que quieres eliminar esta publicación?',
-      [
+    showAlert({
+      title: 'Eliminar publicación',
+      message: '¿Estás seguro de que quieres eliminar esta publicación?',
+      buttons: [
         {
           text: 'Cancelar',
           style: 'cancel',
@@ -158,14 +159,14 @@ export const Post: React.FC<PostProps> = ({
             }
           },
         },
-      ]
-    );
+      ],
+    });
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.userInfo}
           onPress={handleUserPress}
           activeOpacity={0.7}
@@ -194,7 +195,7 @@ export const Post: React.FC<PostProps> = ({
 
       <View style={styles.content}>
         <Text style={styles.contentText}>{post.body}</Text>
-        
+
         {post.image && (
           <TouchableOpacity
             onPress={() => setShowImageViewer(true)}
@@ -221,10 +222,10 @@ export const Post: React.FC<PostProps> = ({
           accessible={true}
           accessibilityLabel={strings.post.likeAccessibility}
         >
-          <MaterialIcons 
-            name={isLiked ? "favorite" : "favorite-border"} 
-            size={20} 
-            color={isLiked ? colors.status.error : colors.neutral.gray500} 
+          <MaterialIcons
+            name={isLiked ? "favorite" : "favorite-border"}
+            size={20}
+            color={isLiked ? colors.status.error : colors.neutral.gray500}
           />
           <Text style={[
             styles.actionText,
@@ -242,10 +243,10 @@ export const Post: React.FC<PostProps> = ({
           accessible={true}
           accessibilityLabel={strings.post.commentAccessibility}
         >
-          <MaterialIcons 
-            name="chat-bubble-outline" 
-            size={20} 
-            color={colors.neutral.gray500} 
+          <MaterialIcons
+            name="chat-bubble-outline"
+            size={20}
+            color={colors.neutral.gray500}
           />
           <Text style={styles.actionText}>{commentsCount}</Text>
         </TouchableOpacity>

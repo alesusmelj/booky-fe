@@ -18,6 +18,7 @@ interface CustomModalProps {
     showCloseButton?: boolean;
     closeButtonText?: string;
     headerRight?: React.ReactNode;
+    footerButtons?: React.ReactNode;
     animationType?: 'slide' | 'fade' | 'none';
     presentationStyle?: 'fullScreen' | 'pageSheet' | 'formSheet' | 'overFullScreen';
 }
@@ -30,6 +31,7 @@ export const CustomModal: React.FC<CustomModalProps> = ({
     showCloseButton = true,
     closeButtonText = 'Cerrar',
     headerRight,
+    footerButtons,
     animationType = 'slide',
     presentationStyle = 'pageSheet',
 }) => {
@@ -72,6 +74,13 @@ export const CustomModal: React.FC<CustomModalProps> = ({
 
                     {/* Content */}
                     <View style={styles.content}>{children}</View>
+
+                    {/* Footer Buttons */}
+                    {footerButtons && (
+                        <View style={styles.footer}>
+                            {footerButtons}
+                        </View>
+                    )}
                 </View>
             </View>
         </Modal>
@@ -136,5 +145,17 @@ const styles = StyleSheet.create({
     },
     content: {
         padding: 20,
+    },
+    footer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        borderTopWidth: 1,
+        borderTopColor: colors.neutral.gray200,
+        backgroundColor: colors.neutral.white,
+        borderBottomLeftRadius: 16,
+        borderBottomRightRadius: 16,
     },
 });

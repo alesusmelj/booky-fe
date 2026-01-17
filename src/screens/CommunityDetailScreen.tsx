@@ -16,6 +16,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../constants';
 import { logger } from '../utils/logger';
+import { ensureHttps } from '../utils';
 import { CreateReadingClubModal, SetMeetingModal, Post, CreatePost, VideoCallRoom } from '../components';
 import { useCommunity, usePosts, useReadingClubs } from '../hooks';
 import { CommunityDto } from '../types/api';
@@ -86,7 +87,7 @@ const ReadingClubCard: React.FC<ReadingClubCardProps> = ({ club, onJoinRoom, onJ
         {/* Book Image */}
         <View style={styles.bookImageContainer}>
           <Image
-            source={{ uri: club.book?.image || 'https://via.placeholder.com/80x120?text=No+Image' }}
+            source={{ uri: ensureHttps(club.book?.image) || 'https://via.placeholder.com/80x120?text=No+Image' }}
             style={styles.bookImage}
           />
         </View>

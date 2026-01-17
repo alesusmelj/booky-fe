@@ -3,6 +3,7 @@ import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, theme } from '../constants';
 import { BookDto } from '../types/api';
+import { ensureHttps } from '../utils';
 
 interface BookSearchCardProps {
   book: BookDto;
@@ -16,8 +17,8 @@ export const BookSearchCard: React.FC<BookSearchCardProps> = ({
   const getBookCover = () => {
     if (book.image) {
       return (
-        <Image 
-          source={{ uri: book.image }} 
+        <Image
+          source={{ uri: ensureHttps(book.image) }}
           style={styles.cover}
           resizeMode="cover"
         />
@@ -39,7 +40,7 @@ export const BookSearchCard: React.FC<BookSearchCardProps> = ({
   };
 
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={styles.container}
       onPress={onPress}
       activeOpacity={0.7}
@@ -48,7 +49,7 @@ export const BookSearchCard: React.FC<BookSearchCardProps> = ({
       accessibilityLabel={`Libro: ${book.title} por ${book.author}`}
     >
       {getBookCover()}
-      
+
       <View style={styles.contentContainer}>
         <Text style={styles.title} numberOfLines={2}>
           {book.title}
@@ -59,7 +60,7 @@ export const BookSearchCard: React.FC<BookSearchCardProps> = ({
         <Text style={styles.categories} numberOfLines={1}>
           {formatCategories()}
         </Text>
-        
+
         {book.rate && book.rate > 0 && (
           <View style={styles.ratingContainer}>
             <MaterialIcons name="star" size={16} color={colors.status.warning} />

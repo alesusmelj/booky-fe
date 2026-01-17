@@ -418,7 +418,6 @@ export const LibraryScreen: React.FC = () => {
                 key={book.id}
                 book={book}
                 compact={viewMode === 'list'}
-                onPress={() => handleBookPress(book)}
                 onFavoritePress={() => handleFavoritePress(book)}
                 onExchangePress={() => handleExchangePress(book)}
                 onStatusChange={(newStatus) => updateStatus(book.id, newStatus)}

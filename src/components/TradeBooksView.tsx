@@ -21,13 +21,13 @@ export function TradeBooksView() {
   const { user } = useAuth();
   const { navigate } = useNavigation();
   const { createOrGetChat } = useChats();
-  const { 
-    receivedOffers, 
-    activeOrders, 
-    loading, 
-    error, 
+  const {
+    receivedOffers,
+    activeOrders,
+    loading,
+    error,
     updateExchangeStatus,
-    loadExchanges 
+    loadExchanges
   } = useExchanges();
 
   // Log exchanges being rendered
@@ -68,7 +68,7 @@ export function TradeBooksView() {
     if (selectedStatusFilter === 'all') {
       return exchanges;
     }
-    return exchanges.filter(exchange => 
+    return exchanges.filter(exchange =>
       getExchangeStatusInSpanish(exchange.status) === selectedStatusFilter
     );
   };
@@ -162,7 +162,7 @@ export function TradeBooksView() {
 
       Alert.alert('Éxito', 'Contraoferta enviada exitosamente');
       setShowCounterOfferModal(false);
-      
+
       // Refresh exchanges
       await loadExchanges();
     } catch (error) {
@@ -190,15 +190,15 @@ export function TradeBooksView() {
     try {
       logger.info('💬 [TradeBooksView] Starting chat for exchange:', { exchangeId, otherUserId });
       const chat = await createOrGetChat(otherUserId);
-      
+
       if (chat) {
-        logger.info('💬 [TradeBooksView] Chat created/retrieved, navigating to chat detail:', { 
+        logger.info('💬 [TradeBooksView] Chat created/retrieved, navigating to chat detail:', {
           chatId: chat.id,
-          otherUser: chat.other_user.name 
+          otherUser: chat.other_user.name
         });
-        navigate('ChatDetail', { 
-          chatId: chat.id, 
-          otherUser: chat.other_user 
+        navigate('ChatDetail', {
+          chatId: chat.id,
+          otherUser: chat.other_user
         });
       } else {
         Alert.alert('Error', 'No se pudo iniciar el chat');
@@ -221,185 +221,185 @@ export function TradeBooksView() {
   return (
     <>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <TouchableOpacity
-        style={styles.newExchangeButton}
-        onPress={handleNewExchange}
-        testID="new-exchange-button"
-        accessible={true}
-        accessibilityLabel={strings.commerce.actions.newExchange}
-      >
-        <MaterialIcons name="sync" size={20} color={colors.neutral.white} />
-        <Text style={styles.newExchangeButtonText}>
-          {strings.commerce.actions.newExchange}
-        </Text>
-      </TouchableOpacity>
-
-      {error && (
-        <View style={styles.errorContainer}>
-          <MaterialIcons name="error-outline" size={24} color={colors.error.main} />
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity onPress={loadExchanges} style={styles.retryButton}>
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Status Filters */}
-      <View style={styles.filtersContainer}>
-        <Text style={styles.filtersLabel}>Filtrar por estado:</Text>
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          style={styles.filtersScroll}
+        <TouchableOpacity
+          style={styles.newExchangeButton}
+          onPress={handleNewExchange}
+          testID="new-exchange-button"
+          accessible={true}
+          accessibilityLabel={strings.commerce.actions.newExchange}
         >
-          {statusFilters.map((filter) => (
-            <TouchableOpacity
-              key={filter.value}
-              style={[
-                styles.filterChip,
-                selectedStatusFilter === filter.value && styles.filterChipActive,
-              ]}
-              onPress={() => setSelectedStatusFilter(filter.value)}
-            >
-              <Text
-                style={[
-                  styles.filterChipText,
-                  selectedStatusFilter === filter.value && styles.filterChipTextActive,
-                ]}
-              >
-                {filter.label}
-              </Text>
+          <MaterialIcons name="sync" size={20} color={colors.neutral.white} />
+          <Text style={styles.newExchangeButtonText}>
+            {strings.commerce.actions.newExchange}
+          </Text>
+        </TouchableOpacity>
+
+        {error && (
+          <View style={styles.errorContainer}>
+            <MaterialIcons name="error-outline" size={24} color={colors.error.main} />
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity onPress={loadExchanges} style={styles.retryButton}>
+              <Text style={styles.retryButtonText}>Retry</Text>
             </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>
-          {strings.commerce.sections.receivedOffers} ({filteredReceivedOffers.length})
-        </Text>
-        {filteredReceivedOffers.length > 0 ? (
-          filteredReceivedOffers.map((exchange) => (
-                <OfferCard 
-                  key={exchange.id}
-                  currentUserId={user?.id || ''}
-                  currentUserImage={user?.image}
-                  offer={{
-                id: exchange.id,
-                exchangeNumber: `Exchange #${exchange.id.slice(-4)}`,
-                date: new Date(exchange.date_created).toLocaleDateString(),
-                status: getExchangeStatusInSpanish(exchange.status) as any,
-                requester: {
-                  id: exchange.requester?.id,
-                  name: exchange.requester 
-                    ? `${exchange.requester.name} ${exchange.requester.lastname}` 
-                    : 'Usuario no disponible',
-                  role: 'Solicitante',
-                  avatar: exchange.requester?.image || (exchange.requester?.name?.charAt(0) || 'U'),
-                },
-                owner: {
-                  id: exchange.owner?.id || user?.id || '',
-                  name: user ? `${user.name} ${user.lastname}` : 'Usuario no disponible',
-                  role: 'Propietario',
-                  avatar: user?.image || (user?.name?.charAt(0) || 'U'),
-                },
-                requestedBooks: (exchange.owner_books || []).map(ub => ({
-                  title: ub?.book?.title || 'Título no disponible',
-                  author: ub?.book?.author || 'Autor no disponible',
-                  image: ub?.book?.image || '/default-book.jpg',
-                })),
-                offeredBooks: (exchange.requester_books || []).map(ub => ({
-                  title: ub?.book?.title || 'Título no disponible',
-                  author: ub?.book?.author || 'Autor no disponible',
-                  image: ub?.book?.image || '/default-book.jpg',
-                })),
-                canRate: exchange.can_rate,
-                hasUserRated: !!exchange.owner_rate, // Current user is owner, so check owner_rate
-              }}
-              onAccept={() => handleAcceptOffer(exchange.id)}
-              onReject={() => handleRejectOffer(exchange.id)}
-              onChat={() => handleChat(exchange.id, exchange.requester?.id == user?.id ? exchange.owner?.id : exchange.requester?.id)}
-              onCancel={() => handleCancelOrder(exchange.id)}
-              onComplete={() => handleCompleteOrder(exchange.id)}
-              onCounterOffer={() => handleCounterOffer(exchange.id)}
-              onRate={() => handleRate(exchange)}
-              onUserPress={(userId) => navigate('profile', { userId })}
-            />
-          ))
-        ) : (
-          <Text style={styles.emptyText}>No received offers</Text>
+          </View>
         )}
-      </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>
-          {strings.commerce.sections.activeOrders} ({filteredActiveOrders.length})
-        </Text>
-        {filteredActiveOrders.length > 0 ? (
-          filteredActiveOrders.map((exchange) => (
-                <OrderCard 
-                  key={exchange.id}
-                  currentUserId={user?.id || ''}
-                  currentUserImage={user?.image}
-                  order={{
-                id: exchange.id,
-                exchangeNumber: `Exchange #${exchange.id.slice(-4)}`,
-                date: new Date(exchange.date_created).toLocaleDateString(),
-                status: getExchangeStatusInSpanish(exchange.status) as any,
-                // Show the OTHER user (if I'm requester, show owner; if I'm owner, show requester)
-                requester: {
-                  id: exchange.requester_id === user?.id ? exchange.owner?.id : exchange.requester?.id,
-                  name: exchange.requester_id === user?.id
-                    ? (exchange.owner ? `${exchange.owner.name} ${exchange.owner.lastname}` : 'Usuario no disponible')
-                    : (exchange.requester ? `${exchange.requester.name} ${exchange.requester.lastname}` : 'Usuario no disponible'),
-                  location: exchange.requester_id === user?.id
-                    ? ((exchange.owner as any)?.address 
-                      ? `${(exchange.owner as any).address.state}, ${(exchange.owner as any).address.country}`
-                      : undefined)
-                    : ((exchange.requester as any)?.address 
-                      ? `${(exchange.requester as any).address.state}, ${(exchange.requester as any).address.country}`
-                      : undefined),
-                  avatar: exchange.requester_id === user?.id 
-                    ? (exchange.owner?.image || '/default-avatar.jpg')
-                    : (exchange.requester?.image || '/default-avatar.jpg'),
-                },
-                // Add owner field to help OrderCard determine roles correctly
-                owner: {
-                  id: exchange.owner?.id || '',
-                  name: exchange.owner ? `${exchange.owner.name} ${exchange.owner.lastname}` : 'Usuario no disponible',
-                  avatar: exchange.owner?.image || '/default-avatar.jpg',
-                },
-                requestedBooks: (exchange.owner_books || []).map(ub => ({
-                  title: ub?.book?.title || 'Título no disponible',
-                  author: ub?.book?.author || 'Autor no disponible',
-                  image: ub?.book?.image || '/default-book.jpg',
-                })),
-                offeredBooks: (exchange.requester_books || []).map(ub => ({
-                  title: ub?.book?.title || 'Título no disponible',
-                  author: ub?.book?.author || 'Autor no disponible',
-                  image: ub?.book?.image || '/default-book.jpg',
-                })),
-                canRate: exchange.can_rate,
-                // Check the appropriate rate based on user role
-                hasUserRated: exchange.requester_id === user?.id 
-                  ? !!exchange.requester_rate 
-                  : !!exchange.owner_rate,
-              }}
-                  onAccept={() => handleAcceptOffer(exchange.id)}
-                  onReject={() => handleRejectOffer(exchange.id)}
-                  onCancel={() => handleCancelOrder(exchange.id)}
-                  onComplete={() => handleCompleteOrder(exchange.id)}
-                  onCounterOffer={() => handleCounterOffer(exchange.id)}
-                  onChat={() => handleChat(exchange.id, exchange.requester?.id == user?.id ? exchange.owner?.id : exchange.requester?.id)}
-                  onRate={() => handleRate(exchange)}
-                  onUserPress={(userId) => navigate('profile', { userId })}
-                  />
-          ))
-        ) : (
-          <Text style={styles.emptyText}>No active orders</Text>
-        )}
-      </View>
-    </ScrollView>
+        {/* Status Filters */}
+        <View style={styles.filtersContainer}>
+          <Text style={styles.filtersLabel}>Filtrar por estado:</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.filtersScroll}
+          >
+            {statusFilters.map((filter) => (
+              <TouchableOpacity
+                key={filter.value}
+                style={[
+                  styles.filterChip,
+                  selectedStatusFilter === filter.value && styles.filterChipActive,
+                ]}
+                onPress={() => setSelectedStatusFilter(filter.value)}
+              >
+                <Text
+                  style={[
+                    styles.filterChipText,
+                    selectedStatusFilter === filter.value && styles.filterChipTextActive,
+                  ]}
+                >
+                  {filter.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            {strings.commerce.sections.receivedOffers} ({filteredReceivedOffers.length})
+          </Text>
+          {filteredReceivedOffers.length > 0 ? (
+            filteredReceivedOffers.map((exchange) => (
+              <OfferCard
+                key={exchange.id}
+                currentUserId={user?.id || ''}
+                currentUserImage={user?.image}
+                offer={{
+                  id: exchange.id,
+                  exchangeNumber: `Intercambio #${exchange.id.slice(-4)}`,
+                  date: new Date(exchange.date_created).toLocaleDateString(),
+                  status: getExchangeStatusInSpanish(exchange.status) as any,
+                  requester: {
+                    id: exchange.requester?.id,
+                    name: exchange.requester
+                      ? `${exchange.requester.name} ${exchange.requester.lastname}`
+                      : 'Usuario no disponible',
+                    role: 'Solicitante',
+                    avatar: exchange.requester?.image || (exchange.requester?.name?.charAt(0) || 'U'),
+                  },
+                  owner: {
+                    id: exchange.owner?.id || user?.id || '',
+                    name: user ? `${user.name} ${user.lastname}` : 'Usuario no disponible',
+                    role: 'Propietario',
+                    avatar: user?.image || (user?.name?.charAt(0) || 'U'),
+                  },
+                  requestedBooks: (exchange.owner_books || []).map(ub => ({
+                    title: ub?.book?.title || 'Título no disponible',
+                    author: ub?.book?.author || 'Autor no disponible',
+                    image: ub?.book?.image || '/default-book.jpg',
+                  })),
+                  offeredBooks: (exchange.requester_books || []).map(ub => ({
+                    title: ub?.book?.title || 'Título no disponible',
+                    author: ub?.book?.author || 'Autor no disponible',
+                    image: ub?.book?.image || '/default-book.jpg',
+                  })),
+                  canRate: exchange.can_rate,
+                  hasUserRated: !!exchange.owner_rate, // Current user is owner, so check owner_rate
+                }}
+                onAccept={() => handleAcceptOffer(exchange.id)}
+                onReject={() => handleRejectOffer(exchange.id)}
+                onChat={() => handleChat(exchange.id, exchange.requester?.id == user?.id ? exchange.owner?.id : exchange.requester?.id)}
+                onCancel={() => handleCancelOrder(exchange.id)}
+                onComplete={() => handleCompleteOrder(exchange.id)}
+                onCounterOffer={() => handleCounterOffer(exchange.id)}
+                onRate={() => handleRate(exchange)}
+                onUserPress={(userId) => navigate('profile', { userId })}
+              />
+            ))
+          ) : (
+            <Text style={styles.emptyText}>No received offers</Text>
+          )}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            {strings.commerce.sections.activeOrders} ({filteredActiveOrders.length})
+          </Text>
+          {filteredActiveOrders.length > 0 ? (
+            filteredActiveOrders.map((exchange) => (
+              <OrderCard
+                key={exchange.id}
+                currentUserId={user?.id || ''}
+                currentUserImage={user?.image}
+                order={{
+                  id: exchange.id,
+                  exchangeNumber: `Intercambio #${exchange.id.slice(-4)}`,
+                  date: new Date(exchange.date_created).toLocaleDateString(),
+                  status: getExchangeStatusInSpanish(exchange.status) as any,
+                  // Show the OTHER user (if I'm requester, show owner; if I'm owner, show requester)
+                  requester: {
+                    id: exchange.requester_id === user?.id ? exchange.owner?.id : exchange.requester?.id,
+                    name: exchange.requester_id === user?.id
+                      ? (exchange.owner ? `${exchange.owner.name} ${exchange.owner.lastname}` : 'Usuario no disponible')
+                      : (exchange.requester ? `${exchange.requester.name} ${exchange.requester.lastname}` : 'Usuario no disponible'),
+                    location: exchange.requester_id === user?.id
+                      ? ((exchange.owner as any)?.address
+                        ? `${(exchange.owner as any).address.state}, ${(exchange.owner as any).address.country}`
+                        : undefined)
+                      : ((exchange.requester as any)?.address
+                        ? `${(exchange.requester as any).address.state}, ${(exchange.requester as any).address.country}`
+                        : undefined),
+                    avatar: exchange.requester_id === user?.id
+                      ? (exchange.owner?.image || '/default-avatar.jpg')
+                      : (exchange.requester?.image || '/default-avatar.jpg'),
+                  },
+                  // Add owner field to help OrderCard determine roles correctly
+                  owner: {
+                    id: exchange.owner?.id || '',
+                    name: exchange.owner ? `${exchange.owner.name} ${exchange.owner.lastname}` : 'Usuario no disponible',
+                    avatar: exchange.owner?.image || '/default-avatar.jpg',
+                  },
+                  requestedBooks: (exchange.owner_books || []).map(ub => ({
+                    title: ub?.book?.title || 'Título no disponible',
+                    author: ub?.book?.author || 'Autor no disponible',
+                    image: ub?.book?.image || '/default-book.jpg',
+                  })),
+                  offeredBooks: (exchange.requester_books || []).map(ub => ({
+                    title: ub?.book?.title || 'Título no disponible',
+                    author: ub?.book?.author || 'Autor no disponible',
+                    image: ub?.book?.image || '/default-book.jpg',
+                  })),
+                  canRate: exchange.can_rate,
+                  // Check the appropriate rate based on user role
+                  hasUserRated: exchange.requester_id === user?.id
+                    ? !!exchange.requester_rate
+                    : !!exchange.owner_rate,
+                }}
+                onAccept={() => handleAcceptOffer(exchange.id)}
+                onReject={() => handleRejectOffer(exchange.id)}
+                onCancel={() => handleCancelOrder(exchange.id)}
+                onComplete={() => handleCompleteOrder(exchange.id)}
+                onCounterOffer={() => handleCounterOffer(exchange.id)}
+                onChat={() => handleChat(exchange.id, exchange.requester?.id == user?.id ? exchange.owner?.id : exchange.requester?.id)}
+                onRate={() => handleRate(exchange)}
+                onUserPress={(userId) => navigate('profile', { userId })}
+              />
+            ))
+          ) : (
+            <Text style={styles.emptyText}>No active orders</Text>
+          )}
+        </View>
+      </ScrollView>
 
       <CreateExchangeModal
         isVisible={showCreateModal}
@@ -417,7 +417,7 @@ export function TradeBooksView() {
           }}
           exchangeId={selectedExchange.id}
           otherUserName={
-            selectedExchange.requester?.id === user?.id 
+            selectedExchange.requester?.id === user?.id
               ? `${selectedExchange.owner?.name} ${selectedExchange.owner?.lastname}`.trim()
               : `${selectedExchange.requester?.name} ${selectedExchange.requester?.lastname}`.trim()
           }

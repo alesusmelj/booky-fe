@@ -859,7 +859,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
 
   if (!profileUser || loadingProfileUser) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['bottom']}>
         <View style={styles.profileLoadingContainer}>
           <ActivityIndicator size="large" color={colors.primary.main} />
           <Text style={styles.profileLoadingText}>
@@ -871,7 +871,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView
         style={styles.scrollView}
         refreshControl={
@@ -934,7 +934,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
                   return (
                     <View style={styles.locationContainer}>
                       <MaterialIcons name="location-on" size={16} color={colors.neutral.gray500} />
-                      <Text style={styles.locationText}>
+                      <Text style={styles.locationText} numberOfLines={2}>
                         {parts.join(', ')}
                       </Text>
                     </View>
@@ -1659,7 +1659,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutral.gray50,
+    backgroundColor: colors.neutral.white,
   },
   scrollView: {
     flex: 1,
@@ -2037,6 +2037,7 @@ const styles = StyleSheet.create({
     height: 4,
     backgroundColor: colors.neutral.gray300,
     borderRadius: 2,
+    display: 'none',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -2045,10 +2046,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
     color: colors.neutral.gray900,
     flex: 1,
+    marginBottom: 24,
+    marginTop: 8,
   },
   modalClose: {
     fontSize: 20,
@@ -2111,7 +2114,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   inputContainer: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   inputLabel: {
     fontSize: 14,

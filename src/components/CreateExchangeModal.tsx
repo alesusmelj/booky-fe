@@ -9,13 +9,14 @@ import {
   TextInput,
   ActivityIndicator,
   Image,
-  Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { bookApi, userApi, exchangeApi } from '../services/api';
 import { BookDto, UserDto, UserBookDto, CreateBookExchangeDto } from '../types/api';
 import { colors, theme } from '../constants';
 import { logger } from '../utils/logger';
+import { ensureHttps } from '../utils';
+import { useAlert } from '../contexts/AlertContext';
 
 interface CreateExchangeModalProps {
   isVisible: boolean;
@@ -53,6 +54,7 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
   preSelectedBook,
   preSelectedUser,
 }) => {
+  const { showAlert } = useAlert();
   const [currentStep, setCurrentStep] = useState(1);
   const [isCreating, setIsCreating] = useState(false);
 
@@ -279,11 +281,11 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
 
       // Show success message after modal is closed
       setTimeout(() => {
-        Alert.alert('Éxito', 'Intercambio creado exitosamente');
+        showAlert({ title: 'Éxito', message: 'Intercambio creado exitosamente' });
       }, 100);
     } catch (error) {
       logger.error('Error creating exchange:', error);
-      Alert.alert('Error', 'No se pudo crear el intercambio');
+      showAlert({ title: 'Error', message: 'No se pudo crear el intercambio' });
     } finally {
       setIsCreating(false);
     }
@@ -292,7 +294,7 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
   // Navigation handlers
   const goToStep2 = () => {
     if (step1.selectedBooks.length === 0) {
-      Alert.alert('Error', 'Debes seleccionar al menos un libro');
+      showAlert({ title: 'Error', message: 'Debes seleccionar al menos un libro' });
       return;
     }
     setCurrentStep(2);
@@ -301,7 +303,7 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
 
   const goToStep3 = () => {
     if (!step2.selectedUser) {
-      Alert.alert('Error', 'Debes seleccionar un usuario');
+      showAlert({ title: 'Error', message: 'Debes seleccionar un usuario' });
       return;
     }
     setCurrentStep(3);
@@ -381,7 +383,13 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
             ]}
             onPress={() => toggleBookSelection(book)}
           >
-            <Image source={{ uri: book.image }} style={styles.bookImage} />
+            {book.image ? (
+              <Image source={{ uri: ensureHttps(book.image) }} style={styles.bookImage} />
+            ) : (
+              <View style={[styles.bookImage, styles.bookImagePlaceholder]}>
+                <MaterialIcons name="menu-book" size={48} color={colors.neutral.gray400} />
+              </View>
+            )}
             <Text style={styles.bookTitle} numberOfLines={2}>{book.title}</Text>
             <Text style={styles.bookAuthor} numberOfLines={1}>{book.author}</Text>
             {step1.selectedBooks.some(b => b.id === book.id) && (
@@ -406,7 +414,13 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
           >
             {step1.selectedBooks.map((book) => (
               <View key={book.id} style={styles.selectedBook}>
-                <Image source={{ uri: book.image }} style={styles.selectedBookImage} />
+                {book.image ? (
+                  <Image source={{ uri: ensureHttps(book.image) }} style={styles.selectedBookImage} />
+                ) : (
+                  <View style={[styles.selectedBookImage, styles.bookImagePlaceholder]}>
+                    <MaterialIcons name="menu-book" size={24} color={colors.neutral.gray400} />
+                  </View>
+                )}
                 <TouchableOpacity
                   style={styles.removeButton}
                   onPress={() => toggleBookSelection(book)}
@@ -521,7 +535,13 @@ const CreateExchangeModal: React.FC<CreateExchangeModalProps> = ({
               ]}
               onPress={() => toggleMyBookSelection(userBook)}
             >
-              <Image source={{ uri: userBook.book.image }} style={styles.bookImage} />
+              {userBook.book.image ? (
+                <Image source={{ uri: ensureHttps(userBook.book.image) }} style={styles.bookImage} />
+              ) : (
+                <View style={[styles.bookImage, styles.bookImagePlaceholder]}>
+                  <MaterialIcons name="menu-book" size={48} color={colors.neutral.gray400} />
+                </View>
+              )}
               <Text style={styles.bookTitle} numberOfLines={2}>{userBook.book.title}</Text>
               <Text style={styles.bookAuthor} numberOfLines={1}>{userBook.book.author}</Text>
               {step3.selectedMyBooks.some(b => b.id === userBook.id) && (
@@ -756,13 +776,19 @@ const styles = StyleSheet.create({
   },
   bookCardSelected: {
     borderColor: colors.primary.main,
-    backgroundColor: colors.primary.main,
+    borderWidth: 2,
+    backgroundColor: colors.primary.light,
   },
   bookImage: {
     width: '100%',
     height: 120,
     borderRadius: 8,
     marginBottom: 8,
+  },
+  bookImagePlaceholder: {
+    backgroundColor: colors.neutral.gray100,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   bookTitle: {
     fontSize: 14,
@@ -837,7 +863,8 @@ const styles = StyleSheet.create({
   },
   userCardSelected: {
     borderColor: colors.primary.main,
-    backgroundColor: colors.primary.main,
+    borderWidth: 2,
+    backgroundColor: colors.primary.light,
   },
   userInfo: {
     flexDirection: 'row',
@@ -866,6 +893,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: theme.text.primary,
     marginBottom: 2,
+    flex: 1,
   },
   userUsername: {
     fontSize: 14,
@@ -987,7 +1015,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   summaryContainer: {
-    gap: 24,
+    gap: 4,
   },
   summarySection: {
     backgroundColor: colors.neutral.gray50,
@@ -995,6 +1023,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderLeftWidth: 4,
     borderLeftColor: colors.primary.main,
+    marginBottom: 16,
   },
   sectionHeader: {
     flexDirection: 'row',

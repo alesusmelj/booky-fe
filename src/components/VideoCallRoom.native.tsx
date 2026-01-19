@@ -4,7 +4,6 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Dimensions,
   SafeAreaView,
@@ -15,6 +14,7 @@ import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { logger } from '../utils/logger';
 import { LiveKitService, LiveKitToken } from '../services/liveKitService';
 import { useAuth } from '../contexts/AuthContext';
+import { useAlert } from '../contexts/AlertContext';
 import { getLiveKitUrl } from '../config/livekit';
 import { PanoramaViewer } from './PanoramaViewer';
 
@@ -96,6 +96,7 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
   isModerator = false,
 }) => {
   const { user } = useAuth();
+  const { showAlert } = useAlert();
   const [isConnecting, setIsConnecting] = useState(true);
   const [token, setToken] = useState<LiveKitToken | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -117,6 +118,7 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
 
   // Connection state
   const [isConnected, setIsConnected] = useState(false);
+  const [agentReady, setAgentReady] = useState(false); // Track if agent has connected at least once
 
   const connectToRoom = useCallback(async () => {
     try {
@@ -211,6 +213,12 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
       room.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
         logger.info('Participant connected:', participant.identity);
         setParticipants(prev => [...prev, participant]);
+
+        // Mark agent as ready when it connects
+        if (participant.identity?.includes('agent')) {
+          logger.info('🤖 Agent connected, marking as ready');
+          setAgentReady(true);
+        }
       });
 
       room.on(RoomEvent.ParticipantDisconnected, (participant: RemoteParticipant) => {
@@ -245,7 +253,11 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
       logger.error('Error connecting to video call:', err);
       setError(err instanceof Error ? err.message : 'Failed to connect');
       setIsConnecting(false);
-      Alert.alert('Connection Error', 'Failed to connect to video call. Please try again.');
+      showAlert({
+        title: 'Error de Conexión',
+        message: 'No se pudo conectar a la videollamada. Por favor intenta de nuevo.',
+        buttons: [{ text: 'OK', style: 'default' }]
+      });
     }
   }, [readingClubId, user, room]);
 
@@ -290,6 +302,10 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
       if (scenes && Array.isArray(scenes) && scenes.length > 0) {
         setGeneratedImageBase64(scenes[0].image_base64);
         logger.info('✅ Moderator state updated with latest scene');
+
+        // Auto-open panorama viewer for moderator
+        setShowPanoramaViewer(true);
+        logger.info('🎬 Auto-opening panorama viewer for moderator');
       }
 
       // Notify others via LiveKit
@@ -309,15 +325,24 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
       }
     } catch (err) {
       logger.error('❌ Error in handleGenerateScene:', err);
-      Alert.alert('Error', 'No se pudo generar la escena.');
+      showAlert({
+        title: 'Error',
+        message: 'No se pudo generar la escena.',
+        buttons: [{ text: 'OK', style: 'default' }]
+      });
     } finally {
       setIsGeneratingImage(false);
     }
-  }, [readingClubId, room]);
+  }, [readingClubId, room, showAlert]);
 
   // Handle incoming LiveKit data messages
   useEffect(() => {
-    if (!isConnected || !room) return;
+    if (!isConnected || !room) {
+      logger.info('📡 [DATA-LISTENER] Waiting for connection...');
+      return;
+    }
+
+    logger.info('📡 [DATA-LISTENER] Setting up data message listener');
 
     const onDataReceived = async (payload: Uint8Array, participant: any, kind: any, topic?: string) => {
       try {
@@ -330,10 +355,16 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
         if (topic === 'voice_cmd_result' || message.type === 'STT_RESULT') {
           if (message.type === 'STT_RESULT') {
             const { speaker, text } = message;
+            logger.info(`📝 STT_RESULT received | Speaker: ${speaker} | Text length: ${text?.length || 0}`);
+
             if (speaker === room.localParticipant?.identity && text.trim()) {
+              logger.info('✅ STT_RESULT matches local participant, triggering scene generation');
               handleGenerateScene(text.trim());
+            } else {
+              logger.info(`⏭️ STT_RESULT ignored (speaker: ${speaker}, local: ${room.localParticipant?.identity})`);
             }
           } else if (message.type === 'BUSY') {
+            logger.info('⚠️ Agent BUSY message received');
             setIsReadingMode(false);
           }
         }
@@ -351,6 +382,10 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
                 if (scenes && Array.isArray(scenes) && scenes.length > 0) {
                   setGeneratedImageBase64(scenes[0].image_base64);
                   logger.info('✅ Image state synced automatically');
+
+                  // Auto-open panorama viewer for participants
+                  setShowPanoramaViewer(true);
+                  logger.info('🎬 Auto-opening panorama viewer for participant');
                 }
               } catch (err) {
                 logger.error('❌ Sync failed:', err);
@@ -379,11 +414,19 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
       try {
         await localParticipant.setMicrophoneEnabled(true);
         setIsMuted(false);
+
+        // If this is the first time and agent just connected, wait a bit for it to be ready
+        if (!agentReady) {
+          logger.info('⏳ First STT attempt - waiting 1s for agent to initialize...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
         const startMessage = { type: 'START_STT', speaker: localParticipant.identity, ts: Date.now() };
         await room.localParticipant.publishData(
           new TextEncoder().encode(JSON.stringify(startMessage)),
           { reliable: true, topic: 'voice_cmd' }
         );
+        logger.info('✅ START_STT command sent to agent');
       } catch (err) {
         logger.error('❌ Failed to start STT:', err);
         setIsReadingMode(false);
@@ -458,17 +501,19 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
       } else {
         logger.warn('⚠️ No scenes found for this reading club');
         logger.warn('⚠️ Scenes value:', scenes);
-        Alert.alert(
-          'Sin contenido',
-          'Aún no hay escenas 360 generadas para este club de lectura. Usa el botón de lectura para crear una.'
-        );
+        showAlert({
+          title: 'Sin contenido',
+          message: 'Aún no hay escenas 360 generadas para este club de lectura. Usa el botón de lectura para crear una.',
+          buttons: [{ text: 'OK', style: 'default' }]
+        });
       }
     } catch (err) {
       logger.error('❌ Error fetching scene images:', err);
-      Alert.alert(
-        'Error',
-        'No se pudieron cargar las escenas. Inténtalo de nuevo.'
-      );
+      showAlert({
+        title: 'Error',
+        message: 'No se pudieron cargar las escenas. Inténtalo de nuevo.',
+        buttons: [{ text: 'OK', style: 'default' }]
+      });
     }
   }, [readingClubId]);
 
@@ -531,6 +576,7 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
   // ============================================================================
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={theme.colors.background} />
       {/* ════════════════════════════════════════════════════════════════════
           HEADER - Clean dark header with elegant typography
           ════════════════════════════════════════════════════════════════════ */}

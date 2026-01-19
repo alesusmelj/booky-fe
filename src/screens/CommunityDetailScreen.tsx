@@ -11,7 +11,6 @@ import {
   Modal,
   Platform,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../constants';
@@ -227,7 +226,11 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
       await toggleLike(postId);
     } catch (error) {
       logger.error('❌ Error toggling like:', error);
-      Alert.alert('Error', 'No se pudo dar/quitar like. Intenta de nuevo.');
+      showAlert({
+        title: 'Error',
+        message: 'No se pudo dar/quitar like. Intenta de nuevo.',
+        buttons: [{ text: 'OK', style: 'default' }]
+      });
     }
   };
 
@@ -238,7 +241,11 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
   const handleDelete = async (postId: string) => {
     const success = await deletePost(postId);
     if (!success) {
-      Alert.alert('Error', 'No se pudo eliminar la publicación. Intenta de nuevo.');
+      showAlert({
+        title: 'Error',
+        message: 'No se pudo eliminar la publicación. Intenta de nuevo.',
+        buttons: [{ text: 'OK', style: 'default' }]
+      });
     }
   };
 
@@ -256,7 +263,11 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
 
       if (success) {
         console.log('✅ Successfully joined reading club:', clubId);
-        Alert.alert('Success', 'You have successfully joined the reading club!');
+        showAlert({
+          title: 'Éxito',
+          message: '¡Te has unido al club de lectura exitosamente!',
+          buttons: [{ text: 'OK', style: 'default' }]
+        });
 
         // Refresh reading clubs to get updated data
         console.log('🔄 Refreshing reading clubs after join...');
@@ -264,11 +275,19 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
         console.log('✅ Reading clubs refreshed successfully');
       } else {
         console.log('❌ Failed to join reading club:', clubId);
-        Alert.alert('Error', 'Failed to join the reading club. Please try again.');
+        showAlert({
+          title: 'Error',
+          message: 'No se pudo unir al club de lectura. Por favor intenta de nuevo.',
+          buttons: [{ text: 'OK', style: 'default' }]
+        });
       }
     } catch (error) {
       console.error('❌ Error in handleJoinClub:', error);
-      Alert.alert('Error', 'Failed to join the reading club. Please try again.');
+      showAlert({
+        title: 'Error',
+        message: 'No se pudo unir al club de lectura. Por favor intenta de nuevo.',
+        buttons: [{ text: 'OK', style: 'default' }]
+      });
     }
   };
 
@@ -292,19 +311,35 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
         }, imageUri);
 
         if (!success) {
-          Alert.alert('Error', 'No se pudo crear el post. Intenta de nuevo.');
+          showAlert({
+            title: 'Error',
+            message: 'No se pudo crear el post. Intenta de nuevo.',
+            buttons: [{ text: 'OK', style: 'default' }]
+          });
         }
       } catch (error) {
         logger.error('❌ Error creating community post:', error);
-        Alert.alert('Error', 'No se pudo crear el post. Intenta de nuevo.');
+        showAlert({
+          title: 'Error',
+          message: 'No se pudo crear el post. Intenta de nuevo.',
+          buttons: [{ text: 'OK', style: 'default' }]
+        });
       }
     } else {
       if (!content.trim()) {
-        Alert.alert('Error', 'El post no puede estar vacío');
+        showAlert({
+          title: 'Error',
+          message: 'El post no puede estar vacío',
+          buttons: [{ text: 'OK', style: 'default' }]
+        });
       }
       if (!communityId) {
         logger.error('❌ No communityId provided for post creation');
-        Alert.alert('Error', 'Error interno: ID de comunidad no encontrado');
+        showAlert({
+          title: 'Error',
+          message: 'Error interno: ID de comunidad no encontrado',
+          buttons: [{ text: 'OK', style: 'default' }]
+        });
       }
     }
   };

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Text, ActivityIndicator, Platform } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Text, ActivityIndicator, Platform, StatusBar } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Asset } from 'expo-asset';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -85,6 +85,31 @@ export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({
   const yaw0Ref = useRef(0);
   const pitch0Ref = useRef(0);
 
+  // ====== recenter function ======
+  const handleRecenter = () => {
+    console.log('[PANORAMA] Recentering view - triggering recalibration...');
+
+    // Trigger a new calibration cycle
+    // This will use the current phone orientation as the new "zero" point
+    calibratingRef.current = true;
+    calStartRef.current = Date.now();
+
+    // Reset filtered values to ensure smooth transition
+    yawFilteredRef.current = 0;
+    pitchFilteredRef.current = 0;
+
+    // Force immediate center view while calibration happens
+    if (webRef.current && webHasSetPose) {
+      webRef.current.postMessage(
+        JSON.stringify({
+          type: 'pose',
+          yaw: 0,
+          pitch: 0,
+        })
+      );
+    }
+  };
+
   // ====== stats ======
   const dmCountRef = useRef(0);
   const dmT0Ref = useRef(Date.now());
@@ -92,12 +117,13 @@ export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({
   const sendT0Ref = useRef(Date.now());
 
   // ============================================================
-  // LANDSCAPE (pantalla solo horizontal)
+  // LANDSCAPE (pantalla solo horizontal) + Hide Status Bar
   // ============================================================
   useEffect(() => {
     (async () => {
       try {
-        console.log('[PANORAMA] lock landscape');
+        console.log('[PANORAMA] lock landscape + hide status bar');
+        StatusBar.setHidden(true, 'fade');
         await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
       } catch (e) {
         console.log('[PANORAMA] lock landscape error', String((e as any)?.message ?? e));
@@ -107,7 +133,8 @@ export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({
     return () => {
       (async () => {
         try {
-          console.log('[PANORAMA] restore portrait');
+          console.log('[PANORAMA] restore portrait + show status bar');
+          StatusBar.setHidden(false, 'fade');
           await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
           await ScreenOrientation.unlockAsync();
         } catch { }
@@ -566,6 +593,22 @@ ${pannellumJs}
         </TouchableOpacity>
       )}
 
+      {/* Center View Button */}
+      <TouchableOpacity
+        style={[
+          styles.centerButton,
+          isModerator && onToggleReadingMode && styles.centerButtonWithReading
+        ]}
+        onPress={handleRecenter}
+        activeOpacity={0.8}
+      >
+        <Ionicons
+          name="compass-outline"
+          size={28}
+          color="#F0F6FC"
+        />
+      </TouchableOpacity>
+
       {/* Recording Indicator */}
       {isReadingMode && (
         <View style={styles.recordingIndicator}>
@@ -650,5 +693,27 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
+  },
+  centerButton: {
+    position: 'absolute',
+    bottom: 30,
+    right: 30,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(13, 17, 23, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
+    borderWidth: 1.5,
+    borderColor: 'rgba(240, 246, 252, 0.2)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 8,
+  },
+  centerButtonWithReading: {
+    right: 100, // Move left when reading button is present
   },
 });

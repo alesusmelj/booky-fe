@@ -593,7 +593,7 @@ export const CommunityDetailScreen: React.FC<CommunityDetailScreenProps> = ({ co
               onPress={() => setShowCreateClubModal(true)}
               activeOpacity={0.8}
             >
-              <Text style={styles.createFirstClubButtonText}>+ Create your first reading club</Text>
+              <Text style={styles.createFirstClubButtonText}>+ Crea tu primer club de lectura</Text>
             </TouchableOpacity>
           </View>
         );

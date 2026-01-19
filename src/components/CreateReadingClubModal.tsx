@@ -52,7 +52,7 @@ export const CreateReadingClubModal: React.FC<CreateReadingClubModalProps> = ({
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedTime, setSelectedTime] = useState<{ hour: number; minute: number }>({ hour: 19, minute: 0 });
   const [bookSearchQuery, setBookSearchQuery] = useState('');
-  
+
   // Use the books hook for real search
   const { books, loading: booksLoading, error: booksError, searchBooks, clearBooks } = useBooks();
 
@@ -90,10 +90,10 @@ export const CreateReadingClubModal: React.FC<CreateReadingClubModalProps> = ({
       // Create a new Date object combining the selected date and time
       const meetingDateTime = new Date(selectedDate);
       meetingDateTime.setHours(selectedTime.hour, selectedTime.minute, 0, 0);
-      
+
       // Format to ISO string with microseconds (similar to the requested format)
       const formattedDateTime = meetingDateTime.toISOString().replace('Z', '') + '000';
-      
+
       onCreateClub({
         name: clubName,
         description: clubDescription,
@@ -112,44 +112,44 @@ export const CreateReadingClubModal: React.FC<CreateReadingClubModalProps> = ({
     <View style={styles.stepIndicator}>
       <View style={styles.stepContainer}>
         <View style={[
-          styles.stepCircle, 
+          styles.stepCircle,
           currentStep === 'details' && styles.activeStep,
           canProceedFromDetails && styles.completedStep
         ]}>
           <Text style={[
-            styles.stepNumber, 
+            styles.stepNumber,
             (currentStep === 'details' || canProceedFromDetails) && styles.activeStepText
           ]}>1</Text>
         </View>
         <Text style={styles.stepLabel}>Detalles</Text>
       </View>
-      
+
       <View style={[styles.stepLine, canProceedFromDetails && styles.completedStepLine]} />
-      
+
       <View style={styles.stepContainer}>
         <View style={[
-          styles.stepCircle, 
+          styles.stepCircle,
           currentStep === 'book' && styles.activeStep,
           canProceedFromBook && styles.completedStep
         ]}>
           <Text style={[
-            styles.stepNumber, 
+            styles.stepNumber,
             (currentStep === 'book' || canProceedFromBook) && styles.activeStepText
           ]}>2</Text>
         </View>
         <Text style={styles.stepLabel}>Libro</Text>
       </View>
-      
+
       <View style={[styles.stepLine, canProceedFromBook && styles.completedStepLine]} />
-      
+
       <View style={styles.stepContainer}>
         <View style={[
-          styles.stepCircle, 
+          styles.stepCircle,
           currentStep === 'schedule' && styles.activeStep,
           selectedDate && styles.completedStep
         ]}>
           <Text style={[
-            styles.stepNumber, 
+            styles.stepNumber,
             (currentStep === 'schedule' || selectedDate) && styles.activeStepText
           ]}>3</Text>
         </View>
@@ -161,7 +161,7 @@ export const CreateReadingClubModal: React.FC<CreateReadingClubModalProps> = ({
   const renderDetailsStep = () => (
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Información del Club</Text>
-      
+
       <View style={styles.formField}>
         <Text style={styles.formLabel}>Nombre del Club</Text>
         <TextInput
@@ -172,7 +172,7 @@ export const CreateReadingClubModal: React.FC<CreateReadingClubModalProps> = ({
           onChangeText={setClubName}
         />
       </View>
-      
+
       <View style={styles.formField}>
         <Text style={styles.formLabel}>Descripción</Text>
         <TextInput
@@ -192,7 +192,7 @@ export const CreateReadingClubModal: React.FC<CreateReadingClubModalProps> = ({
   const renderBookStep = () => (
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Selecciona el Primer Libro</Text>
-      
+
       {/* Search Input */}
       <View style={styles.searchContainer}>
         <TextInput
@@ -233,7 +233,7 @@ export const CreateReadingClubModal: React.FC<CreateReadingClubModalProps> = ({
           <Text style={styles.promptText}>Escribe para buscar libros</Text>
         </View>
       )}
-      
+
       {/* Books List */}
       {books.length > 0 && (
         <ScrollView style={styles.booksContainer} showsVerticalScrollIndicator={false}>
@@ -247,9 +247,9 @@ export const CreateReadingClubModal: React.FC<CreateReadingClubModalProps> = ({
               onPress={() => setSelectedBook(book)}
               activeOpacity={0.7}
             >
-              <Image 
-                source={{ uri: book.image || 'https://via.placeholder.com/80x120?text=No+Image' }} 
-                style={styles.bookCover} 
+              <Image
+                source={{ uri: book.image || 'https://via.placeholder.com/80x120?text=No+Image' }}
+                style={styles.bookCover}
               />
               <View style={styles.bookInfo}>
                 <Text style={styles.bookTitle} numberOfLines={2}>
@@ -284,7 +284,7 @@ export const CreateReadingClubModal: React.FC<CreateReadingClubModalProps> = ({
   const renderScheduleStep = () => (
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Programar Primera Reunión</Text>
-      
+
       <View style={styles.formField}>
         <Text style={styles.formLabel}>Fecha de la Primera Reunión</Text>
         <Text style={styles.formHelper}>
@@ -296,7 +296,7 @@ export const CreateReadingClubModal: React.FC<CreateReadingClubModalProps> = ({
           minDate={new Date()}
         />
       </View>
-      
+
       <View style={styles.formField}>
         <Text style={styles.formLabel}>Hora de la Reunión</Text>
         <TimePicker
@@ -320,7 +320,7 @@ export const CreateReadingClubModal: React.FC<CreateReadingClubModalProps> = ({
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Crear Club de Lectura</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={handleClose}
               style={styles.closeButton}
               activeOpacity={0.7}
@@ -331,7 +331,7 @@ export const CreateReadingClubModal: React.FC<CreateReadingClubModalProps> = ({
 
           {renderStepIndicator()}
 
-          <ScrollView 
+          <ScrollView
             style={styles.contentContainer}
             contentContainerStyle={styles.contentContainerInner}
             showsVerticalScrollIndicator={false}
@@ -344,14 +344,14 @@ export const CreateReadingClubModal: React.FC<CreateReadingClubModalProps> = ({
           <View style={styles.actionButtons}>
             {currentStep === 'details' ? (
               <>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.cancelButton}
                   onPress={handleClose}
                   activeOpacity={0.7}
                 >
                   <Text style={styles.cancelButtonText}>Cancelar</Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[
                     styles.nextButton,
                     !canProceedFromDetails && styles.disabledButton
@@ -370,14 +370,14 @@ export const CreateReadingClubModal: React.FC<CreateReadingClubModalProps> = ({
               </>
             ) : currentStep === 'book' ? (
               <>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.backButton}
                   onPress={() => setCurrentStep('details')}
                   activeOpacity={0.7}
                 >
                   <Text style={styles.backButtonText}>← Volver</Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[
                     styles.nextButton,
                     !canProceedFromBook && styles.disabledButton
@@ -396,14 +396,14 @@ export const CreateReadingClubModal: React.FC<CreateReadingClubModalProps> = ({
               </>
             ) : (
               <>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.backButton}
                   onPress={() => setCurrentStep('book')}
                   activeOpacity={0.7}
                 >
                   <Text style={styles.backButtonText}>← Volver</Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[
                     styles.createButton,
                     !canCreateClub && styles.disabledButton
@@ -618,6 +618,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 16,
+    color: colors.neutral.gray900,
     backgroundColor: colors.neutral.white,
   },
   loadingContainer: {

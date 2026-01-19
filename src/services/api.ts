@@ -150,6 +150,7 @@ export const apiRequest = async <T = any>(
     },
   };
 
+  console.log('🌐 [API Request] token: ', authToken);
   // Add auth token if available
   if (authToken) {
     config.headers = {

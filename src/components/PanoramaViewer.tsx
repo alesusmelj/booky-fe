@@ -5,10 +5,16 @@ import { Asset } from 'expo-asset';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { DeviceMotion } from 'expo-sensors';
+import { Ionicons } from '@expo/vector-icons';
 
 export interface PanoramaViewerProps {
   uri: string;
   onClose?: () => void;
+  // Reading mode props for narrator
+  isModerator?: boolean;
+  isReadingMode?: boolean;
+  onToggleReadingMode?: () => void;
+  isGeneratingImage?: boolean;
 }
 
 // ------------------------ math ------------------------
@@ -27,7 +33,14 @@ const emaAngle = (prev: number, target: number, alpha: number) => normalizePi(pr
 // EMA for linear values (pitch)
 const ema = (prev: number, target: number, alpha: number) => prev + (target - prev) * alpha;
 
-export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({ uri, onClose }) => {
+export const PanoramaViewer: React.FC<PanoramaViewerProps> = ({
+  uri,
+  onClose,
+  isModerator = false,
+  isReadingMode = false,
+  onToggleReadingMode,
+  isGeneratingImage = false,
+}) => {
   const webRef = useRef<WebView>(null);
 
   const [pannellumJs, setPannellumJs] = useState<string | null>(null);
@@ -528,6 +541,38 @@ ${pannellumJs}
           <Text style={styles.closeText}>✕</Text>
         </TouchableOpacity>
       )}
+
+      {/* Reading Control for Moderator */}
+      {isModerator && onToggleReadingMode && (
+        <TouchableOpacity
+          style={[
+            styles.readingButton,
+            isReadingMode && styles.readingButtonActive,
+            isGeneratingImage && styles.readingButtonDisabled
+          ]}
+          onPress={onToggleReadingMode}
+          disabled={isGeneratingImage}
+          activeOpacity={0.8}
+        >
+          {isGeneratingImage ? (
+            <ActivityIndicator size="small" color="#58A6FF" />
+          ) : (
+            <Ionicons
+              name={isReadingMode ? "book" : "book-outline"}
+              size={32}
+              color={isReadingMode ? "#F85149" : "#F0F6FC"}
+            />
+          )}
+        </TouchableOpacity>
+      )}
+
+      {/* Recording Indicator */}
+      {isReadingMode && (
+        <View style={styles.recordingIndicator}>
+          <View style={styles.recordingDot} />
+          <Text style={styles.recordingText}>Grabando lectura...</Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -556,4 +601,54 @@ const styles = StyleSheet.create({
     zIndex: 50,
   },
   closeText: { color: '#fff', fontSize: 22, fontWeight: 'bold' },
+  readingButton: {
+    position: 'absolute',
+    bottom: 30,
+    alignSelf: 'center',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(13, 17, 23, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
+    borderWidth: 1.5,
+    borderColor: 'rgba(240, 246, 252, 0.2)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 8,
+  },
+  readingButtonActive: {
+    backgroundColor: 'rgba(248, 81, 73, 0.15)',
+    borderColor: '#F85149',
+  },
+  readingButtonDisabled: {
+    opacity: 0.6,
+  },
+  recordingIndicator: {
+    position: 'absolute',
+    top: 24,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    zIndex: 100,
+  },
+  recordingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#F85149',
+    marginRight: 8,
+  },
+  recordingText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
 });

@@ -87,16 +87,26 @@ const theme = {
 interface VideoCallRoomProps {
   readingClubId: string;
   onClose: () => void;
+  isModerator?: boolean;
 }
 
 export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
   readingClubId,
   onClose,
+  isModerator = false,
 }) => {
   const { user } = useAuth();
   const [isConnecting, setIsConnecting] = useState(true);
   const [token, setToken] = useState<LiveKitToken | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isUserModerator, setIsUserModerator] = useState(isModerator);
+  // Sync isModerator prop with local state
+  useEffect(() => {
+    logger.info('👤 Prop isModerator updated:', isModerator);
+    if (isModerator) {
+      setIsUserModerator(true);
+    }
+  }, [isModerator]);
 
   // Real LiveKit room
   const [room] = useState(() => new Room());
@@ -152,6 +162,10 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
       });
 
       setToken(tokenData);
+      if (tokenData.moderator) {
+        logger.info('👑 Token confirms moderator role');
+        setIsUserModerator(true);
+      }
 
       // Get LiveKit server URL
       const livekitUrl = getLiveKitUrl();
@@ -204,9 +218,29 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
         setParticipants(prev => prev.filter(p => p.identity !== participant.identity));
       });
 
+      // Track updates
+      room.on(RoomEvent.LocalTrackPublished, (publication) => {
+        logger.info(`🎤 Local track published: ${publication.trackName} (${publication.kind})`);
+      });
+
+      room.on(RoomEvent.LocalTrackUnpublished, (publication) => {
+        logger.info(`🎤 Local track unpublished: ${publication.trackName} (${publication.kind})`);
+      });
+
+      room.on(RoomEvent.TrackMuted, (publication, participant) => {
+        if (participant === room.localParticipant) {
+          logger.info(`🎤 Local track MUTED: ${publication.trackName}`);
+        }
+      });
+
+      room.on(RoomEvent.TrackUnmuted, (publication, participant) => {
+        if (participant === room.localParticipant) {
+          logger.info(`🎤 Local track UNMUTED: ${publication.trackName}`);
+        }
+      });
+
       // Initialize with current participants
       setParticipants(Array.from(room.remoteParticipants.values()));
-
     } catch (err) {
       logger.error('Error connecting to video call:', err);
       setError(err instanceof Error ? err.message : 'Failed to connect');
@@ -214,6 +248,8 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
       Alert.alert('Connection Error', 'Failed to connect to video call. Please try again.');
     }
   }, [readingClubId, user, room]);
+
+
 
   const disconnectFromRoom = useCallback(async () => {
     try {
@@ -232,19 +268,149 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [showPanoramaViewer, setShowPanoramaViewer] = useState(false);
 
-  // URL de imagen panorámica por defecto
+  // Reading Mode State
+  const [isReadingMode, setIsReadingMode] = useState(false);
+  const [capturedText, setCapturedText] = useState('');
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [generatedImageBase64, setGeneratedImageBase64] = useState<string | null>(null);
+  const [hasNewScene, setHasNewScene] = useState(false); // Notification badge for new scenes
+
   const PANORAMA_URL = 'https://res.cloudinary.com/dfsfkyyx7/image/upload/v1758152482/descarga_1_emrail.png';
+
+  const handleGenerateScene = useCallback(async (text: string) => {
+    try {
+      setIsGeneratingImage(true);
+      logger.info('📤 Starting scene generation...');
+
+      await LiveKitService.generateSceneImage(readingClubId, text);
+      logger.info('✅ Scene generation request finished');
+
+      // Fetch latest images
+      const scenes = await LiveKitService.getSceneImages(readingClubId);
+      if (scenes && Array.isArray(scenes) && scenes.length > 0) {
+        setGeneratedImageBase64(scenes[0].image_base64);
+        logger.info('✅ Moderator state updated with latest scene');
+      }
+
+      // Notify others via LiveKit
+      if (room && room.localParticipant) {
+        const notification = {
+          type: 'NEW_SCENE_AVAILABLE',
+          timestamp: Date.now(),
+          generatedBy: room.localParticipant.identity,
+        };
+
+        logger.info(`📡 Publishing notification type: ${notification.type}`);
+        await room.localParticipant.publishData(
+          new TextEncoder().encode(JSON.stringify(notification)),
+          { reliable: true, topic: 'scene_notifications' }
+        );
+        logger.info('✅ Notification published to all participants');
+      }
+    } catch (err) {
+      logger.error('❌ Error in handleGenerateScene:', err);
+      Alert.alert('Error', 'No se pudo generar la escena.');
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  }, [readingClubId, room]);
+
+  // Handle incoming LiveKit data messages
+  useEffect(() => {
+    if (!isConnected || !room) return;
+
+    const onDataReceived = async (payload: Uint8Array, participant: any, kind: any, topic?: string) => {
+      try {
+        const decoded = new TextDecoder().decode(payload);
+        const message = JSON.parse(decoded);
+
+        logger.info(`📡 Data Received | Topic: ${topic || 'none'} | Type: ${message.type}`);
+
+        // 1. STT Results (from Agent)
+        if (topic === 'voice_cmd_result' || message.type === 'STT_RESULT') {
+          if (message.type === 'STT_RESULT') {
+            const { speaker, text } = message;
+            if (speaker === room.localParticipant?.identity && text.trim()) {
+              handleGenerateScene(text.trim());
+            }
+          } else if (message.type === 'BUSY') {
+            setIsReadingMode(false);
+          }
+        }
+
+        // 2. Scene Notifications (from Narrator)
+        if (topic === 'scene_notifications' || message.type === 'NEW_SCENE_AVAILABLE') {
+          if (message.type === 'NEW_SCENE_AVAILABLE') {
+            if (message.generatedBy !== room.localParticipant?.identity) {
+              logger.info(`🎬 NEW_SCENE_AVAILABLE from ${message.generatedBy}`);
+              setHasNewScene(true);
+
+              // Auto-sync latest image
+              try {
+                const scenes = await LiveKitService.getSceneImages(readingClubId);
+                if (scenes && Array.isArray(scenes) && scenes.length > 0) {
+                  setGeneratedImageBase64(scenes[0].image_base64);
+                  logger.info('✅ Image state synced automatically');
+                }
+              } catch (err) {
+                logger.error('❌ Sync failed:', err);
+              }
+            }
+          }
+        }
+      } catch (err) {
+        logger.error('❌ Error processing data message:', err);
+      }
+    };
+
+    room.on(RoomEvent.DataReceived, onDataReceived);
+    return () => {
+      room.off(RoomEvent.DataReceived, onDataReceived);
+    };
+  }, [isConnected, room, readingClubId, handleGenerateScene]);
+
+  const handleToggleReadingMode = useCallback(async () => {
+    if (!localParticipant || !room) return;
+
+    if (!isReadingMode) {
+      logger.info('📖 Starting Reading Mode');
+      setCapturedText('');
+      setIsReadingMode(true);
+      try {
+        await localParticipant.setMicrophoneEnabled(true);
+        setIsMuted(false);
+        const startMessage = { type: 'START_STT', speaker: localParticipant.identity, ts: Date.now() };
+        await room.localParticipant.publishData(
+          new TextEncoder().encode(JSON.stringify(startMessage)),
+          { reliable: true, topic: 'voice_cmd' }
+        );
+      } catch (err) {
+        logger.error('❌ Failed to start STT:', err);
+        setIsReadingMode(false);
+      }
+    } else {
+      logger.info('⏹️ Stopping Reading Mode');
+      try {
+        const stopMessage = { type: 'STOP_STT', speaker: localParticipant.identity, ts: Date.now() };
+        await room.localParticipant.publishData(
+          new TextEncoder().encode(JSON.stringify(stopMessage)),
+          { reliable: true, topic: 'voice_cmd' }
+        );
+      } catch (err) {
+        logger.error('❌ Failed to stop STT:', err);
+      }
+      setIsReadingMode(false);
+    }
+  }, [isReadingMode, localParticipant, room, handleGenerateScene]);
 
   const toggleMute = useCallback(async () => {
     try {
       if (localParticipant) {
         await localParticipant.setMicrophoneEnabled(isMuted);
         setIsMuted(!isMuted);
-        logger.info('Microphone toggled:', !isMuted ? 'muted' : 'unmuted');
       }
     } catch (err) {
       logger.error('Error toggling microphone:', err);
-      Alert.alert('Error', 'Failed to toggle microphone');
     }
   }, [isMuted, localParticipant]);
 
@@ -253,11 +419,9 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
       if (localParticipant) {
         await localParticipant.setCameraEnabled(isVideoEnabled);
         setIsVideoEnabled(!isVideoEnabled);
-        logger.info('Camera toggled:', !isVideoEnabled ? 'disabled' : 'enabled');
       }
     } catch (err) {
       logger.error('Error toggling camera:', err);
-      Alert.alert('Error', 'Failed to toggle camera');
     }
   }, [isVideoEnabled, localParticipant]);
 
@@ -266,15 +430,47 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
     onClose();
   }, [disconnectFromRoom, onClose]);
 
-  const handleOpenPanoramaViewer = useCallback(() => {
+  const handleOpenPanoramaViewer = useCallback(async () => {
     logger.info('Opening panorama viewer from meeting');
-    setShowPanoramaViewer(true);
-  }, []);
 
-  const handleClosePanoramaViewer = useCallback(() => {
-    logger.info('Closing panorama viewer');
-    setShowPanoramaViewer(false);
-  }, []);
+    // Clear notification badge when user opens the viewer
+    setHasNewScene(false);
+
+    try {
+      // Fetch scene images for this reading club
+      const scenes = await LiveKitService.getSceneImages(readingClubId);
+
+      logger.info('📦 Raw scenes response:', JSON.stringify(scenes));
+      logger.info('📊 Type of scenes:', typeof scenes);
+      logger.info('📊 Is Array:', Array.isArray(scenes));
+      logger.info('📊 Length:', scenes?.length);
+
+      if (scenes && Array.isArray(scenes) && scenes.length > 0) {
+        logger.info(`✅ Found ${scenes.length} scene(s)`);
+        // Use the most recent scene
+        const latestScene = scenes[0];
+        logger.info('📸 Latest scene object:', JSON.stringify(latestScene));
+        logger.info('📸 Has image_base64:', !!latestScene.image_base64);
+
+        setGeneratedImageBase64(latestScene.image_base64);
+        setShowPanoramaViewer(true);
+        logger.info('✅ Scene image set successfully');
+      } else {
+        logger.warn('⚠️ No scenes found for this reading club');
+        logger.warn('⚠️ Scenes value:', scenes);
+        Alert.alert(
+          'Sin contenido',
+          'Aún no hay escenas 360 generadas para este club de lectura. Usa el botón de lectura para crear una.'
+        );
+      }
+    } catch (err) {
+      logger.error('❌ Error fetching scene images:', err);
+      Alert.alert(
+        'Error',
+        'No se pudieron cargar las escenas. Inténtalo de nuevo.'
+      );
+    }
+  }, [readingClubId]);
 
   useEffect(() => {
     connectToRoom();
@@ -397,6 +593,23 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
                 ? 'Estás participando en la reunión del club'
                 : 'Intentando reconectar...'}
             </Text>
+
+            {/* Recording Indicator for Reading Mode */}
+            {isReadingMode && (
+              <View style={styles.recordingContainer}>
+                <View style={[styles.recordingDot, { backgroundColor: theme.colors.error }]} />
+                <Text style={styles.recordingText}>Capturando lectura...</Text>
+              </View>
+            )}
+
+            {/* Generated text preview (optional, for debug or UX) */}
+            {capturedText.length > 0 && isReadingMode && (
+              <View style={styles.textPreviewContainer}>
+                <Text style={styles.textPreview} numberOfLines={2}>
+                  "{capturedText}"
+                </Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -429,21 +642,26 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
 
             {/* Remote participants */}
             {participants.map((participant) => {
+              const isAgent = participant.identity?.includes('agent') || participant.name?.includes('agent');
+
               // Check if participant has camera enabled
               const cameraPublication = participant.getTrackPublication(Track.Source.Camera);
               const hasVideo = cameraPublication && !cameraPublication.isMuted;
 
               return (
                 <View key={participant.identity} style={styles.participantCard}>
-                  <View style={styles.participantAvatar}>
-                    {hasVideo ? (
-                      <Ionicons name="videocam" size={20} color={theme.colors.success} />
-                    ) : (
-                      <Ionicons name="person" size={20} color={theme.colors.textSecondary} />
-                    )}
+                  <View style={[
+                    styles.participantAvatar,
+                    isAgent && { backgroundColor: theme.colors.accent + '20', borderColor: theme.colors.accent + '40', borderWidth: 1 }
+                  ]}>
+                    <MaterialCommunityIcons
+                      name={isAgent ? "robot" : "account"}
+                      size={20}
+                      color={isAgent ? theme.colors.accent : theme.colors.textSecondary}
+                    />
                   </View>
-                  <Text style={styles.participantName} numberOfLines={1}>
-                    {participant.name || participant.identity}
+                  <Text style={[styles.participantName, isAgent && { color: theme.colors.accent }]} numberOfLines={1}>
+                    {isAgent ? 'IA (Escucha)' : (participant.name || participant.identity)}
                   </Text>
                 </View>
               );
@@ -469,9 +687,33 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
             <Ionicons
               name={isMuted ? "mic-off" : "mic"}
               size={24}
-              color={isMuted ? theme.colors.textPrimary : theme.colors.textPrimary}
+              color={theme.colors.textPrimary}
             />
           </TouchableOpacity>
+
+          {/* Reading Mode / Scene Generation (Moderator only) */}
+          {isUserModerator && (
+            <TouchableOpacity
+              style={[
+                styles.controlButton,
+                isReadingMode && styles.controlButtonActive,
+                isGeneratingImage && styles.controlButtonDisabled,
+              ]}
+              onPress={handleToggleReadingMode}
+              disabled={isGeneratingImage}
+              activeOpacity={0.8}
+            >
+              {isGeneratingImage ? (
+                <ActivityIndicator size="small" color={theme.colors.accent} />
+              ) : (
+                <Ionicons
+                  name={isReadingMode ? "book" : "book-outline"}
+                  size={24}
+                  color={isReadingMode ? theme.colors.error : theme.colors.textPrimary}
+                />
+              )}
+            </TouchableOpacity>
+          )}
 
           {/* 360° Panorama Viewer - Accent button */}
           <TouchableOpacity
@@ -484,6 +726,11 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
               size={26}
               color={theme.colors.textPrimary}
             />
+            {hasNewScene && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>!</Text>
+              </View>
+            )}
           </TouchableOpacity>
 
           {/* Leave meeting - Destructive action */}
@@ -503,8 +750,15 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
           ════════════════════════════════════════════════════════════════════ */}
       {showPanoramaViewer && (
         <PanoramaViewer
-          uri="https://miro.medium.com/v2/resize:fit:1400/1*dgJ8el2wNtlICSCJwF4dbQ.jpeg"
-          onClose={() => setShowPanoramaViewer(false)}
+          uri={generatedImageBase64 ? `data:image/jpeg;base64,${generatedImageBase64}` : PANORAMA_URL}
+          isModerator={isUserModerator}
+          isReadingMode={isReadingMode}
+          onToggleReadingMode={handleToggleReadingMode}
+          isGeneratingImage={isGeneratingImage}
+          onClose={() => {
+            setShowPanoramaViewer(false);
+            setGeneratedImageBase64(null);
+          }}
         />
       )}
     </SafeAreaView>
@@ -847,5 +1101,75 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
     fontSize: 15,
     fontWeight: '600',
+  },
+  controlButtonActive: {
+    backgroundColor: 'rgba(248, 81, 73, 0.15)',
+    borderColor: 'rgba(248, 81, 73, 0.3)',
+    borderWidth: 1,
+  },
+  controlButtonDisabled: {
+    opacity: 0.5,
+  },
+  recordingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: 12,
+  },
+  recordingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  recordingText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  textPreviewContainer: {
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    padding: 10,
+    borderRadius: 12,
+    marginTop: 10,
+    maxWidth: '85%',
+  },
+  textPreview: {
+    color: 'rgba(240, 246, 252, 0.8)',
+    fontSize: 12,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+
+  // ════════════════════════════════════════════════════════════════════════
+  // NOTIFICATION BADGE
+  // ════════════════════════════════════════════════════════════════════════
+  notificationBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: theme.colors.error,
+    borderRadius: theme.radius.full,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: theme.colors.surface,
+    // Shadow for visibility
+    shadowColor: theme.colors.error,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  notificationBadgeText: {
+    color: theme.colors.textPrimary,
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });

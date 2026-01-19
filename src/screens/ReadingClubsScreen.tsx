@@ -329,10 +329,22 @@ export const ReadingClubsScreen: React.FC = () => {
           visible={showVideoCall}
           animationType="slide"
           presentationStyle="fullScreen"
+          onShow={() => {
+            logger.info('🧐 Debugging - Video Call Room Opening:', {
+              userId: user?.id,
+              clubModeratorId: videoCallClub.moderator_id,
+              nestedModeratorId: videoCallClub.moderator?.id,
+              isMatch: user?.id === videoCallClub.moderator_id || user?.id === videoCallClub.moderator?.id
+            });
+          }}
         >
           <VideoCallRoom
             readingClubId={videoCallClub.id}
             onClose={handleLeaveVideoCall}
+            isModerator={
+              (user?.id && videoCallClub.moderator_id && String(user.id) === String(videoCallClub.moderator_id)) ||
+              (user?.id && videoCallClub.moderator?.id && String(user.id) === String(videoCallClub.moderator.id))
+            }
           />
         </Modal>
       )}

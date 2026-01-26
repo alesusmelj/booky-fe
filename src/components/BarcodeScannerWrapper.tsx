@@ -112,94 +112,20 @@ const FallbackScanner: React.FC<BarcodeScannerWrapperProps> = ({
           </TouchableOpacity>
         </View>
 
-        {/* Debug Section */}
-        <View style={styles.debugSection}>
-          <Text style={styles.sectionTitle}>🔧 Opciones de Depuración:</Text>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.debugButton]}
-            onPress={() => {
-              logger.info('📷 [CAMERA] User requested to test camera scanner');
-              onClose();
-              // This will trigger a re-render and try to use the camera
-              setTimeout(() => {
-                alert('Intentando usar la cámara real. Si no funciona, verifica que tengas permisos de cámara habilitados.');
-              }, 100);
-            }}
-          >
-            <Text style={styles.debugButtonText}>📷 Probar Escáner de Cámara</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.actionButton, styles.debugButton]}
-            onPress={() => {
-              logger.info('🧪 [CAMERA] User requested simple permission test');
-              onClose();
-              // Import and show simple permission test with better error handling
-              setTimeout(() => {
-                try {
-                  import('./SimpleCameraPermissionTest').then(({ SimpleCameraPermissionTest }) => {
-                    // This is a quick test - in a real app you'd handle this better
-                    logger.info('🧪 [CAMERA] SimpleCameraPermissionTest loaded successfully');
-                    alert('Check logs for permission test results. This will test if expo-camera permissions work.');
-                  }).catch((error) => {
-                    logger.error('🧪 [CAMERA] Failed to load SimpleCameraPermissionTest:', error);
-                    const errorMessage = error instanceof Error ? error.message : String(error);
-                    logger.error('🧪 [CAMERA] Error details:', errorMessage);
-                    alert('Failed to load permission test: ' + errorMessage);
-                  });
-                } catch (syncError) {
-                  logger.error('🧪 [CAMERA] Synchronous error during import:', syncError);
-                  const errorMessage = syncError instanceof Error ? syncError.message : String(syncError);
-                  alert('Failed to start permission test: ' + errorMessage);
-                }
-              }, 100);
-            }}
-          >
-            <Text style={styles.debugButtonText}>🧪 Probar Solo Permisos</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.actionButton, styles.debugButton]}
-            onPress={() => {
-              logger.info('📱 [CAMERA] User requested iOS-specific camera test');
-              onClose();
-              // Import and show iOS camera test with robust error handling
-              setTimeout(() => {
-                try {
-                  import('./IOSCameraScanner').then(({ IOSCameraScanner }) => {
-                    logger.info('📱 [CAMERA] IOSCameraScanner loaded successfully');
-                    alert('Testing iOS-specific camera implementation. Check logs for detailed results.');
-                  }).catch((error) => {
-                    logger.error('📱 [CAMERA] Failed to load IOSCameraScanner:', error);
-                    const errorMessage = error instanceof Error ? error.message : String(error);
-                    logger.error('📱 [CAMERA] Error details:', errorMessage);
-                    alert('Failed to load iOS camera test: ' + errorMessage);
-                  });
-                } catch (syncError) {
-                  logger.error('📱 [CAMERA] Synchronous error during IOSCameraScanner import:', syncError);
-                  const errorMessage = syncError instanceof Error ? syncError.message : String(syncError);
-                  alert('Failed to start iOS camera test: ' + errorMessage);
-                }
-              }, 100);
-            }}
-          >
-            <Text style={styles.debugButtonText}>📱 Probar Cámara iOS</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Info Section */}
-        <View style={styles.infoSection}>
-          <Text style={styles.infoTitle}>💡 Para Escaneo Real:</Text>
-          <Text style={styles.infoText}>
-            Para usar el escáner de cámara, necesitas crear una compilación de desarrollo o usar EAS Build.
-          </Text>
-        </View>
-
-        {/* Close Button */}
-        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-          <Text style={styles.closeButtonText}>Cerrar</Text>
-        </TouchableOpacity>
       </View>
+
+      {/* Info Section */}
+      <View style={styles.infoSection}>
+        <Text style={styles.infoTitle}>💡 Para Escaneo Real:</Text>
+        <Text style={styles.infoText}>
+          Para usar el escáner de cámara, necesitas crear una compilación de desarrollo o usar EAS Build.
+        </Text>
+      </View>
+
+      {/* Close Button */}
+      <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+        <Text style={styles.closeButtonText}>Cerrar</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -441,23 +367,9 @@ export const BarcodeScannerWrapper: React.FC<BarcodeScannerWrapperProps> = (prop
         return;
       }
 
-      // Platform-specific logic
-      if (Platform.OS === 'ios') {
-        logger.info('📱 [CAMERA] iOS detected - checking expo-camera availability...');
-        // On iOS, be more cautious about camera availability
-        const isAvailable = isExpoCameraAvailable();
-        if (isAvailable) {
-          logger.info('📱 [CAMERA] expo-camera available on iOS, attempting to use');
-          setScannerType('native');
-        } else {
-          logger.info('📱 [CAMERA] expo-camera not available on iOS, using fallback');
-          setScannerType('fallback');
-        }
-      } else {
-        // On Android and other platforms, try to use camera directly
-        logger.info('📷 [CAMERA] Non-iOS platform, attempting to use expo-camera');
-        setScannerType('native');
-      }
+      // On Android, try to use camera directly
+      logger.info('📷 [CAMERA] Attempting to use expo-camera');
+      setScannerType('native');
     };
 
     checkAvailability();
@@ -631,7 +543,7 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderWidth: 2,
-    borderColor: colors.primary.blue500,
+    borderColor: colors.primary.indigo600,
     backgroundColor: 'transparent',
   },
   bottomOverlay: {
@@ -674,7 +586,7 @@ const styles = StyleSheet.create({
     color: colors.neutral.gray600,
   },
   button: {
-    backgroundColor: colors.primary.blue500,
+    backgroundColor: colors.primary.indigo600,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,

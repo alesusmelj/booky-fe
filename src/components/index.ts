@@ -26,11 +26,8 @@ export { CommunitySearchCard } from './CommunitySearchCard';
 // New Book and Achievement components
 export { UserLibraryBookCard } from './BookCard';
 export { AchievementCard } from './AchievementCard';
-// export { BarcodeScanner } from './BarcodeScanner'; // Disabled: causes crash in Expo Go
 export { BarcodeScannerWrapper } from './BarcodeScannerWrapper';
 export { NativeBarcodeScanner } from './NativeBarcodeScanner';
-export { SimpleCameraPermissionTest } from './SimpleCameraPermissionTest';
-export { IOSCameraScanner } from './IOSCameraScanner';
 
 // Commerce components
 export { CommerceToggle } from './CommerceToggle';

@@ -55,6 +55,8 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
 
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const termsScrollViewRef = useRef<ScrollView>(null);
 
   const { signUp, isLoading, error, clearError } = useAuth();
@@ -241,7 +243,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
     <>
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior="height"
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
@@ -347,45 +349,77 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
 
             {/* Password */}
             <View style={styles.inputContainer}>
-              <TextInput
-                style={[
-                  styles.input,
-                  errors.password ? styles.inputError : null,
-                ]}
-                placeholder={strings.auth.password}
-                placeholderTextColor={colors.neutral.gray400}
-                value={formData.password}
-                onChangeText={(text) => handleInputChange('password', text)}
-                secureTextEntry
-                autoCapitalize="none"
-                autoCorrect={false}
-                autoComplete="password-new"
-                testID="password-input"
-                accessible={true}
-                accessibilityLabel={strings.auth.password}
-              />
+              <View style={styles.passwordInputContainer}>
+                <TextInput
+                  style={[
+                    styles.input,
+                    styles.passwordInput,
+                    errors.password ? styles.inputError : null,
+                  ]}
+                  placeholder={strings.auth.password}
+                  placeholderTextColor={colors.neutral.gray400}
+                  value={formData.password}
+                  onChangeText={(text) => handleInputChange('password', text)}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="password-new"
+                  testID="password-input"
+                  accessible={true}
+                  accessibilityLabel={strings.auth.password}
+                />
+                <TouchableOpacity
+                  style={styles.eyeIcon}
+                  onPress={() => setShowPassword(!showPassword)}
+                  testID="toggle-password-visibility"
+                  accessible={true}
+                  accessibilityLabel={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                >
+                  <MaterialIcons
+                    name={showPassword ? "visibility" : "visibility-off"}
+                    size={24}
+                    color={colors.neutral.gray400}
+                  />
+                </TouchableOpacity>
+              </View>
               {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
             </View>
 
             {/* Confirm Password */}
             <View style={styles.inputContainer}>
-              <TextInput
-                style={[
-                  styles.input,
-                  errors.confirmPassword ? styles.inputError : null,
-                ]}
-                placeholder={strings.auth.confirmPassword}
-                placeholderTextColor={colors.neutral.gray400}
-                value={formData.confirmPassword}
-                onChangeText={(text) => handleInputChange('confirmPassword', text)}
-                secureTextEntry
-                autoCapitalize="none"
-                autoCorrect={false}
-                autoComplete="password-new"
-                testID="confirmPassword-input"
-                accessible={true}
-                accessibilityLabel={strings.auth.confirmPassword}
-              />
+              <View style={styles.passwordInputContainer}>
+                <TextInput
+                  style={[
+                    styles.input,
+                    styles.passwordInput,
+                    errors.confirmPassword ? styles.inputError : null,
+                  ]}
+                  placeholder={strings.auth.confirmPassword}
+                  placeholderTextColor={colors.neutral.gray400}
+                  value={formData.confirmPassword}
+                  onChangeText={(text) => handleInputChange('confirmPassword', text)}
+                  secureTextEntry={!showConfirmPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="password-new"
+                  testID="confirmPassword-input"
+                  accessible={true}
+                  accessibilityLabel={strings.auth.confirmPassword}
+                />
+                <TouchableOpacity
+                  style={styles.eyeIcon}
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  testID="toggle-confirm-password-visibility"
+                  accessible={true}
+                  accessibilityLabel={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                >
+                  <MaterialIcons
+                    name={showConfirmPassword ? "visibility" : "visibility-off"}
+                    size={24}
+                    color={colors.neutral.gray400}
+                  />
+                </TouchableOpacity>
+              </View>
               {errors.confirmPassword ? <Text style={styles.errorText}>{errors.confirmPassword}</Text> : null}
             </View>
 
@@ -706,6 +740,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     fontSize: 16,
     color: theme.text.primary,
+  },
+  passwordInputContainer: {
+    position: 'relative',
+    width: '100%',
+  },
+  passwordInput: {
+    paddingRight: 50,
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 16,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 4,
   },
   inputError: {
     borderColor: colors.status.error,

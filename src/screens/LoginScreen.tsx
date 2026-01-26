@@ -82,7 +82,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior="height"
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}

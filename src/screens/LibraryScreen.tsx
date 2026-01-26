@@ -456,7 +456,7 @@ export const LibraryScreen: React.FC = () => {
       >
         <KeyboardAvoidingView
           style={styles.modalOverlay}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior="height"
         >
           <View style={styles.modalContent}>
             <View style={styles.modalHandle} />

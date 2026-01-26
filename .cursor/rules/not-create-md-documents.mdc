@@ -1,5 +1,0 @@
----
-description: No debes crear documentos al finalizar cada prompt
-globs:
-alwaysApply: true
----

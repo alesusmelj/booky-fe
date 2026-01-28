@@ -13,6 +13,7 @@ export default {
     plugins: [
       './plugins/withAndroidCleartextTraffic.js',
       './plugins/withVoiceManifestFix.js',
+      './plugins/withAndroidXFix.js',
       '@react-native-voice/voice',
       [
         'expo-build-properties',
@@ -52,7 +53,7 @@ export default {
     android: {
       package: 'com.felipelena8.booky',
       adaptiveIcon: {
-        foregroundImage: './assets/logo.png',
+        foregroundImage: './assets/adaptive-icon.png',
         backgroundColor: '#ffffff',
       },
       edgeToEdgeEnabled: true,

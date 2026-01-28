@@ -16,15 +16,15 @@ allprojects {
   repositories {
     google()
     mavenCentral()
-    maven { url 'https://www.jitpack.io' }
-  }
-  
+    maven { url 'https://www.jitpack.io' 
   configurations.all {
     exclude group: 'com.android.support', module: 'support-compat'
     exclude group: 'com.android.support', module: 'support-core-utils'
     exclude group: 'com.android.support', module: 'support-core-ui'
     exclude group: 'com.android.support', module: 'support-fragment'
     exclude group: 'com.android.support', module: 'versionedparcelable'
+  }
+}
   }
 }
 

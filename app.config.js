@@ -10,6 +10,28 @@ export default {
     userInterfaceStyle: 'light',
     newArchEnabled: false,
 
+    plugins: [
+      './plugins/withAndroidCleartextTraffic.js',
+      './plugins/withVoiceManifestFix.js',
+      '@react-native-voice/voice',
+      [
+        'expo-build-properties',
+        {
+          android: {
+            enableJetifier: true,
+            packagingOptions: {
+              pickFirst: [
+                '**/libc++_shared.so',
+              ],
+              exclude: [
+                '**/libfbjni.so',
+              ],
+            },
+          },
+        },
+      ],
+    ],
+
     splash: {
       image: './assets/logo.png',
       resizeMode: 'contain',

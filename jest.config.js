@@ -1,9 +1,9 @@
 module.exports = {
-  preset: '@testing-library/react-native',
+  preset: 'jest-expo',
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/.expo/'],
   transformIgnorePatterns: [
-    'node_modules/(?!(react-native|@react-native|expo|@expo|@testing-library)/)',
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|@testing-library|@livekit|livekit-client)'
   ],
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',

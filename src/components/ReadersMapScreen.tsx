@@ -202,7 +202,7 @@ export const ReadersMapScreen: React.FC<ReadersMapScreenProps> = ({
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+          <TouchableOpacity style={styles.closeButton} onPress={onClose} testID="map-close-button">
             <MaterialIcons name="close" size={24} color={colors.neutral.gray800} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Mapa de Lectores</Text>
@@ -230,6 +230,7 @@ export const ReadersMapScreen: React.FC<ReadersMapScreenProps> = ({
             style={styles.currentLocationButton}
             onPress={getCurrentLocation}
             disabled={isLoadingLocation}
+            testID="current-location-button"
           >
             <MaterialIcons name="my-location" size={20} color={colors.primary.main} />
           </TouchableOpacity>

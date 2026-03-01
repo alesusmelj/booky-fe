@@ -33,12 +33,12 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     >
       <StatusBar backgroundColor="rgba(0,0,0,0.9)" barStyle="light-content" />
       <View style={styles.container}>
-        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+        <TouchableOpacity style={styles.closeButton} onPress={onClose} testID="close-button">
           <MaterialIcons name="close" size={30} color={colors.neutral.white} />
         </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.imageContainer} 
+
+        <TouchableOpacity
+          style={styles.imageContainer}
           activeOpacity={1}
           onPress={onClose}
         >

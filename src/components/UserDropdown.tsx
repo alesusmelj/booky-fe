@@ -64,11 +64,11 @@ export const UserDropdown: React.FC<UserDropdownProps> = ({
   if (!visible) return null;
 
   const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
-  
+
   // Calculate dropdown position
   const dropdownWidth = 200;
   const dropdownHeight = 120;
-  
+
   // Position dropdown below and to the left of the anchor point
   const left = Math.min(anchorPosition.x - dropdownWidth + 40, screenWidth - dropdownWidth - 20);
   const top = Math.min(anchorPosition.y + 10, screenHeight - dropdownHeight - 20);
@@ -80,7 +80,7 @@ export const UserDropdown: React.FC<UserDropdownProps> = ({
       animationType="none"
       onRequestClose={onClose}
     >
-      <Pressable style={styles.overlay} onPress={onClose}>
+      <Pressable style={styles.overlay} onPress={onClose} testID="dropdown-overlay">
         <Animated.View
           style={[
             styles.dropdown,

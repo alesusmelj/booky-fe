@@ -944,7 +944,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
             </View>
 
             {isOwnProfile ? (
-              <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
+              <TouchableOpacity testID="edit-profile-button" style={styles.editButton} onPress={handleEditProfile}>
                 <Text style={styles.editButtonText}>Editar Perfil</Text>
               </TouchableOpacity>
             ) : (
